@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "RN CLI Template",
+    "slug": "rn-cli-template",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "rnclitemplate",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.template.rncli"
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "package": "com.template.rncli"
+    }
+  }
+}

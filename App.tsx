@@ -1,0 +1,46 @@
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { useAppTheme } from './src/hooks/useAppTheme';
+import { Navigation } from './src/navigation';
+import { useAppStore } from './src/store/appStore';
+
+const Bootstrap = () => {
+  const initTheme = useAppStore((state) => state.initTheme);
+  const initialized = useAppStore((state) => state.initialized);
+  const { isDark } = useAppTheme();
+
+  useEffect(() => {
+    initTheme();
+  }, [initTheme]);
+
+  if (!initialized) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: isDark ? '#111827' : '#FFF8FB',
+        }}
+      >
+        <ActivityIndicator size="large" color="#EC4899" />
+      </View>
+    );
+  }
+
+  return <Navigation />;
+};
+
+export default function App() {
+  const { isDark } = useAppTheme();
+
+  return (
+    <SafeAreaProvider>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Bootstrap />
+    </SafeAreaProvider>
+  );
+}
