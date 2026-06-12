@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>排行榜成就 App Investor Demo</title>
+  <style>
+    :root {
+      --bg: #07101c;
+      --bg-soft: #111c30;
+      --card: rgba(14, 24, 43, 0.74);
+      --card-strong: #13203a;
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #f4f7ff;
+      --muted: #98a6c7;
+      --muted-2: #b8c3df;
+      --brand: #7c92ff;
+      --brand-2: #79f2d9;
+      --brand-3: #dcd2ff;
+      --accent: #ffb86a;
+      --danger: #ff7d7d;
+      --success: #57d79a;
+      --shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      --shadow-soft: 0 16px 40px rgba(0, 0, 0, 0.22);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --max-width: 1440px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC",
+        "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(124, 146, 255, 0.26), transparent 30%),
+        radial-gradient(circle at 80% 0%, rgba(121, 242, 217, 0.2), transparent 28%),
+        linear-gradient(180deg, #040914 0%, #09101c 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto;
+      border-radius: 999px;
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.85;
+    }
+
+    body::before {
+      width: 280px;
+      height: 280px;
+      top: 8vh;
+      right: 6vw;
+      background: rgba(124, 146, 255, 0.18);
+    }
+
+    body::after {
+      width: 320px;
+      height: 320px;
+      left: 18vw;
+      bottom: 10vh;
+      background: rgba(121, 242, 217, 0.14);
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      padding: 28px 22px;
+      border-right: 1px solid var(--line);
+      background: rgba(4, 10, 20, 0.72);
+      backdrop-filter: blur(20px);
+      z-index: 5;
+    }
+
+    .brand-block {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(124, 146, 255, 0.16), rgba(19, 32, 58, 0.92)),
+        rgba(255, 255, 255, 0.03);
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .brand-block::after {
+      content: "";
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      top: -40px;
+      right: -30px;
+      border-radius: 999px;
+      background: rgba(121, 242, 217, 0.14);
+      filter: blur(24px);
+    }
+
+    .eyebrow {
+      color: var(--brand-2);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    .brand-block h1 {
+      font-size: 24px;
+      line-height: 1.15;
+      margin: 0 0 10px;
+    }
+
+    .brand-block p,
+    .sidebar-note,
+    .nav-item span,
+    .muted {
+      color: var(--muted);
+    }
+
+    .brand-block p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .nav-item {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: start;
+      text-decoration: none;
+      padding: 12px 12px 12px 10px;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      transition: 0.25s ease;
+    }
+
+    .nav-item:hover,
+    .nav-item.active {
+      background: rgba(124, 146, 255, 0.14);
+      border-color: rgba(124, 146, 255, 0.28);
+      transform: translateX(2px);
+    }
+
+    .nav-index {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--brand-2);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .nav-item strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-note {
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .content {
+      padding: 22px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .deck {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      max-width: var(--max-width);
+      margin: 0 auto;
+    }
+
+    .slide {
+      min-height: calc(100vh - 44px);
+      border: 1px solid var(--line);
+      border-radius: 36px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
+        rgba(7, 15, 28, 0.84);
+      box-shadow: var(--shadow);
+      position: relative;
+      padding: 42px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.95fr;
+      gap: 34px;
+      opacity: 0;
+      transform: translateY(28px) scale(0.985);
+      transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.35s ease;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top right, rgba(124, 146, 255, 0.14), transparent 26%),
+        radial-gradient(circle at bottom left, rgba(121, 242, 217, 0.11), transparent 24%);
+      pointer-events: none;
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.025);
+      pointer-events: none;
+    }
+
+    .slide.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .slide-content,
+    .slide-visual {
+      position: relative;
+      z-index: 1;
+    }
+
+    .slide-title {
+      font-size: clamp(34px, 4.2vw, 58px);
+      line-height: 0.98;
+      margin: 10px 0 14px;
+      max-width: 760px;
+      letter-spacing: -0.03em;
+    }
+
+    .slide-subtitle {
+      font-size: 18px;
+      line-height: 1.8;
+      color: #d9e2f6;
+      max-width: 720px;
+      margin: 0 0 26px;
+    }
+
+    .hero-stats,
+    .grid-3,
+    .grid-4,
+    .score-example-grid,
+    .feature-list,
+    .journey,
+    .system-grid,
+    .poster-grid,
+    .insight-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero-stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 24px;
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .score-example-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 18px;
+    }
+
+    .feature-list,
+    .system-grid,
+    .poster-grid,
+    .insight-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stat-card,
+    .info-card,
+    .mini-card,
+    .formula-card,
+    .system-card,
+    .poster-card,
+    .timeline-card {
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+        var(--card);
+      border: 1px solid var(--line);
+      padding: 18px;
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(16px);
+    }
+
+    .stat-card strong,
+    .phone-metric strong,
+    .big-number {
+      display: block;
+      font-size: 30px;
+      margin-bottom: 6px;
+    }
+
+    .stat-card span,
+    .info-card p,
+    .mini-card p,
+    .formula-card p,
+    .system-card p,
+    .poster-card p,
+    .timeline-card p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+      margin: 0;
+    }
+
+    .tag-row,
+    .chip-row,
+    .action-row,
+    .tab-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill,
+    .chip,
+    .tab-button,
+    .ghost-button,
+    .primary-button {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 10px 14px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      transition: 0.22s ease;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--brand-2);
+    }
+
+    .chip.active,
+    .tab-button.active {
+      background: linear-gradient(90deg, rgba(124, 146, 255, 0.34), rgba(121, 242, 217, 0.24));
+      border-color: rgba(124, 146, 255, 0.42);
+      box-shadow: 0 8px 24px rgba(124, 146, 255, 0.18);
+    }
+
+    .primary-button {
+      background: linear-gradient(90deg, var(--brand), #9ea7ff 45%, #7fead7);
+      border-color: transparent;
+      font-weight: 700;
+      color: #09111f;
+      box-shadow: 0 12px 32px rgba(124, 146, 255, 0.28);
+    }
+
+    .ghost-button {
+      color: var(--muted);
+    }
+
+    .primary-button:hover,
+    .ghost-button:hover,
+    .tab-button:hover,
+    .chip:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .phone {
+      width: min(420px, 100%);
+      margin-left: auto;
+      background: linear-gradient(180deg, #11192d, #09101f);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 38px;
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.42);
+      padding: 14px;
+      position: relative;
+      transform: perspective(1400px) rotateY(-8deg) rotateX(2deg);
+      transition: transform 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .phone:hover {
+      transform: perspective(1400px) rotateY(-4deg) rotateX(1deg) translateY(-4px);
+      box-shadow: 0 56px 120px rgba(0, 0, 0, 0.46);
+    }
+
+    .phone::before {
+      content: "";
+      width: 34%;
+      height: 28px;
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 0 0 18px 18px;
+      background: #020611;
+    }
+
+    .phone::after {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      pointer-events: none;
+    }
+
+    .phone-shell {
+      border-radius: 28px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top, rgba(124, 146, 255, 0.15), transparent 32%),
+        linear-gradient(180deg, #0d1527, #111a2d 55%, #0a1020 100%);
+      min-height: 720px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .phone-shell::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -30%;
+      width: 42%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+      transform: skewX(-18deg);
+      pointer-events: none;
+    }
+
+    .phone-header {
+      padding: 46px 20px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #dfe7ff;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .phone-screen {
+      flex: 1;
+      padding: 0 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .phone-card {
+      padding: 16px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.04));
+      border: 1px solid rgba(255, 255, 255, 0.085);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    }
+
+    .phone-title {
+      font-size: 22px;
+      margin: 0 0 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .phone-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .phone-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .phone-metric {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .phone-metric span,
+    .list-row span,
+    .phone-list small,
+    .caption {
+      color: var(--muted);
+    }
+
+    .phone-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .list-row {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.042);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .rank-badge,
+    .avatar,
+    .icon-box {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .rank-badge {
+      background: rgba(124, 146, 255, 0.2);
+      color: var(--brand-2);
+    }
+
+    .avatar {
+      background: linear-gradient(135deg, rgba(110, 140, 255, 0.55), rgba(109, 243, 211, 0.48));
+    }
+
+    .icon-box {
+      background: rgba(255, 184, 106, 0.14);
+      color: var(--accent);
+    }
+
+    .presentation-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .presentation-badge img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    .hero-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .hero-quote {
+      max-width: 620px;
+      padding: 18px 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(124, 146, 255, 0.12), rgba(255, 255, 255, 0.02));
+      color: var(--muted-2);
+      font-size: 15px;
+      line-height: 1.8;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .hero-quote strong {
+      color: var(--text);
+    }
+
+    .hero-proof {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .proof-card {
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.035);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .proof-card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+
+    .proof-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .cover-phone-highlight {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .cover-score-card {
+      padding: 16px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(124, 146, 255, 0.18), rgba(255, 255, 255, 0.03));
+      border: 1px solid rgba(124, 146, 255, 0.2);
+    }
+
+    .cover-score-card strong {
+      display: block;
+      font-size: 28px;
+      margin-bottom: 6px;
+    }
+
+    .progress {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--brand), var(--brand-2));
+    }
+
+    .journey {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-top: 10px;
+    }
+
+    .journey-step {
+      padding: 18px;
+      border-radius: 20px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      position: relative;
+    }
+
+    .journey-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: -7px;
+      top: 50%;
+      width: 14px;
+      height: 2px;
+      background: rgba(110, 140, 255, 0.6);
+    }
+
+    .journey-step strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+
+    .journey-step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .data-pillars {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .data-pillar {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .data-pillar strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .overlay-note {
+      position: absolute;
+      right: 28px;
+      bottom: 28px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .deck-controls {
+      position: fixed;
+      right: 22px;
+      bottom: 20px;
+      z-index: 50;
+      display: flex;
+      gap: 10px;
+    }
+
+    .control-button {
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(5, 11, 22, 0.78);
+      color: var(--text);
+      backdrop-filter: blur(14px);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .control-button:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .legend-item {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .formula-card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .formula-meta {
+      color: var(--brand-2);
+      font-size: 12px;
+      margin-bottom: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .formula-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .formula-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted-2);
+    }
+
+    .formula-line b {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .slide-content > *,
+    .slide-visual > * {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .slide.visible .slide-content > *,
+    .slide.visible .slide-visual > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .slide.visible .slide-content > *:nth-child(2) { transition-delay: 0.05s; }
+    .slide.visible .slide-content > *:nth-child(3) { transition-delay: 0.1s; }
+    .slide.visible .slide-content > *:nth-child(4) { transition-delay: 0.15s; }
+    .slide.visible .slide-content > *:nth-child(5) { transition-delay: 0.2s; }
+    .slide.visible .slide-content > *:nth-child(6) { transition-delay: 0.25s; }
+    .slide.visible .slide-visual > * { transition-delay: 0.18s; }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .slide {
+        grid-template-columns: 1fr;
+      }
+
+      .phone {
+        margin: 0 auto;
+        transform: none;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .content {
+        padding: 12px;
+      }
+
+      .slide {
+        padding: 24px;
+        min-height: auto;
+      }
+
+      .hero-stats,
+      .hero-proof,
+      .grid-3,
+      .grid-4,
+      .score-example-grid,
+      .feature-list,
+      .system-grid,
+      .poster-grid,
+      .insight-grid,
+      .journey,
+      .phone-metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .nav {
+        grid-template-columns: 1fr;
+      }
+
+      .deck-controls {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="eyebrow">Investor Interactive Demo</div>
+        <h1>排行榜成就 App</h1>
+        <p>一个把真实经历沉淀成可展示、可比较、可持续增长个人成就资产的产品原型。</p>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="sidebar-note">
+        本演示整合了 `PRD / API / Data Model / DB Schema` 的核心内容，用“可讲解的页面 + 可点的手机交互”方式展示产品全貌。
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="deck" id="deck">
+        <section class="slide" id="cover" data-title="产品封面" data-desc="一句话定位与投资人视角核心信息">
+          <div class="slide-content">
+            <div class="hero-shell">
+              <div class="presentation-badge">
+                <img src="../../assets/logo.png" alt="logo" />
+                <span>Investor Narrative Demo · Product / Growth / Data / System</span>
+              </div>
+              <div class="eyebrow">Slide 01</div>
+              <h2 class="slide-title">把去过哪里、玩过什么，变成可排名、可分享、可复利的个人成就资产</h2>
+              <p class="slide-subtitle">
+                这不是一个“内容榜单 App”，而是一个“用户成就排行榜 App”。用户通过补录和持续记录自己的经历，在世界旅游、中国旅游、玩乐项目等榜单中不断升级，并通过年度回顾与成就海报完成传播裂变。
+              </p>
+              <div class="tag-row">
+                <span class="pill">用户成就</span>
+                <span class="pill">排行榜</span>
+                <span class="pill">补录驱动</span>
+                <span class="pill">年度回顾</span>
+                <span class="pill">分享裂变</span>
+              </div>
+              <div class="hero-quote">
+                <strong>给投资人的一句话：</strong>
+                这是一款把“人生经历”转化为“成就资产”的产品，用户越用越强、越晒越想继续补录，天然具备留存与传播双引擎。
+              </div>
+              <div class="hero-stats">
+                <div class="stat-card">
+                  <strong>3</strong>
+                  <span>MVP 核心子榜：世界旅游、中国旅游、玩乐项目</span>
+                </div>
+                <div class="stat-card">
+                  <strong>4</strong>
+                  <span>一级产品视角：首页、榜单、录入、我的</span>
+                </div>
+                <div class="stat-card">
+                  <strong>2</strong>
+                  <span>核心传播能力：年度回顾、成就海报</span>
+                </div>
+                <div class="stat-card">
+                  <strong>∞</strong>
+                  <span>分数不封顶，去得越多、玩得越多、互动越多，成长越高</span>
+                </div>
+              </div>
+              <div class="hero-proof">
+                <div class="proof-card">
+                  <strong>留存逻辑</strong>
+                  <p>用户为了更高排名主动补录，为了更好海报主动完善内容。</p>
+                </div>
+                <div class="proof-card">
+                  <strong>传播逻辑</strong>
+                  <p>年度回顾与成就海报天然适合社交平台扩散和回流。</p>
+                </div>
+                <div class="proof-card">
+                  <strong>系统逻辑</strong>
+                  <p>规则、接口、模型、快照和云函数结构已经具备落地基础。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>9:41</span>
+                  <span>5G</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card" style="background: linear-gradient(180deg, rgba(110,140,255,0.22), rgba(255,255,255,0.04));">
+                    <div class="eyebrow">Ranking Achievement App</div>
+                    <h3 class="phone-title">你的经历，不该只是回忆</h3>
+                    <p class="phone-subtitle">它应该成为一个会持续增值的个人成就资产。</p>
+                  </div>
+                  <div class="cover-phone-highlight">
+                    <div class="cover-score-card">
+                      <strong>96.8%</strong>
+                      <span class="caption">超过用户比例</span>
+                    </div>
+                    <div class="cover-score-card">
+                      <strong>#182</strong>
+                      <span class="caption">综合总榜排名</span>
+                    </div>
+                  </div>
+                  <div class="phone-metrics">
+                    <div class="phone-metric">
+                      <strong>#182</strong>
+                      <span>综合总榜排名</span>
+                    </div>
+                    <div class="phone-metric">
+                      <strong>143.6</strong>
+                      <span>综合总分</span>
+                    </div>
+                    <div class="phone-metric">
+                      <strong>50</strong>
+                      <span>已去国家</span>
+                    </div>
+                    <div class="phone-metric">
+                      <strong>顶级玩家</strong>
+                      <span>当前综合标签</span>
+                    </div>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-list">
+                      <div class="list-row">
+                        <div class="icon-box">世</div>
+                        <div>
+                          <strong>世界旅游榜</strong>
+                          <small>去过 50 个国家，覆盖 5 个洲</small>
+                        </div>
+                        <strong>181.6</strong>
+                      </div>
+                      <div class="list-row">
+                        <div class="icon-box">中</div>
+                        <div>
+                          <strong>中国旅游榜</strong>
+                          <small>18 个省级行政区，覆盖 6 个大区</small>
+                        </div>
+                        <strong>59.1</strong>
+                      </div>
+                      <div class="list-row">
+                        <div class="icon-box">玩</div>
+                        <div>
+                          <strong>玩乐项目榜</strong>
+                          <small>项目体验持续累积</small>
+                        </div>
+                        <strong>46.8</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="action-row">
+                    <button class="primary-button">查看完整演示</button>
+                    <button class="ghost-button">继续讲解</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="why-now" data-title="为什么值得做" data-desc="用户需求、留存动力与传播逻辑">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 02</div>
+            <h2 class="slide-title">用户需要的不是攻略更多，而是把自己的人生经历变得更值钱</h2>
+            <p class="slide-subtitle">
+              现有旅行和内容产品多在服务“看别人”，我们服务的是“看见我自己”。当用户能把零散经历沉淀成分数、排名、标签和年度故事，产品就具备更强的自驱补录、持续回访与社交传播动力。
+            </p>
+            <div class="grid-3">
+              <div class="info-card">
+                <strong>成就需求</strong>
+                <p>用户已经去过很多地方、玩过很多项目，但这些经历没有被系统化沉淀成资产。</p>
+              </div>
+              <div class="info-card">
+                <strong>比较需求</strong>
+                <p>用户天然想知道自己在同类人群中的位置，榜单和标签比纯内容更有比较张力。</p>
+              </div>
+              <div class="info-card">
+                <strong>分享需求</strong>
+                <p>年度回顾和海报把复杂数据转成“一眼能懂”的社交素材，天然适合传播。</p>
+              </div>
+            </div>
+            <div class="journey">
+              <div class="journey-step">
+                <strong>看到差距</strong>
+                <p>在榜单里看到自己当前排名和成长空间。</p>
+              </div>
+              <div class="journey-step">
+                <strong>集中补录</strong>
+                <p>快速补录过去经历，立即获得更高成绩。</p>
+              </div>
+              <div class="journey-step">
+                <strong>展示成就</strong>
+                <p>主页展示标签、榜单、代表性记录和互动。</p>
+              </div>
+              <div class="journey-step">
+                <strong>生成海报</strong>
+                <p>把成绩转成强视觉、强数字表达的传播内容。</p>
+              </div>
+              <div class="journey-step">
+                <strong>再次回流</strong>
+                <p>分享后继续补录、继续冲榜，形成复利型留存。</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>9:41</span>
+                  <span>Demo</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card">
+                    <div class="eyebrow">Retention Loop</div>
+                    <h3 class="phone-title">一个会自增长的用户循环</h3>
+                    <p class="phone-subtitle">用户为了更高排名主动补录；为了分享更好看的结果主动完善内容。</p>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-list">
+                      <div class="list-row">
+                        <div class="rank-badge">1</div>
+                        <div>
+                          <strong>榜单刺激</strong>
+                          <small>距离上一名差 3 个国家</small>
+                        </div>
+                        <span>补录</span>
+                      </div>
+                      <div class="list-row">
+                        <div class="rank-badge">2</div>
+                        <div>
+                          <strong>结果反馈</strong>
+                          <small>刚刚解锁「全球探索者」</small>
+                        </div>
+                        <span>成就</span>
+                      </div>
+                      <div class="list-row">
+                        <div class="rank-badge">3</div>
+                        <div>
+                          <strong>内容沉淀</strong>
+                          <small>补一张图，海报会更好看</small>
+                        </div>
+                        <span>展示</span>
+                      </div>
+                      <div class="list-row">
+                        <div class="rank-badge">4</div>
+                        <div>
+                          <strong>外部传播</strong>
+                          <small>年度回顾一键发朋友圈</small>
+                        </div>
+                        <span>裂变</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="phone-card">
+                    <strong class="big-number">98.5%</strong>
+                    <div class="progress"><span style="width:98.5%"></span></div>
+                    <p class="phone-subtitle" style="margin-top:10px;">你已经超过了 98.5% 的用户，这是最强的分享触发器之一。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="scoring" data-title="计分与护城河" data-desc="分数、排名、互动与持续成长逻辑">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 03</div>
+            <h2 class="slide-title">核心产品引擎：用户成就分主导，互动分辅助，分数不封顶</h2>
+            <p class="slide-subtitle">
+              三个子榜统一遵循 `成就分 × 0.7 + 影响力分 × 0.3`。成就分表达真实经历广度和结构，影响力分表达内容被认可程度。这样既保留成就主干，也让互动反馈能被用户明显感知。
+            </p>
+            <div class="feature-list">
+              <div class="system-card">
+                <strong>世界旅游榜</strong>
+                <p>按国家数 `×4` 计算基础分，再叠加洲覆盖和国家结构加成，重点体现“去得多、去得广、去得有层次”。</p>
+              </div>
+              <div class="system-card">
+                <strong>中国旅游榜</strong>
+                <p>按省级行政区数 `×2` 计算基础分，再用中国大区覆盖加成体现跨区域旅行广度。</p>
+              </div>
+              <div class="system-card">
+                <strong>玩乐项目榜</strong>
+                <p>按项目类型数 `×2` 计算基础分，再用项目大类覆盖加成体现体验维度扩展。</p>
+              </div>
+              <div class="system-card">
+                <strong>综合总榜</strong>
+                <p>按 `70% / 20% / 10%` 加权，进一步强化世界旅行作为头部表达，中国旅行和玩乐体验承担第二成长支撑。</p>
+              </div>
+            </div>
+            <div class="legend">
+              <span class="legend-item">成就主干：70%</span>
+              <span class="legend-item">互动辅助：30%</span>
+              <span class="legend-item">互动公式：ln(1 + 点赞×1 + 评论×2 + 收藏×3) × 10</span>
+              <span class="legend-item">分数逻辑：不设上限</span>
+            </div>
+            <div class="score-example-grid">
+              <div class="formula-card">
+                <div class="formula-meta">Example A</div>
+                <strong>世界旅游榜示例：181.6 分</strong>
+                <p>假设用户去过 50 个国家，覆盖 5 个洲，A 类 30、B 类 12、C 类 8，获得 20 个点赞、5 条评论、8 次收藏。</p>
+                <div class="formula-lines">
+                  <div class="formula-line"><span>成就分</span><b>50 × 4 + 5 × 5 + 17.2 = 242.2</b></div>
+                  <div class="formula-line"><span>影响力分</span><b>ln(1 + 54) × 10 ≈ 40.1</b></div>
+                  <div class="formula-line"><span>最终分</span><b>242.2 × 0.7 + 40.1 × 0.3 ≈ 181.6</b></div>
+                </div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-meta">Example B</div>
+                <strong>中国旅游榜示例：59.1 分</strong>
+                <p>假设用户去过 18 个省级行政区，覆盖 6 个中国大区，获得 30 个点赞、6 条评论、10 次收藏。</p>
+                <div class="formula-lines">
+                  <div class="formula-line"><span>成就分</span><b>18 × 2 + 6 × 5 = 66</b></div>
+                  <div class="formula-line"><span>影响力分</span><b>ln(1 + 72) × 10 ≈ 42.9</b></div>
+                  <div class="formula-line"><span>最终分</span><b>66 × 0.7 + 42.9 × 0.3 ≈ 59.1</b></div>
+                </div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-meta">Example C</div>
+                <strong>玩乐项目榜示例：46.8 分</strong>
+                <p>假设用户体验过 17 种项目类型，覆盖 5 个项目大类，获得 7 个点赞、3 条评论、2 次收藏。</p>
+                <div class="formula-lines">
+                  <div class="formula-line"><span>成就分</span><b>17 × 2 + 5 × 4 = 54</b></div>
+                  <div class="formula-line"><span>影响力分</span><b>ln(1 + 19) × 10 ≈ 30.0</b></div>
+                  <div class="formula-line"><span>最终分</span><b>54 × 0.7 + 30.0 × 0.3 = 46.8</b></div>
+                </div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-meta">Example D</div>
+                <strong>综合总榜示例：143.6 分</strong>
+                <p>综合总榜直接使用三个子榜总分做加权合成，不再重复单独计互动。</p>
+                <div class="formula-lines">
+                  <div class="formula-line"><span>世界旅游榜</span><b>181.6 × 0.7 = 127.12</b></div>
+                  <div class="formula-line"><span>中国旅游榜</span><b>59.1 × 0.2 = 11.82</b></div>
+                  <div class="formula-line"><span>玩乐项目榜</span><b>46.8 × 0.1 = 4.68</b></div>
+                  <div class="formula-line"><span>综合总分</span><b>127.12 + 11.82 + 4.68 = 143.62 ≈ 143.6</b></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>评分引擎</span>
+                  <span>balanced_v1</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card">
+                    <h3 class="phone-title">四个分数例子，一眼讲清产品逻辑</h3>
+                    <p class="phone-subtitle">投资人不只看到规则，还能直接看到世界榜、中国榜、玩乐榜和综合总榜分别怎么被算出来。</p>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-list">
+                      <div class="list-row">
+                        <div class="icon-box">世</div>
+                        <div>
+                          <strong>世界旅游榜</strong>
+                          <small>50 国 / 5 洲 / 结构加成 / 互动 54</small>
+                        </div>
+                        <strong>181.6</strong>
+                      </div>
+                      <div class="list-row">
+                        <div class="icon-box">中</div>
+                        <div>
+                          <strong>中国旅游榜</strong>
+                          <small>18 省 / 6 大区 / 互动 72</small>
+                        </div>
+                        <strong>59.1</strong>
+                      </div>
+                      <div class="list-row">
+                        <div class="icon-box">玩</div>
+                        <div>
+                          <strong>玩乐项目榜</strong>
+                          <small>17 项 / 5 大类 / 互动 19</small>
+                        </div>
+                        <strong>46.8</strong>
+                      </div>
+                      <div class="list-row">
+                        <div class="icon-box">总</div>
+                        <div>
+                          <strong>综合总榜</strong>
+                          <small>世界 70% + 中国 20% + 玩乐 10%</small>
+                        </div>
+                        <strong>143.6</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-metrics">
+                      <div class="phone-metric">
+                        <strong>242.2</strong>
+                        <span>世界榜成就分</span>
+                      </div>
+                      <div class="phone-metric">
+                        <strong>66.0</strong>
+                        <span>中国榜成就分</span>
+                      </div>
+                      <div class="phone-metric">
+                        <strong>54.0</strong>
+                        <span>玩乐榜成就分</span>
+                      </div>
+                      <div class="phone-metric">
+                        <strong>143.6</strong>
+                        <span>综合总榜演示值</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="journey" data-title="完整用户旅程" data-desc="从进入 App 到分享海报的全链路">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 04</div>
+            <h2 class="slide-title">从第一次进入，到榜单、补录、回顾、传播，形成完整闭环</h2>
+            <p class="slide-subtitle">
+              第一版产品不是做社区，而是先让用户快速看到结果。越快看到分数和排名，越容易推动后续补录、内容完善和分享传播。
+            </p>
+            <div class="journey full-width">
+              <div class="journey-step">
+                <strong>1. 进入 App</strong>
+                <p>首页说明产品价值，推荐参与榜单和补录入口。</p>
+              </div>
+              <div class="journey-step">
+                <strong>2. 选择榜单</strong>
+                <p>用户选世界旅游、中国旅游或玩乐项目榜开始建档。</p>
+              </div>
+              <div class="journey-step">
+                <strong>3. 快速勾选</strong>
+                <p>只需声明“我去过/玩过”，不做真实性审核，降低启动门槛。</p>
+              </div>
+              <div class="journey-step">
+                <strong>4. 即时反馈</strong>
+                <p>立即生成分数、排名、超过比例、下一个里程碑。</p>
+              </div>
+              <div class="journey-step">
+                <strong>5. 持续补录</strong>
+                <p>通过差距提示、成就感和标签提升驱动后续回访。</p>
+              </div>
+            </div>
+            <div class="journey full-width">
+              <div class="journey-step">
+                <strong>6. 完善内容</strong>
+                <p>补时间、图片、城市、描述，增强展示和互动表现。</p>
+              </div>
+              <div class="journey-step">
+                <strong>7. 展示主页</strong>
+                <p>主页展示综合标签、单榜表现、代表性记录和互动汇总。</p>
+              </div>
+              <div class="journey-step">
+                <strong>8. 年度回顾</strong>
+                <p>自动生成成就叙事卡片，给用户“这一年我成长了什么”的答案。</p>
+              </div>
+              <div class="journey-step">
+                <strong>9. 海报分享</strong>
+                <p>把结果转成适合社交传播的视觉物料，形成外部认知和回流。</p>
+              </div>
+              <div class="journey-step">
+                <strong>10. 下一次补录</strong>
+                <p>分享后继续完善记录或冲击下一个榜单阶段，形成复利循环。</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>用户旅程</span>
+                  <span>10 Steps</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card">
+                    <div class="eyebrow">核心原则</div>
+                    <h3 class="phone-title">先看见结果，再补内容</h3>
+                    <p class="phone-subtitle">这和大多数内容产品的“先生产内容”不同，是更强的成就驱动模型。</p>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-list">
+                      <div class="list-row"><div class="rank-badge">01</div><div><strong>选择榜单</strong><small>按兴趣进入世界 / 中国 / 玩乐</small></div><span>进入</span></div>
+                      <div class="list-row"><div class="rank-badge">02</div><div><strong>批量打卡</strong><small>历史补录，减少冷启动阻力</small></div><span>勾选</span></div>
+                      <div class="list-row"><div class="rank-badge">03</div><div><strong>即刻分数</strong><small>排名与超过比例立刻反馈</small></div><span>反馈</span></div>
+                      <div class="list-row"><div class="rank-badge">04</div><div><strong>持续完善</strong><small>图片、时间、城市、描述</small></div><span>内容</span></div>
+                      <div class="list-row"><div class="rank-badge">05</div><div><strong>分享扩散</strong><small>年度回顾和海报带来传播</small></div><span>传播</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="home" data-title="首页体验" data-desc="首页如何分发核心能力">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 05</div>
+            <h2 class="slide-title">首页是产品总入口，负责分发榜单、我的成绩和关键行动</h2>
+            <p class="slide-subtitle">
+              首页不承载所有详情，而是承接投资人最关心的产品核心场景：榜单入口、当前成绩卡片、推荐补录、年度回顾和海报入口。
+            </p>
+            <div class="grid-4">
+              <div class="mini-card">
+                <strong>三大榜单入口</strong>
+                <p>世界旅游、中国旅游、玩乐项目一键进入。</p>
+              </div>
+              <div class="mini-card">
+                <strong>当前成绩卡片</strong>
+                <p>直接展示综合总分、排名和当前标签。</p>
+              </div>
+              <div class="mini-card">
+                <strong>推荐补录</strong>
+                <p>提示离下一个里程碑最近的补录动作。</p>
+              </div>
+              <div class="mini-card">
+                <strong>传播入口</strong>
+                <p>年度回顾和海报入口始终可见，便于回流。</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>首页</span>
+                  <span>推荐</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card" style="background: linear-gradient(180deg, rgba(110,140,255,0.22), rgba(255,255,255,0.04));">
+                    <div class="eyebrow">我的当前成绩</div>
+                    <h3 class="phone-title">143.6 分 · 顶级玩家</h3>
+                    <p class="phone-subtitle">你已超过 96.8% 用户，距离前 150 名还差 2 个国家。</p>
+                  </div>
+                  <div class="phone-metrics">
+                    <div class="phone-metric"><strong>世界榜</strong><span>181.6 分</span></div>
+                    <div class="phone-metric"><strong>中国榜</strong><span>59.1 分</span></div>
+                    <div class="phone-metric"><strong>玩乐榜</strong><span>46.8 分</span></div>
+                    <div class="phone-metric"><strong>年度新增</strong><span>13 项</span></div>
+                  </div>
+                  <div class="phone-card">
+                    <div class="tab-row">
+                      <button class="tab-button active">热门榜单</button>
+                      <button class="tab-button">推荐补录</button>
+                    </div>
+                    <div class="phone-list" style="margin-top:12px;">
+                      <div class="list-row"><div class="icon-box">世</div><div><strong>世界旅游榜</strong><small>再补录 3 个国家，进入前 1%</small></div><span>去补录</span></div>
+                      <div class="list-row"><div class="icon-box">中</div><div><strong>中国旅游榜</strong><small>18 个省级行政区，已经超过全国一半</small></div><span>查看</span></div>
+                      <div class="list-row"><div class="icon-box">回</div><div><strong>2026 年度回顾</strong><small>今年新增 13 条有效经历</small></div><span>生成</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="leaderboards" data-title="榜单页演示" data-desc="四类榜单与我的位置、排名列表">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 06</div>
+            <h2 class="slide-title">榜单页负责比较与冲榜，是产品最强的成就反馈场</h2>
+            <p class="slide-subtitle">
+              榜单页统一展示：榜单定义、我的位置、榜单切换、排名列表和行动引导。投资人可以从这里最直观地理解这个产品的“冲榜动力”。
+            </p>
+            <div class="tag-row" data-tabs="leaderboard">
+              <button class="tab-button active" data-target="board-overall">综合总榜</button>
+              <button class="tab-button" data-target="board-world">世界旅游榜</button>
+              <button class="tab-button" data-target="board-china">中国旅游榜</button>
+              <button class="tab-button" data-target="board-activity">玩乐项目榜</button>
+            </div>
+            <div class="tab-panel active" id="board-overall">
+              <div class="grid-3" style="margin-top:14px;">
+                <div class="info-card"><strong>定位</strong><p>全站总排名，综合体现用户跨榜单的成就积累。</p></div>
+                <div class="info-card"><strong>权重</strong><p>世界旅游 70%，中国旅游 20%，玩乐项目 10%。</p></div>
+                <div class="info-card"><strong>我的位置</strong><p>综合总分 143.6，当前排名 #182，超过 96.8% 用户。</p></div>
+              </div>
+            </div>
+            <div class="tab-panel" id="board-world">
+              <div class="grid-3" style="margin-top:14px;">
+                <div class="info-card"><strong>统计维度</strong><p>去过的唯一国家数。</p></div>
+                <div class="info-card"><strong>分数逻辑</strong><p>国家数量基础分 + 洲覆盖加成 + 结构加成。</p></div>
+                <div class="info-card"><strong>冲榜反馈</strong><p>离下一个里程碑还差 3 个国家，当前标签为全球探索者。</p></div>
+              </div>
+            </div>
+            <div class="tab-panel" id="board-china">
+              <div class="grid-3" style="margin-top:14px;">
+                <div class="info-card"><strong>统计维度</strong><p>去过的唯一省级行政区数。</p></div>
+                <div class="info-card"><strong>产品价值</strong><p>让用户在国内旅行也拥有明确的成长感和跨区域探索表达。</p></div>
+                <div class="info-card"><strong>我的状态</strong><p>已覆盖 18 个省级行政区，属于较强阶段。</p></div>
+              </div>
+            </div>
+            <div class="tab-panel" id="board-activity">
+              <div class="grid-3" style="margin-top:14px;">
+                <div class="info-card"><strong>统计维度</strong><p>体验过的唯一项目类型数。</p></div>
+                <div class="info-card"><strong>扩展空间</strong><p>未来可扩展更多兴趣场景，承接长期内容生态。</p></div>
+                <div class="info-card"><strong>候选池机制</strong><p>未命中的项目先进入候选池，后续归并后再计分。</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>榜单页</span>
+                  <span>#182</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card">
+                    <div class="eyebrow">综合总榜</div>
+                    <h3 class="phone-title">143.6 分 · 超过 96.8% 用户</h3>
+                    <p class="phone-subtitle">距离上一名差 0.8 分，距离下一个里程碑还差 2 个国家。</p>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-list">
+                      <div class="list-row"><div class="rank-badge">1</div><div><strong>环球玩家 Max</strong><small>世界玩家 · 世界榜 356.4</small></div><strong>312.8</strong></div>
+                      <div class="list-row"><div class="rank-badge">2</div><div><strong>Travel Iris</strong><small>综合强者 · 中国榜优势明显</small></div><strong>248.6</strong></div>
+                      <div class="list-row"><div class="rank-badge">182</div><div><strong>你</strong><small>顶级玩家 · 世界旅游高潜</small></div><strong>143.6</strong></div>
+                      <div class="list-row"><div class="rank-badge">183</div><div><strong>Cloud Boy</strong><small>中国深度玩家</small></div><strong>166.6</strong></div>
+                    </div>
+                  </div>
+                  <div class="action-row">
+                    <button class="primary-button">去补录</button>
+                    <button class="ghost-button">查看规则</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="checkin" data-title="录入与补录" data-desc="快速勾选、候选池、补充内容">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 07</div>
+            <h2 class="slide-title">录入页是增长发动机：允许用户集中补录历史经历，并立刻换来结果</h2>
+            <p class="slide-subtitle">
+              我们不限制补录数量，不因短期大量补录判定异常。用户只要勾选标准项就能成立记录，后续再补时间、城市、图片和描述，从而兼顾低门槛与展示质量。
+            </p>
+            <div class="feature-list">
+              <div class="system-card">
+                <strong>标准项优先</strong>
+                <p>世界按国家、中国按省级行政区、玩乐按官方项目类型统一录入。</p>
+              </div>
+              <div class="system-card">
+                <strong>集中补录友好</strong>
+                <p>历史补录与实时新增在计分上完全等价，适合快速建档。</p>
+              </div>
+              <div class="system-card">
+                <strong>候选池机制</strong>
+                <p>玩乐项目未命中官方标准项时，进入“我的其他体验”候选池。</p>
+              </div>
+              <div class="system-card">
+                <strong>内容补充后置</strong>
+                <p>时间、地点、图片、一句话描述用于丰富展示，不作为审核依据。</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>世界旅游榜录入</span>
+                  <span>17 已选</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card">
+                    <h3 class="phone-title">快速勾选你去过的国家</h3>
+                    <p class="phone-subtitle">支持搜索、按洲浏览、热门国家推荐，勾选后立即计分。</p>
+                  </div>
+                  <div class="chip-row">
+                    <span class="chip active">日本</span>
+                    <span class="chip active">泰国</span>
+                    <span class="chip active">法国</span>
+                    <span class="chip active">美国</span>
+                    <span class="chip">挪威</span>
+                    <span class="chip">冰岛</span>
+                    <span class="chip">巴西</span>
+                    <span class="chip">南非</span>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-list">
+                      <div class="list-row"><div class="icon-box">分</div><div><strong>当前国家数</strong><small>17 个唯一国家</small></div><strong>17</strong></div>
+                      <div class="list-row"><div class="icon-box">冲</div><div><strong>补录 3 个国家</strong><small>预计进入全球前 1%</small></div><strong>+4.6</strong></div>
+                      <div class="list-row"><div class="icon-box">候</div><div><strong>没有我的类别？</strong><small>适用于玩乐项目候选池提交</small></div><span>提交</span></div>
+                    </div>
+                  </div>
+                  <div class="action-row">
+                    <button class="primary-button">保存并更新成绩</button>
+                    <button class="ghost-button">补充图片与描述</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="profile" data-title="个人主页" data-desc="成就资产展示页与内容沉淀页">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 08</div>
+            <h2 class="slide-title">个人主页是用户的成就资产页，不是普通资料页</h2>
+            <p class="slide-subtitle">
+              主页统一承接综合标签、子榜成绩、互动汇总、年度回顾和海报入口。它既是用户自我展示的核心页面，也是外部传播后的承接页。
+            </p>
+            <div class="grid-3">
+              <div class="info-card">
+                <strong>综合表达</strong>
+                <p>综合总榜分数、综合标签、超过用户比例，一屏讲清“这个人有多强”。</p>
+              </div>
+              <div class="info-card">
+                <strong>单榜拆解</strong>
+                <p>世界、中国、玩乐三个维度并列展示，让用户看到自己最强优势项。</p>
+              </div>
+              <div class="info-card">
+                <strong>传播入口</strong>
+                <p>年度回顾和海报入口直接挂在主页中，最大化成就分享意愿。</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>我的</span>
+                  <span>成就页</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card" style="background: linear-gradient(180deg, rgba(109,243,211,0.14), rgba(255,255,255,0.04));">
+                    <div style="display:flex; gap:12px; align-items:center;">
+                      <div class="avatar">王</div>
+                      <div>
+                        <h3 class="phone-title" style="margin:0;">王小游</h3>
+                        <p class="phone-subtitle">综合强者 · 全球探索者 · 中国深度玩家</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="phone-metrics">
+                    <div class="phone-metric"><strong>143.6</strong><span>综合总分</span></div>
+                    <div class="phone-metric"><strong>#182</strong><span>综合排名</span></div>
+                    <div class="phone-metric"><strong>126</strong><span>累计互动</span></div>
+                    <div class="phone-metric"><strong>98.5%</strong><span>超过用户</span></div>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-list">
+                      <div class="list-row"><div class="icon-box">世</div><div><strong>世界旅游榜</strong><small>181.6 分 · 世界玩家</small></div><span>查看</span></div>
+                      <div class="list-row"><div class="icon-box">中</div><div><strong>中国旅游榜</strong><small>59.1 分 · 全国玩家</small></div><span>查看</span></div>
+                      <div class="list-row"><div class="icon-box">玩</div><div><strong>玩乐项目榜</strong><small>46.8 分 · 全能玩家</small></div><span>查看</span></div>
+                    </div>
+                  </div>
+                  <div class="action-row">
+                    <button class="primary-button">年度回顾</button>
+                    <button class="ghost-button">生成海报</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="review" data-title="年度回顾" data-desc="成就叙事页与回流引擎">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 09</div>
+            <h2 class="slide-title">年度回顾不是复杂报表，而是一套会让用户愿意分享的成就叙事</h2>
+            <p class="slide-subtitle">
+              年度回顾通过“多张卡片串联”的方式，把用户今年新增了什么、变强了多少、最值得晒什么讲出来。它既服务留存，也服务传播。
+            </p>
+            <div class="poster-grid">
+              <div class="poster-card">
+                <strong>封面卡</strong>
+                <p>你的 2026 成就回顾，用户昵称、头像、年份和情绪化文案开场。</p>
+              </div>
+              <div class="poster-card">
+                <strong>年度新增总览卡</strong>
+                <p>新增国家数、省级行政区数、项目数和总打卡数，一眼看见年度增长。</p>
+              </div>
+              <div class="poster-card">
+                <strong>榜单进步卡</strong>
+                <p>展示年初与年末分数/排名变化，突出成长幅度。</p>
+              </div>
+              <div class="poster-card">
+                <strong>高光记录卡</strong>
+                <p>展示最值得晒的记录，可优先使用用户自己的图片。</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>2026 年度回顾</span>
+                  <span>1 / 6</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card" style="min-height:180px; background: linear-gradient(180deg, rgba(110,140,255,0.24), rgba(109,243,211,0.12));">
+                    <div class="eyebrow">Cover</div>
+                    <h3 class="phone-title">你的 2026 成就回顾</h3>
+                    <p class="phone-subtitle">这一年，你的足迹和体验又向前走了多远。</p>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-metrics">
+                      <div class="phone-metric"><strong>+4</strong><span>新增国家</span></div>
+                      <div class="phone-metric"><strong>+6</strong><span>新增省份</span></div>
+                      <div class="phone-metric"><strong>+3</strong><span>新增项目</span></div>
+                      <div class="phone-metric"><strong>+13</strong><span>新增总记录</span></div>
+                    </div>
+                  </div>
+                  <div class="phone-card">
+                    <div class="phone-list">
+                      <div class="list-row"><div class="icon-box">升</div><div><strong>综合总榜</strong><small>从 #500 升到 #182</small></div><strong>+318</strong></div>
+                      <div class="list-row"><div class="icon-box">强</div><div><strong>最强维度</strong><small>世界旅游榜增长最快</small></div><span>高光</span></div>
+                      <div class="list-row"><div class="icon-box">晒</div><div><strong>高光记录</strong><small>今年第一次完成极光追逐</small></div><span>可分享</span></div>
+                    </div>
+                  </div>
+                  <div class="action-row">
+                    <button class="primary-button">生成年度海报</button>
+                    <button class="ghost-button">继续浏览</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="poster" data-title="成就海报" data-desc="传播物料与裂变入口">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 10</div>
+            <h2 class="slide-title">成就海报是核心传播物料，让用户一眼就能晒出结果</h2>
+            <p class="slide-subtitle">
+              海报不是截图替代，而是标准化传播物料。每种海报主题都围绕“关键数字 + 榜单排名/超过比例 + 标签 + 代表性记录”展开，适合社交平台扩散。
+            </p>
+            <div class="poster-grid">
+              <div class="poster-card">
+                <strong>综合总榜海报</strong>
+                <p>突出综合总分、综合排名、超过用户比例和核心标签。</p>
+              </div>
+              <div class="poster-card">
+                <strong>世界旅游榜海报</strong>
+                <p>展示去过国家数、代表性国家和世界标签，传播感最强。</p>
+              </div>
+              <div class="poster-card">
+                <strong>中国旅游榜海报</strong>
+                <p>展示省级覆盖数、中国标签、区域风格和代表性省份。</p>
+              </div>
+              <div class="poster-card">
+                <strong>年度回顾海报</strong>
+                <p>把年度新增、排名变化、关键词和高光事件做成总结海报。</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>海报预览</span>
+                  <span>保存</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card" style="min-height:520px; background: linear-gradient(180deg, rgba(110,140,255,0.3), rgba(8,17,31,0.9)); display:flex; flex-direction:column; justify-content:space-between;">
+                    <div>
+                      <div class="eyebrow">综合总榜成绩海报</div>
+                      <h3 class="phone-title">你已经超过了 96.8% 的用户</h3>
+                    </div>
+                    <div>
+                      <strong style="font-size:64px; line-height:1;">143.6</strong>
+                      <p class="phone-subtitle">综合总分 · 综合强者 · #182</p>
+                    </div>
+                    <div class="tag-row">
+                      <span class="pill">全球探索者</span>
+                      <span class="pill">中国深度玩家</span>
+                    </div>
+                  </div>
+                  <div class="action-row">
+                    <button class="primary-button">保存图片</button>
+                    <button class="ghost-button">分享到社交平台</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="system" data-title="系统与数据能力" data-desc="接口、模型、快照、扩展性">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 11</div>
+            <h2 class="slide-title">不仅是前台好看，后台也具备清晰的数据、接口和扩展能力</h2>
+            <p class="slide-subtitle">
+              当前文档体系已经覆盖产品规则、API 契约、数据模型、NoSQL 结构、标准项导入和云函数原型。对于投资人，这意味着产品不是“想法”，而是已经具备进入实现阶段的清晰结构。
+            </p>
+            <div class="system-grid">
+              <div class="system-card">
+                <strong>API 层</strong>
+                <p>`/home/overview`、`/leaderboards/{code}/my-rank`、`/checkins/batch`、`/reviews/year/{year}`、`/posters/generate` 等核心接口已定义。</p>
+              </div>
+              <div class="system-card">
+                <strong>数据模型</strong>
+                <p>标准项、用户打卡、互动、分数快照、年度回顾、海报记录等实体已拆清楚。</p>
+              </div>
+              <div class="system-card">
+                <strong>计分版本</strong>
+                <p>引入 `score_version`，支持 `balanced_v1` 到未来 `gamified_v2` 的平滑升级。</p>
+              </div>
+              <div class="system-card">
+                <strong>快照机制</strong>
+                <p>分数和排名通过 `user_score_snapshot` 沉淀，支撑榜单、主页、海报和年度回顾。</p>
+              </div>
+            </div>
+            <div class="data-pillars" style="margin-top:16px;">
+              <div class="data-pillar">
+                <strong>内容实体分层</strong>
+                <span class="muted">标准库、打卡记录、互动行为、分数快照、海报记录相互独立，便于后续扩展。</span>
+              </div>
+              <div class="data-pillar">
+                <strong>传播能力闭环</strong>
+                <span class="muted">年度回顾、分享海报、分享日志、回流链路可以形成可衡量增长系统。</span>
+              </div>
+              <div class="data-pillar">
+                <strong>后续演进空间</strong>
+                <span class="muted">好友榜、月榜、勋章系统、地图足迹、候选池转正、游戏化计分都可顺滑叠加。</span>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>System View</span>
+                  <span>Docs Ready</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card">
+                    <div class="phone-list">
+                      <div class="list-row"><div class="icon-box">API</div><div><strong>接口层</strong><small>首页 / 榜单 / 录入 / 回顾 / 海报</small></div><span>Ready</span></div>
+                      <div class="list-row"><div class="icon-box">DB</div><div><strong>数据层</strong><small>标准项 / 打卡 / 快照 / 海报集合</small></div><span>Ready</span></div>
+                      <div class="list-row"><div class="icon-box">CF</div><div><strong>云函数</strong><small>chart_user / chart_rank 原型已搭建</small></div><span>Ready</span></div>
+                      <div class="list-row"><div class="icon-box">V</div><div><strong>版本化计分</strong><small>balanced_v1 -> gamified_v2</small></div><span>Ready</span></div>
+                    </div>
+                  </div>
+                  <div class="phone-card">
+                    <h3 class="phone-title">投资人可见的确定性</h3>
+                    <p class="phone-subtitle">不仅有故事、有界面，还有规则、有数据结构、有接口和可执行原型。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="roadmap" data-title="MVP 与路线图" data-desc="上线范围、增长逻辑与未来扩展">
+          <div class="slide-content">
+            <div class="eyebrow">Slide 12</div>
+            <h2 class="slide-title">MVP 先打透“成就建档 + 冲榜 + 分享”，后续再长出勋章、好友榜和更多主题体验</h2>
+            <p class="slide-subtitle">
+              第一阶段不做真实性审核、不做复杂社区、不做强风控，而是聚焦：榜单成绩、补录体验、主页展示、年度回顾和海报传播。先把用户的成就感和传播感做出来。
+            </p>
+            <div class="insight-grid">
+              <div class="timeline-card">
+                <strong>MVP 要做</strong>
+                <p>三大榜单、综合总榜、快速补录、记录补充、榜单页、个人主页、年度回顾、成就海报。</p>
+              </div>
+              <div class="timeline-card">
+                <strong>MVP 不做</strong>
+                <p>强审核系统、人工认证、复杂反作弊、深度社区生态、复杂风控模型。</p>
+              </div>
+              <div class="timeline-card">
+                <strong>下一阶段</strong>
+                <p>好友榜、月榜、勋章系统、地图足迹、城市/景点扩展视图、候选项目转正机制。</p>
+              </div>
+              <div class="timeline-card">
+                <strong>长期方向</strong>
+                <p>更丰富年度回顾模板、多主题海报模板、游戏化成就体系、更多榜单主题。</p>
+              </div>
+            </div>
+            <div class="action-row" style="margin-top:18px;">
+              <button class="primary-button" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">回到封面继续讲解</button>
+              <button class="ghost-button" onclick="window.print()">导出 / 打印 PDF</button>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="phone">
+              <div class="phone-shell">
+                <div class="phone-header">
+                  <span>Roadmap</span>
+                  <span>2026+</span>
+                </div>
+                <div class="phone-screen">
+                  <div class="phone-card">
+                    <div class="eyebrow">MVP Success Metric</div>
+                    <h3 class="phone-title">先把用户的成就感做出来</h3>
+                    <p class="phone-subtitle">当用户愿意补录、愿意晒成绩，这个产品就具备了真正的增长引擎。</p>
+                  </div>
+                  <div class="phone-list">
+                    <div class="list-row"><div class="rank-badge">Q1</div><div><strong>建档 + 榜单</strong><small>完成三榜和综合总榜 MVP</small></div><span>上线</span></div>
+                    <div class="list-row"><div class="rank-badge">Q2</div><div><strong>年度回顾 + 海报</strong><small>形成传播能力</small></div><span>裂变</span></div>
+                    <div class="list-row"><div class="rank-badge">Q3</div><div><strong>好友榜 + 勋章</strong><small>增强关系链和游戏化</small></div><span>增长</span></div>
+                    <div class="list-row"><div class="rank-badge">Q4</div><div><strong>更多主题榜单</strong><small>扩展城市、景点、兴趣维度</small></div><span>扩张</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="overlay-note">投资人演示建议：每页 1-2 分钟，可搭配讲稿进行路演。</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="deck-controls">
+    <button class="control-button" id="prevBtn" aria-label="上一页">↑</button>
+    <button class="control-button" id="nextBtn" aria-label="下一页">↓</button>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const nav = document.getElementById("nav");
+    const navLinks = [];
+
+    slides.forEach((slide, index) => {
+      const link = document.createElement("a");
+      link.className = "nav-item";
+      link.href = "#" + slide.id;
+      link.innerHTML = `
+        <div class="nav-index">${String(index + 1).padStart(2, "0")}</div>
+        <div>
+          <strong>${slide.dataset.title}</strong>
+          <span>${slide.dataset.desc}</span>
+        </div>
+      `;
+      nav.appendChild(link);
+      navLinks.push(link);
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          entry.target.classList.toggle("visible", entry.isIntersecting);
+          if (!entry.isIntersecting) return;
+          const index = slides.findIndex((slide) => slide === entry.target);
+          navLinks.forEach((link, linkIndex) => {
+            link.classList.toggle("active", index === linkIndex);
+          });
+        });
+      },
+      { threshold: 0.45 }
+    );
+
+    slides.forEach((slide) => observer.observe(slide));
+    if (slides[0]) {
+      slides[0].classList.add("visible");
+    }
+
+    document.querySelectorAll("[data-tabs]").forEach((group) => {
+      const buttons = group.querySelectorAll(".tab-button");
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const targetId = button.dataset.target;
+          const parentSlide = button.closest(".slide");
+          parentSlide.querySelectorAll("[data-tabs] .tab-button").forEach((item) => {
+            item.classList.toggle("active", item === button);
+          });
+          parentSlide.querySelectorAll(".tab-panel").forEach((panel) => {
+            panel.classList.toggle("active", panel.id === targetId);
+          });
+        });
+      });
+    });
+
+    let currentIndex = 0;
+    const scrollToSlide = (index) => {
+      currentIndex = Math.max(0, Math.min(slides.length - 1, index));
+      slides[currentIndex].scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    document.getElementById("prevBtn").addEventListener("click", () => scrollToSlide(currentIndex - 1));
+    document.getElementById("nextBtn").addEventListener("click", () => scrollToSlide(currentIndex + 1));
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "PageDown") {
+        scrollToSlide(currentIndex + 1);
+      }
+      if (event.key === "ArrowUp" || event.key === "PageUp") {
+        scrollToSlide(currentIndex - 1);
+      }
+    });
+
+    const setCurrentByScroll = () => {
+      let bestIndex = 0;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      slides.forEach((slide, index) => {
+        const distance = Math.abs(slide.getBoundingClientRect().top);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = index;
+        }
+      });
+      currentIndex = bestIndex;
+    };
+
+    window.addEventListener("scroll", setCurrentByScroll, { passive: true });
+    setCurrentByScroll();
+  </script>
+</body>
+</html>

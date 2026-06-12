@@ -1,10 +1,12 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { useAppStore } from '../../store/appStore';
+
+import { LEADERBOARD_CONFIGS, LeaderboardCode } from '../../types/rank';
 
 import Button from '../../components/common/Button';
 
@@ -13,6 +15,8 @@ const themeOptions: Array<{ label: string; value: 'light' | 'dark' | 'system' }>
   { label: '深色', value: 'dark' },
   { label: '跟随系统', value: 'system' },
 ];
+
+const rankOptions: LeaderboardCode[] = ['world_travel', 'china_travel', 'activity'];
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -25,11 +29,30 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text }]}>React Native Scaffold</Text>
+          <Text style={[styles.title, { color: colors.text }]}>成就排行榜</Text>
           <Text style={[styles.desc, { color: colors.textSecondary }]}>
-            这里保留了导航、主题、Zustand、TCB 云函数调用和一个 user demo，后续你可以直接在这个骨架上继续加业务。
+            记录你的精彩经历，在不同榜单中获得排名和成就感。
           </Text>
-          <Text style={[styles.meta, { color: colors.textSecondary }]}>当前主题：{themeName}</Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>成就录入</Text>
+          <View style={styles.rankGrid}>
+            {rankOptions.map((code) => {
+              const config = LEADERBOARD_CONFIGS[code];
+              return (
+                <TouchableOpacity
+                  key={code}
+                  style={[styles.rankCard, { backgroundColor: colors.background, borderColor: colors.border }]}
+                  onPress={() => navigation.navigate('Checkin', { code })}
+                >
+                  <Text style={styles.rankIcon}>{config.icon === 'earth' ? '🌍' : config.icon === 'map' ? '🗺️' : '⚡'}</Text>
+                  <Text style={[styles.rankTitle, { color: colors.text }]}>{config.title}</Text>
+                  <Text style={[styles.rankDesc, { color: colors.textSecondary }]}>{config.description}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -57,10 +80,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Demo 页面</Text>
-          <Text style={[styles.desc, { color: colors.textSecondary }]}> 
-            进入 user demo，可以直接验证前端 service 与云函数 `user` 的调用链。
-          </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>工具与 Demo</Text>
           <Button
             title="打开 User Demo"
             onPress={() => navigation.navigate('UserDemo')}
@@ -94,31 +114,37 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 8,
   },
-  meta: {
-    marginTop: 12,
-    fontSize: 13,
+  rankGrid: {
+    gap: 12,
+  },
+  rankCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  rankIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  rankTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  rankDesc: {
+    fontSize: 12,
+    marginTop: 4,
   },
   row: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   themeButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  primaryButton: {
-    marginTop: 16,
-    borderRadius: 12,
-    paddingVertical: 14,
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
   },
 });
 

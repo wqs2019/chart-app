@@ -8,7 +8,10 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:init:tcb": "node scripts/init_tcb_db.js",
+    "db:seed:standard-items": "node scripts/seed_standard_items.js",
+    "db:check:standard-items": "node scripts/check_standard_items.js"
   },
   "dependencies": {
     "@cloudbase/adapter-rn": "^1.0.1",
@@ -27,6 +30,8 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@cloudbase/manager-node": "^5.5.2-beta.0",
+    "@cloudbase/node-sdk": "^3.18.1",
     "@types/react": "~19.1.0",
     "babel-preset-expo": "^55.0.16",
     "typescript": "~5.9.2"

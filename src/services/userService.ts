@@ -24,7 +24,7 @@ const unwrap = <T>(response: { code: number; message: string; data: CloudResult<
 
 class UserService {
   async createUser(payload: CreateUserPayload): Promise<User> {
-    const response = await CloudService.callFunction<CloudResult<User>>('user', {
+    const response = await CloudService.callFunction<CloudResult<User>>('chart_user', {
       action: 'add',
       data: payload,
     });
@@ -32,7 +32,7 @@ class UserService {
   }
 
   async getUser(userId: string): Promise<User> {
-    const response = await CloudService.callFunction<CloudResult<User>>('user', {
+    const response = await CloudService.callFunction<CloudResult<User>>('chart_user', {
       action: 'get',
       data: { _id: userId },
     });
@@ -40,7 +40,7 @@ class UserService {
   }
 
   async listUsers(): Promise<User[]> {
-    const response = await CloudService.callFunction<CloudResult<User[] | PaginatedListResult<User>>>('user', {
+    const response = await CloudService.callFunction<CloudResult<User[] | PaginatedListResult<User>>>('chart_user', {
       action: 'list',
       data: {},
     });
@@ -55,7 +55,7 @@ class UserService {
   }
 
   async updateUser(userId: string, payload: Partial<CreateUserPayload>): Promise<boolean> {
-    const response = await CloudService.callFunction<CloudResult<boolean>>('user', {
+    const response = await CloudService.callFunction<CloudResult<boolean>>('chart_user', {
       action: 'update',
       data: {
         _id: userId,
@@ -66,7 +66,7 @@ class UserService {
   }
 
   async deleteUser(userId: string): Promise<boolean> {
-    const response = await CloudService.callFunction<CloudResult<boolean>>('user', {
+    const response = await CloudService.callFunction<CloudResult<boolean>>('chart_user', {
       action: 'delete',
       data: { _id: userId },
     });
