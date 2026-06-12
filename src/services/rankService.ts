@@ -1,19 +1,23 @@
-import cloudbase from '@cloudbase/js-sdk';
-import adapter from '@cloudbase/adapter-rn';
-import { TCB_CONFIG } from '../config/constant';
 import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
+import CloudService from './tcb';
 
-cloudbase.useAdapters(adapter);
+type RankCloudResult<T> = {
+  success: boolean;
+  data?: T;
+  message?: string;
+};
 
-let appInstance: any = null;
+const callRankFunction = async <T>(action: string, data: Record<string, unknown>): Promise<T> => {
+  const response = await CloudService.callFunction<RankCloudResult<T>>('chart_rank', {
+    action,
+    data,
+  });
 
-const getApp = () => {
-  if (!appInstance) {
-    appInstance = cloudbase.init({
-      env: TCB_CONFIG.env,
-    });
+  if (response.code !== 0 || !response.data?.success || response.data.data === undefined) {
+    throw new Error(response.data?.message || response.message || '榜单请求失败');
   }
-  return appInstance;
+
+  return response.data.data;
 };
 
 export const rankService = {
@@ -21,72 +25,29 @@ export const rankService = {
    * 获取指定榜单的标准项列表
    */
   async getStandardItems(code: LeaderboardCode): Promise<StandardItem[]> {
-    const { result } = await getApp().callFunction({
-      name: 'chart_rank',
-      data: {
-        action: 'getStandardItems',
-        data: { code },
-      },
-    });
-
-    if (result.success) {
-      return result.data as StandardItem[];
-    }
-    throw new Error(result.message || '获取标准项失败');
+    return callRankFunction<StandardItem[]>('getStandardItems', { code });
   },
 
   /**
    * 获取用户在指定榜单下的所有打卡记录
    */
   async getUserCheckins(userId: string, code: LeaderboardCode): Promise<UserCheckin[]> {
-    const { result } = await getApp().callFunction({
-      name: 'chart_rank',
-      data: {
-        action: 'getUserCheckins',
-        data: { userId, code },
-      },
-    });
-
-    if (result.success) {
-      return result.data as UserCheckin[];
-    }
-    throw new Error(result.message || '获取打卡记录失败');
+    return callRankFunction<UserCheckin[]>('getUserCheckins', { userId, code });
   },
 
   /**
    * 提交/更新打卡记录 (幂等)
    */
   async toggleCheckin(userId: string, item: StandardItem, isChecked: boolean): Promise<void> {
-    const { result } = await getApp().callFunction({
-      name: 'chart_rank',
-      data: {
-        action: 'toggleCheckin',
-        data: { userId, item, isChecked },
-      },
-    });
-
-    if (!result.success) {
-      throw new Error(result.message || '切换打卡状态失败');
-    }
+    await callRankFunction<boolean>('toggleCheckin', { userId, item, isChecked });
   },
 
   /**
    * 批量打卡 (初始建档使用)
    */
   async batchCheckin(userId: string, code: LeaderboardCode, itemIds: string[]): Promise<void> {
-    // 批量打卡建议也封装进云函数 action
-    const { result } = await getApp().callFunction({
-      name: 'chart_rank',
-      data: {
-        action: 'batchCheckin',
-        data: { userId, code, itemIds },
-      },
-    });
-
-    if (!result.success) {
-      throw new Error(result.message || '批量打卡失败');
-    }
-  }
+    await callRankFunction<boolean>('batchCheckin', { userId, code, itemIds });
+  },
 };
 
 export default rankService;

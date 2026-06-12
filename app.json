@@ -9,7 +9,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.template.rncli"
+      "bundleIdentifier": "com.template.rncli",
+      "appleTeamId": "592UG636F5"
     },
     "android": {
       "edgeToEdgeEnabled": true,

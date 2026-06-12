@@ -54,7 +54,6 @@ export const CloudService = {
     if (!this.isConfigured()) {
       throw new Error('TCB env is not configured');
     }
-
     const app = initTCB();
     if (!app) {
       throw new Error('TCB init failed');

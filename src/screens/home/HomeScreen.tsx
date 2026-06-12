@@ -1,6 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -18,10 +19,10 @@ const themeOptions: Array<{ label: string; value: 'light' | 'dark' | 'system' }>
 
 const rankOptions: LeaderboardCode[] = ['world_travel', 'china_travel', 'activity'];
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'MainTabs'>;
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const { colors, themeName } = useAppTheme();
+  const { colors } = useAppTheme();
   const theme = useAppStore((state) => state.theme);
   const setTheme = useAppStore((state) => state.setTheme);
 
