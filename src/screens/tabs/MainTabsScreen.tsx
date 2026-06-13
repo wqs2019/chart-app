@@ -9,6 +9,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import HomeScreen from '../home/HomeScreen';
+import MeScreen from '../me/MeScreen';
 
 type TabKey = 'home' | 'rank' | 'checkin' | 'me';
 type MainTabParamList = {
@@ -223,7 +224,7 @@ const createPlaceholderComponent = (config: TabConfig) => {
 const HomeTabScreen = HomeScreen;
 const RankTabScreen = createPlaceholderComponent(TAB_CONFIGS[1]);
 const CheckinTabScreen = createPlaceholderComponent(TAB_CONFIGS[2]);
-const MeTabScreen = createPlaceholderComponent(TAB_CONFIGS[3]);
+const MeTabScreen = MeScreen;
 
 const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const { colors, isDark } = useAppTheme();
