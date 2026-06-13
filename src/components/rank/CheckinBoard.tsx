@@ -208,7 +208,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
                     style={[
                       styles.progressBadge,
                       {
-                        backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)',
+                        backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)',
                       },
                     ]}
                   >
@@ -221,7 +221,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
                 <View
                   style={[
                     styles.progressTrack,
-                    { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#E8EEF6' },
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F7E7DB' },
                   ]}
                 >
                   <View
@@ -291,9 +291,9 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
       renderItem={({ item }) => {
         const isChecked = checkedIds.has(item._id);
         const entryCount = entryCountMap[item._id] || 0;
-        const cardHighlightColor = isDark ? 'rgba(124,140,255,0.18)' : 'rgba(79,70,229,0.08)';
-        const cardBaseColor = isDark ? 'rgba(255,255,255,0.02)' : '#F8FBFF';
-        const markerColor = isDark ? 'rgba(129,140,248,0.9)' : colors.primary;
+        const cardHighlightColor = isDark ? 'rgba(255,155,122,0.18)' : 'rgba(255,122,89,0.08)';
+        const cardBaseColor = isDark ? 'rgba(255,255,255,0.02)' : '#FFF8F3';
+        const markerColor = isDark ? 'rgba(255,155,122,0.9)' : colors.primary;
 
         return (
           <Pressable
@@ -332,7 +332,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
                     ? colors.primary
                     : isDark
                       ? 'rgba(148,163,184,0.10)'
-                      : '#E8EEF6',
+                      : '#F7E7DB',
                 },
               ]}
             >
@@ -348,8 +348,8 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
                     style={[
                       styles.recordedBadge,
                       {
-                        backgroundColor: isDark ? 'rgba(129,140,248,0.18)' : 'rgba(79,70,229,0.10)',
-                        borderColor: isDark ? 'rgba(129,140,248,0.34)' : 'rgba(79,70,229,0.20)',
+                        backgroundColor: isDark ? 'rgba(255,155,122,0.18)' : 'rgba(255,122,89,0.10)',
+                        borderColor: isDark ? 'rgba(255,155,122,0.34)' : 'rgba(255,122,89,0.20)',
                       },
                     ]}
                   >
@@ -361,7 +361,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
                   style={[
                     styles.itemCategoryTag,
                     {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#EEF3F9',
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFF1E8',
                       borderColor: colors.border,
                     },
                   ]}
@@ -388,7 +388,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
                     ? colors.primary
                     : isDark
                       ? 'rgba(255,255,255,0.02)'
-                      : colors.surface,
+                      : '#FFFDFB',
                   borderColor: isChecked ? colors.primary : colors.border,
                 },
               ]}
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   },
   inlineLoadingCard: {
     marginTop: 16,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 18,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   summaryCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 24,
     padding: 18,
   },
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   categoryChip: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 9,
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 20,
     padding: 14,
     marginBottom: 12,
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   itemCategoryTag: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
   },
   statusWrap: {
     minWidth: 82,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 18,
     padding: 20,
     alignItems: 'center',

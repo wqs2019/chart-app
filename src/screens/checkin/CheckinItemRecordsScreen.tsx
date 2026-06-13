@@ -122,10 +122,10 @@ const CheckinItemRecordsScreen: React.FC = () => {
             {item.name_en || '暂无英文名'} · {item.category_label_zh || item.category}
           </Text>
           <View style={styles.heroMetaRow}>
-            <View style={[styles.heroMetaChip, { backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)' }]}>
+            <View style={[styles.heroMetaChip, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)' }]}>
               <Text style={[styles.heroMetaText, { color: colors.primary }]}>{entries.length} 篇记录</Text>
             </View>
-            <View style={[styles.heroMetaChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#EEF3F9' }]}>
+            <View style={[styles.heroMetaChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8EDE4' }]}>
               <Text style={[styles.heroMetaText, { color: colors.textSecondary }]}>{ownerLabel}</Text>
             </View>
           </View>
@@ -189,7 +189,7 @@ const CheckinItemRecordsScreen: React.FC = () => {
                           styles.entryCoverWrap,
                           {
                             height: coverHeight,
-                            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F7FAFC',
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF6F0',
                           },
                         ]}
                       >
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   heroCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 24,
     padding: 18,
   },
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   entryCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 18,
     overflow: 'hidden',
   },
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 22,
     padding: 22,
     alignItems: 'center',

@@ -252,7 +252,7 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
                 <View
                   style={[
                     styles.coverFallback,
-                    { backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)' },
+                    { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)' },
                   ]}
                 >
                   <Ionicons

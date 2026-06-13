@@ -340,8 +340,8 @@ const RankScreen: React.FC = () => {
                         {
                           backgroundColor: isMine
                             ? isDark
-                              ? 'rgba(124,140,255,0.12)'
-                              : 'rgba(79,70,229,0.06)'
+                              ? 'rgba(255,155,122,0.12)'
+                              : 'rgba(255,122,89,0.06)'
                             : isDark
                               ? 'rgba(255,255,255,0.02)'
                               : '#F8FBFF',
@@ -373,7 +373,7 @@ const RankScreen: React.FC = () => {
                               style={[
                                 styles.mineTag,
                                 {
-                                  backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)',
+                                  backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)',
                                 },
                               ]}
                             >
@@ -446,7 +446,7 @@ const RankScreen: React.FC = () => {
               style={[
                 styles.scoreBreakdownCard,
                 {
-                  backgroundColor: isDark ? 'rgba(124,140,255,0.12)' : 'rgba(79,70,229,0.08)',
+                  backgroundColor: isDark ? 'rgba(255,155,122,0.12)' : 'rgba(255,122,89,0.08)',
                   borderColor: colors.primary,
                 },
               ]}
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   listCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 26,
     padding: 18,
     shadowColor: '#020617',
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   },
   inlineLoadingCard: {
     marginTop: 14,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 18,
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
   },
   compactSummaryCard: {
     marginTop: 14,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   },
   scoreBreakdownCard: {
     marginTop: 14,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 16,
     padding: 14,
   },
@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
   },
   rankRow: {
     marginTop: 14,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 20,
     padding: 14,
     flexDirection: 'row',
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   tag: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     marginTop: 14,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 18,
     padding: 18,
   },

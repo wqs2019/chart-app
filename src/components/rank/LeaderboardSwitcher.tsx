@@ -32,7 +32,7 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
   onChange,
 }) => {
   const { colors, isDark } = useAppTheme();
-  const inactiveBg = isDark ? 'rgba(148,163,184,0.08)' : '#EEF3F9';
+  const inactiveBg = isDark ? 'rgba(255,255,255,0.06)' : '#F8EDE4';
 
   return (
     <ScrollView
@@ -67,7 +67,7 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
                     ? colors.primary
                     : isDark
                       ? 'rgba(255,255,255,0.07)'
-                      : 'rgba(79,70,229,0.08)',
+                      : '#FFF2E8',
                 },
               ]}
             >
@@ -92,7 +92,7 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
               </Text>
             </View>
             {isActive ? (
-              <View style={[styles.activeBadge, { backgroundColor: 'rgba(79,70,229,0.10)' }]}>
+              <View style={[styles.activeBadge, { backgroundColor: 'rgba(255,122,89,0.10)' }]}>
                 <Ionicons name="chevron-forward" size={14} color={colors.primary} />
               </View>
             ) : null}

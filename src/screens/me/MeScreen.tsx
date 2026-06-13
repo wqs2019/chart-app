@@ -86,7 +86,7 @@ const MeScreen: React.FC = () => {
               style={[
                 styles.avatarWrap,
                 {
-                  backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)',
+                  backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)',
                   borderColor: colors.border,
                 },
               ]}
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   heroCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 28,
     padding: 20,
   },
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   infoCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 22,
     padding: 18,
   },

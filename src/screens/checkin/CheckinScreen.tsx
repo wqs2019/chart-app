@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   tipCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 22,
     padding: 16,
   },
