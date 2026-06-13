@@ -14,10 +14,11 @@ import {
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { imageService } from '../../services/imageService';
+import { MediaResource } from '../../types/media';
 import { CheckinAttachment } from '../../types/rank';
-import CheckinMediaPreviewer from './CheckinMediaPreviewer';
+import { MediaPreviewer } from './MediaPreviewer';
 
-type CheckinMediaSelectorProps = {
+type MediaSelectorProps = {
   value: CheckinAttachment[];
   onChange: (attachments: CheckinAttachment[]) => void;
   itemId: string;
@@ -52,7 +53,22 @@ const formatDuration = (durationMs?: number) => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
-const CheckinMediaSelector: React.FC<CheckinMediaSelectorProps> = ({
+const mapAttachmentsToMedia = (attachments: CheckinAttachment[]): MediaResource[] =>
+  attachments
+    .filter((attachment) => Boolean(attachment.temp_url || attachment.thumbnail_temp_url))
+    .map((attachment, index) => ({
+      id: attachment.file_id || `attachment-${index}`,
+      uri: attachment.temp_url || attachment.thumbnail_temp_url || '',
+      thumbnail:
+        attachment.media_type === 'video'
+          ? attachment.thumbnail_temp_url || attachment.temp_url
+          : attachment.temp_url,
+      type: attachment.media_type === 'video' ? 'video' : 'image',
+      name: attachment.name,
+      durationMs: attachment.duration_ms,
+    }));
+
+const MediaSelector: React.FC<MediaSelectorProps> = ({
   value,
   onChange,
   itemId,
@@ -63,27 +79,7 @@ const CheckinMediaSelector: React.FC<CheckinMediaSelectorProps> = ({
   const [previewVisible, setPreviewVisible] = React.useState(false);
   const [previewIndex, setPreviewIndex] = React.useState(0);
   const [uploading, setUploading] = React.useState<UploadingMedia[]>([]);
-
-  const openPicker = React.useCallback(() => {
-    Alert.alert('选择附件', '请选择要添加的内容', [
-      {
-        text: '图片',
-        onPress: () => {
-          void handlePickMedia('image');
-        },
-      },
-      {
-        text: '视频',
-        onPress: () => {
-          void handlePickMedia('video');
-        },
-      },
-      {
-        text: '取消',
-        style: 'cancel',
-      },
-    ]);
-  }, [value.length]);
+  const previewMedia = React.useMemo(() => mapAttachmentsToMedia(value), [value]);
 
   const handlePickMedia = React.useCallback(
     async (mode: 'image' | 'video') => {
@@ -159,7 +155,7 @@ const CheckinMediaSelector: React.FC<CheckinMediaSelectorProps> = ({
                 thumbnailTempUrl = thumbnail.uri;
               }
             } catch (error) {
-              console.warn('[CheckinMediaSelector] video thumbnail failed', error);
+              console.warn('[MediaSelector] video thumbnail failed', error);
             }
           }
 
@@ -185,6 +181,27 @@ const CheckinMediaSelector: React.FC<CheckinMediaSelectorProps> = ({
     },
     [disabled, itemId, maxCount, onChange, uploading.length, value]
   );
+
+  const openPicker = React.useCallback(() => {
+    Alert.alert('选择附件', '请选择要添加的内容', [
+      {
+        text: '图片',
+        onPress: () => {
+          void handlePickMedia('image');
+        },
+      },
+      {
+        text: '视频',
+        onPress: () => {
+          void handlePickMedia('video');
+        },
+      },
+      {
+        text: '取消',
+        style: 'cancel',
+      },
+    ]);
+  }, [handlePickMedia]);
 
   const removeAttachment = React.useCallback(
     (target: CheckinAttachment) => {
@@ -302,9 +319,9 @@ const CheckinMediaSelector: React.FC<CheckinMediaSelectorProps> = ({
         ) : null}
       </View>
 
-      <CheckinMediaPreviewer
+      <MediaPreviewer
         visible={previewVisible}
-        attachments={value}
+        media={previewMedia}
         initialIndex={previewIndex}
         onClose={() => setPreviewVisible(false)}
       />
@@ -402,16 +419,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(15,23,42,0.48)',
+    backgroundColor: 'rgba(15,23,42,0.58)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
   },
   uploadingText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });
 
-export default CheckinMediaSelector;
+export default MediaSelector;

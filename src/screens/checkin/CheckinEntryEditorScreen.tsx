@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import CheckinMediaSelector from '../../components/rank/CheckinMediaSelector';
+import MediaSelector from '../../components/common/MediaSelector';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
@@ -124,7 +124,7 @@ const CheckinEntryEditorScreen: React.FC = () => {
             />
 
             {userId ? (
-              <CheckinMediaSelector
+              <MediaSelector
                 value={attachments}
                 onChange={setAttachments}
                 itemId={item._id}

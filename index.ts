@@ -1,5 +1,6 @@
-import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
+import 'react-native-reanimated';
+import 'react-native-get-random-values';
 
 import { registerRootComponent } from 'expo';
 import { featureFlags } from 'react-native-screens';

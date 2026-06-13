@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useAppTheme } from './src/hooks/useAppTheme';
@@ -41,9 +42,11 @@ export default function App() {
   const { isDark } = useAppTheme();
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Bootstrap />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <Bootstrap />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

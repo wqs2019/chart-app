@@ -120,7 +120,7 @@ const CheckinItemRecordsScreen: React.FC = () => {
           entries.map((entry, index) => (
             <Pressable
               key={entry._id || `${item._id}-${index}`}
-              onPress={() => navigation.navigate('CheckinEntryEditor', { code, item, entry })}
+              onPress={() => navigation.navigate('CheckinEntryDetail', { code, item, entry })}
               style={[
                 styles.entryCard,
                 {
