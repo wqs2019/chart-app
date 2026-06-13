@@ -133,7 +133,7 @@
 玩乐项目榜示例拆解：
 ```json
 {
-  "leaderboard_code": "activity_rank",
+  "leaderboard_code": "activity",
   "score_version": "balanced_v1",
   "raw_count": 17,
   "achievement_score": 54.0,

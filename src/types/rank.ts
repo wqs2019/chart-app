@@ -1,5 +1,11 @@
 export type LeaderboardCode = 'world_travel' | 'china_travel' | 'activity' | 'overall';
 
+export const CONTENT_LEADERBOARD_CODES: LeaderboardCode[] = [
+  'world_travel',
+  'china_travel',
+  'activity',
+];
+
 export interface StandardItem {
   _id: string;
   type: 'world_travel' | 'china_travel' | 'activity';
@@ -7,6 +13,10 @@ export interface StandardItem {
   name_zh: string;
   name_en: string;
   category: string; // 洲、区域、或玩乐分类
+  category_label_zh?: string;
+  continent?: string;
+  region_group?: string;
+  activity_group?: string;
   tier?: string;     // A, B, C (仅限世界榜)
   icon?: string;
   is_active: boolean;
@@ -87,4 +97,3 @@ export const LEADERBOARD_CONFIGS: Record<LeaderboardCode, LeaderboardConfig> = {
     icon: 'trophy',
   },
 };
-

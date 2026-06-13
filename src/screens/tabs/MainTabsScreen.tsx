@@ -5,18 +5,21 @@ import {
 } from '@react-navigation/bottom-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import HomeScreen from '../home/HomeScreen';
 import MeScreen from '../me/MeScreen';
+import RankScreen from '../rank/RankScreen';
+import CheckinTabScreen from '../rank/CheckinTabScreen';
+import { LeaderboardCode } from '../../types/rank';
 
 type TabKey = 'home' | 'rank' | 'checkin' | 'me';
 type MainTabParamList = {
   Home: undefined;
   Rank: undefined;
-  Checkin: undefined;
+  Checkin: { code?: LeaderboardCode } | undefined;
   Me: undefined;
 };
 type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -119,123 +122,8 @@ const hexToRgba = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-type PlaceholderProps = {
-  title: string;
-  subtitle: string;
-  points: string[];
-  actions: string[];
-};
-
-const PlaceholderScreen: React.FC<PlaceholderProps> = ({ title, subtitle, points, actions }) => {
-  const { colors, isDark } = useAppTheme();
-
-  return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView
-        style={styles.contentArea}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View
-          style={[
-            styles.heroCard,
-            {
-              backgroundColor: hexToRgba(colors.surface, isDark ? 0.78 : 0.9),
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>CUSTOM TABBAR</Text>
-          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
-        </View>
-
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: hexToRgba(colors.surface, isDark ? 0.76 : 0.86),
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>当前页面会承载</Text>
-          <View style={styles.list}>
-            {points.map((point) => (
-              <View key={point} style={styles.listItem}>
-                <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-                <Text style={[styles.listText, { color: colors.text }]}>{point}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: hexToRgba(colors.surface, isDark ? 0.76 : 0.86),
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>操作占位</Text>
-          <View style={styles.actionGrid}>
-            {actions.map((action) => (
-              <View
-                key={action}
-                style={[
-                  styles.actionCard,
-                  {
-                    backgroundColor: hexToRgba(colors.background, isDark ? 0.55 : 0.82),
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Text style={[styles.actionTitle, { color: colors.text }]}>{action}</Text>
-                <Text style={[styles.actionDesc, { color: colors.textSecondary }]}>后续接真实交互</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: hexToRgba(colors.surface, isDark ? 0.76 : 0.86),
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>开发说明</Text>
-          <Text style={[styles.note, { color: colors.textSecondary }]}>
-            当前底部栏改为标准 `createBottomTabNavigator` + 自定义 Blur TabBar
-            结构，便于按设计稿继续微调玻璃感和交互细节。
-          </Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-const createPlaceholderComponent = (config: TabConfig) => {
-  const ScreenComponent: React.FC = () => (
-    <PlaceholderScreen
-      title={config.title}
-      subtitle={config.subtitle}
-      points={config.points}
-      actions={config.actions}
-    />
-  );
-
-  ScreenComponent.displayName = `${config.key}PlaceholderScreen`;
-  return ScreenComponent;
-};
-
 const HomeTabScreen = HomeScreen;
-const RankTabScreen = createPlaceholderComponent(TAB_CONFIGS[1]);
-const CheckinTabScreen = createPlaceholderComponent(TAB_CONFIGS[2]);
+const RankTabScreen = RankScreen;
 const MeTabScreen = MeScreen;
 
 const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {

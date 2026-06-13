@@ -72,13 +72,20 @@
 {
   "_id": "string", // 如 "country_jp", "province_gd", "activity_bungee"
   "item_type": "string", // "country" | "province" | "activity"
-  "leaderboard_code": "string", // "world_travel" | "china_travel" | "activity_rank"
+  "leaderboard_code": "string", // "world_travel" | "china_travel" | "activity"
   "name_zh": "string",
   "name_en": "string",
   "category": "string", // 洲、区域、或玩乐分类
+  "category_label_zh": "string", // category 的中文展示名
+  "continent": "string", // 仅世界榜使用，值与 category 一致
+  "region_group": "string", // 仅中国榜使用，值与 category 一致
+  "activity_group": "string", // 仅玩乐榜使用，值与 category 一致
   "tier": "string",     // A, B, C (仅限世界榜国家结构分使用)
   "icon": "string",
-  "is_active": "boolean"
+  "is_active": "boolean",
+  "sort_order": "number",
+  "created_at": "date",
+  "updated_at": "date"
 }
 ```
 
@@ -148,11 +155,9 @@
 ```json
 {
   "_id": "ObjectId",
-  "user_id": "string",
-  "leaderboard_code": "string", // "overall_rank" | "world_travel" | "china_travel" | "activity_rank"
+  "leaderboard_code": "string", // "overall" | "world_travel" | "china_travel" | "activity"
   "score_version": "string",    // "balanced_v1" | "gamified_v2"
   "raw_count": "number",
-  "achievement_score": "number",
   "influence_score": "number",
   "final_score": "number",      // 最终排名分，不设固定上限
   "score_breakdown": {
@@ -202,7 +207,7 @@
 {
   "_id": "ObjectId",
   "user_id": "string",
-  "poster_type": "string", // "overall_rank_poster" | "world_travel_poster" | "china_travel_poster" | "activity_rank_poster" | "year_review_poster"
+  "poster_type": "string", // "overall_poster" | "world_travel_poster" | "china_travel_poster" | "activity_poster" | "year_review_poster"
   "related_leaderboard_code": "string",
   "related_review_year": "number",
   "score_snapshot_id": "string",

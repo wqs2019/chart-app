@@ -52,8 +52,8 @@
 ### 6.1 榜单类型
 - `world_travel`
 - `china_travel`
-- `activity_rank`
-- `overall_rank`
+- `activity`
+- `overall`
 
 ### 6.2 标准项类型
 - `country`
@@ -69,10 +69,10 @@
 - `favorite`
 
 ### 6.5 海报类型
-- `overall_rank_poster`
+- `overall_poster`
 - `world_travel_poster`
 - `china_travel_poster`
-- `activity_rank_poster`
+- `activity_poster`
 - `year_review_poster`
 
 ### 6.6 通用字段
@@ -135,8 +135,8 @@
 示例：
 - `world_travel`
 - `china_travel`
-- `activity_rank`
-- `overall_rank`
+- `activity`
+- `overall`
 
 说明：
 - `weight_in_overall` 仅对子榜生效
@@ -156,6 +156,10 @@
 - `name_en`
 - `alias_names`
 - `category`
+- `category_label_zh`
+- `continent`
+- `region_group`
+- `activity_group`
 - `subcategory`
 - `is_active`
 - `sort_order`

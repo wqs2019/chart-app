@@ -1,4 +1,4 @@
-import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
+import { LeaderboardCode, StandardItem, UserCheckin, UserScoreSnapshot } from '../types/rank';
 import CloudService from './tcb';
 
 type RankCloudResult<T> = {
@@ -7,13 +7,71 @@ type RankCloudResult<T> = {
   message?: string;
 };
 
+// #region debug-point A:leaderboard-api
+const DEBUG_SERVER_URL = 'http://192.168.88.176:7777/event';
+const DEBUG_SESSION_ID = 'leaderboard-empty';
+const reportDebugEvent = (
+  hypothesisId: string,
+  msg: string,
+  data: Record<string, unknown>,
+  traceId?: string
+) => {
+  fetch(DEBUG_SERVER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: DEBUG_SESSION_ID,
+      runId: 'pre-fix',
+      hypothesisId,
+      location: 'src/services/rankService.ts',
+      msg: `[DEBUG] ${msg}`,
+      data,
+      traceId,
+      ts: Date.now(),
+    }),
+  }).catch(() => {});
+};
+// #endregion
+
 const callRankFunction = async <T>(action: string, data: Record<string, unknown>): Promise<T> => {
+  // #region debug-point A:call-rank-function-request
+  const traceId = `${action}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  reportDebugEvent('A', 'rankService.callRankFunction.request', { action, data }, traceId);
+  // #endregion
   const response = await CloudService.callFunction<RankCloudResult<T>>('chart_rank', {
     action,
     data,
   });
 
+  // #region debug-point B:call-rank-function-response
+  reportDebugEvent(
+    'B',
+    'rankService.callRankFunction.response',
+    {
+      action,
+      requestData: data,
+      responseCode: response.code,
+      responseMessage: response.message,
+      responseData: response.data,
+    },
+    traceId
+  );
+  // #endregion
   if (response.code !== 0 || !response.data?.success || response.data.data === undefined) {
+    // #region debug-point C:call-rank-function-error
+    reportDebugEvent(
+      'C',
+      'rankService.callRankFunction.error',
+      {
+        action,
+        requestData: data,
+        responseCode: response.code,
+        responseMessage: response.message,
+        responseData: response.data,
+      },
+      traceId
+    );
+    // #endregion
     throw new Error(response.data?.message || response.message || '榜单请求失败');
   }
 
@@ -47,6 +105,18 @@ export const rankService = {
    */
   async batchCheckin(userId: string, code: LeaderboardCode, itemIds: string[]): Promise<void> {
     await callRankFunction<boolean>('batchCheckin', { userId, code, itemIds });
+  },
+
+  async getMyRank(userId: string, code: LeaderboardCode): Promise<UserScoreSnapshot | null> {
+    return callRankFunction<UserScoreSnapshot | null>('getMyRank', { userId, code });
+  },
+
+  async getLeaderboardRankings(
+    code: LeaderboardCode,
+    page = 1,
+    pageSize = 20
+  ): Promise<UserScoreSnapshot[]> {
+    return callRankFunction<UserScoreSnapshot[]>('getLeaderboardRankings', { code, page, pageSize });
   },
 };
 

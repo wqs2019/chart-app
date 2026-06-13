@@ -177,31 +177,63 @@ const ACTIVITY_ROWS = [
   ['activity_helicopter_tour', '直升机观光', 'Helicopter Tour', 'air'],
 ];
 
+const CATEGORY_LABEL_MAP = {
+  asia: '亚洲',
+  europe: '欧洲',
+  north_america: '北美洲',
+  south_america: '南美洲',
+  oceania: '大洋洲',
+  africa: '非洲',
+  north_china: '华北',
+  northeast: '东北',
+  east_china: '华东',
+  central_china: '华中',
+  south_china: '华南',
+  southwest: '西南',
+  northwest: '西北',
+  special_region: '港澳台',
+  air: '高空类',
+  water: '水上类',
+  snow_ice: '冰雪类',
+  mountain: '山野类',
+  motorsport: '速度类',
+  theme: '主题乐园',
+  wildlife: '野生动物',
+  outdoor: '户外类',
+};
+
+function getCategoryLabel(category) {
+  return CATEGORY_LABEL_MAP[category] || category;
+}
+
 function buildItems(rows, config) {
   return rows.map((row, index) => {
+    const category = row[3];
+    const categoryLabelZh = getCategoryLabel(category);
     const item = {
       _id: row[0],
       item_type: config.itemType,
       leaderboard_code: config.leaderboardCode,
       name_zh: row[1],
       name_en: row[2],
-      category: row[3],
+      category,
+      category_label_zh: categoryLabelZh,
       icon: '',
       is_active: true,
       sort_order: index + 1,
     };
 
     if (config.itemType === 'country') {
-      item.continent = row[3];
+      item.continent = category;
       item.tier = row[4] || '';
     }
 
     if (config.itemType === 'province') {
-      item.region_group = row[3];
+      item.region_group = category;
     }
 
     if (config.itemType === 'activity') {
-      item.activity_group = row[3];
+      item.activity_group = category;
     }
 
     return item;
@@ -220,7 +252,7 @@ const CHINA_ITEMS = buildItems(CHINA_PROVINCE_ROWS, {
 
 const ACTIVITY_ITEMS = buildItems(ACTIVITY_ROWS, {
   itemType: 'activity',
-  leaderboardCode: 'activity_rank',
+  leaderboardCode: 'activity',
 });
 
 const STANDARD_ITEMS = [...WORLD_ITEMS, ...CHINA_ITEMS, ...ACTIVITY_ITEMS];
