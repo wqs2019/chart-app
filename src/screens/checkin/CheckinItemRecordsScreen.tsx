@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -13,29 +13,6 @@ import { UserCheckin } from '../../types/rank';
 
 type ScreenRouteProp = RouteProp<RootStackParamList, 'CheckinItemRecords'>;
 type ScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CheckinItemRecords'>;
-
-const formatTime = (value?: string) => value || '未填写时间';
-
-const getAttachmentSummary = (entry: UserCheckin) => {
-  const attachments = entry.content?.attachments || [];
-  if (!attachments.length) {
-    return '无附件';
-  }
-
-  const imageCount = attachments.filter((attachment) => attachment.media_type === 'image').length;
-  const videoCount = attachments.filter((attachment) => attachment.media_type === 'video').length;
-  const parts = [];
-
-  if (imageCount) {
-    parts.push(`${imageCount} 张图片`);
-  }
-
-  if (videoCount) {
-    parts.push(`${videoCount} 个视频`);
-  }
-
-  return parts.join(' · ');
-};
 
 const getEntryCoverUri = (entry: UserCheckin) => {
   const firstAttachment = entry.content?.attachments?.[0];
@@ -50,10 +27,42 @@ const getEntryCoverUri = (entry: UserCheckin) => {
   return firstAttachment.temp_url || firstAttachment.thumbnail_temp_url || '';
 };
 
+const isVideoEntryCover = (entry: UserCheckin) => entry.content?.attachments?.[0]?.media_type === 'video';
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const getEntryInteraction = (entry: UserCheckin) => ({
+  likes: entry.interaction?.likes_count || 0,
+  comments: entry.interaction?.comments_count || 0,
+  favorites: entry.interaction?.favorites_count || 0,
+});
+
+const getEstimatedCardHeight = (
+  entry: UserCheckin,
+  cardWidth: number,
+  coverUri: string,
+  aspectRatio?: number
+) => {
+  const titleLength = (entry.content?.title || '').length;
+  const baseInfoHeight = titleLength > 22 ? 92 : 78;
+
+  if (!coverUri) {
+    return baseInfoHeight + 172;
+  }
+
+  const fallbackHeight = cardWidth * (titleLength > 16 ? 1.36 : 1.18);
+  const imageHeight = aspectRatio
+    ? clamp(cardWidth / aspectRatio, cardWidth * 0.95, cardWidth * 1.62)
+    : clamp(fallbackHeight, cardWidth * 0.95, cardWidth * 1.62);
+
+  return imageHeight + baseInfoHeight;
+};
+
 const CheckinItemRecordsScreen: React.FC = () => {
   const route = useRoute<ScreenRouteProp>();
   const navigation = useNavigation<ScreenNavigationProp>();
   const { colors, isDark } = useAppTheme();
+  const { width } = useWindowDimensions();
   const currentUser = useAppStore((state) => state.currentUser);
   const { code, item, viewedUserId, viewedUserName, readOnly } = route.params;
   const userId = currentUser?._id;
@@ -62,6 +71,11 @@ const CheckinItemRecordsScreen: React.FC = () => {
   const ownerLabel = viewedUserName || (isViewerMode ? '该用户' : '我');
 
   const [entries, setEntries] = React.useState<UserCheckin[]>([]);
+  const [coverAspectMap, setCoverAspectMap] = React.useState<Record<string, number>>({});
+
+  const horizontalPadding = 32;
+  const columnGap = 12;
+  const cardWidth = Math.max((width - horizontalPadding - columnGap) / 2, 140);
 
   const fetchEntries = React.useCallback(async () => {
     if (!targetUserId) {
@@ -87,6 +101,63 @@ const CheckinItemRecordsScreen: React.FC = () => {
     }, [fetchEntries])
   );
 
+  React.useEffect(() => {
+    entries.forEach((entry, index) => {
+      const key = entry._id || `${item._id}-${index}`;
+      const coverUri = getEntryCoverUri(entry);
+
+      if (!coverUri || coverAspectMap[key]) {
+        return;
+      }
+
+      Image.getSize(
+        coverUri,
+        (imageWidth, imageHeight) => {
+          if (!imageWidth || !imageHeight) {
+            return;
+          }
+
+          setCoverAspectMap((current) => {
+            if (current[key]) {
+              return current;
+            }
+
+            return {
+              ...current,
+              [key]: imageWidth / imageHeight,
+            };
+          });
+        },
+        () => {}
+      );
+    });
+  }, [coverAspectMap, entries, item._id]);
+
+  const columns = React.useMemo(() => {
+    const left: Array<{ entry: UserCheckin; index: number; key: string; coverUri: string; coverHeight: number }> = [];
+    const right: Array<{ entry: UserCheckin; index: number; key: string; coverUri: string; coverHeight: number }> = [];
+    let leftHeight = 0;
+    let rightHeight = 0;
+
+    entries.forEach((entry, index) => {
+      const key = entry._id || `${item._id}-${index}`;
+      const coverUri = getEntryCoverUri(entry);
+      const estimatedHeight = getEstimatedCardHeight(entry, cardWidth, coverUri, coverAspectMap[key]);
+      const coverHeight = Math.max(estimatedHeight - 84, 144);
+      const nextItem = { entry, index, key, coverUri, coverHeight };
+
+      if (leftHeight <= rightHeight) {
+        left.push(nextItem);
+        leftHeight += estimatedHeight;
+      } else {
+        right.push(nextItem);
+        rightHeight += estimatedHeight;
+      }
+    });
+
+    return [left, right];
+  }, [cardWidth, coverAspectMap, entries, item._id]);
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -110,7 +181,7 @@ const CheckinItemRecordsScreen: React.FC = () => {
           <View>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>日记列表</Text>
             <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
-              这里展示 {ownerLabel} 在这个条目下的所有日记记录。
+              展示 {ownerLabel} 在这个条目下的所有日记记录。
             </Text>
           </View>
           {!isViewerMode ? (
@@ -127,112 +198,98 @@ const CheckinItemRecordsScreen: React.FC = () => {
         </View>
 
         {entries.length ? (
-          entries.map((entry, index) => {
-            const coverUri = getEntryCoverUri(entry);
-
-            return (
-              <Pressable
-                key={entry._id || `${item._id}-${index}`}
-                onPress={() =>
-                  navigation.navigate('CheckinEntryDetail', {
-                    code,
-                    item,
-                    entry,
-                    viewedUserId,
-                    viewedUserName,
-                    readOnly,
-                  })
-                }
-                style={[
-                  styles.entryCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
+          <View style={styles.masonryRow}>
+            {columns.map((column, columnIndex) => (
+              <View
+                key={`column-${columnIndex}`}
+                style={[styles.masonryColumn, columnIndex === 1 ? styles.masonryColumnRight : null]}
               >
-                <View style={styles.entryCardBody}>
-                  <View style={styles.entryMain}>
-                    <View style={styles.entryCardHeader}>
-                      <View style={styles.entryTitleWrap}>
-                        <Text style={[styles.entryTitle, { color: colors.text }]}>
-                          {entry.content?.title || `${item.name_zh} 游玩记录`}
-                        </Text>
-                        <Text style={[styles.entryMeta, { color: colors.textSecondary }]}>
-                          {formatTime(entry.content?.visit_time)} ·{' '}
-                          {entry.content?.location_name || entry.content?.city_name || item.name_zh}
-                        </Text>
-                      </View>
-                    </View>
+                {column.map(({ entry, index, key, coverUri, coverHeight }) => {
+                  const interaction = getEntryInteraction(entry);
+                  const isVideoCover = isVideoEntryCover(entry);
 
-                    {!!entry.content?.description && (
-                      <Text numberOfLines={3} style={[styles.entryDescription, { color: colors.textSecondary }]}>
-                        {entry.content.description}
-                      </Text>
-                    )}
-
-                    <View style={styles.entryFooter}>
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() =>
+                        navigation.navigate('CheckinEntryDetail', {
+                          code,
+                          item,
+                          entry,
+                          viewedUserId,
+                          viewedUserName,
+                          readOnly,
+                        })
+                      }
+                      style={[
+                        styles.entryCard,
+                        {
+                          width: cardWidth,
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                    >
                       <View
                         style={[
-                          styles.entryTag,
+                          styles.entryCoverWrap,
                           {
+                            height: coverHeight,
                             backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F7FAFC',
-                            borderColor: colors.border,
                           },
                         ]}
                       >
-                        <Text style={[styles.entryTagText, { color: colors.textSecondary }]}>
-                          {getAttachmentSummary(entry)}
-                        </Text>
+                        {coverUri ? (
+                          <>
+                            <Image source={{ uri: coverUri }} style={styles.entryCover} />
+                            {isVideoCover ? (
+                              <View style={styles.videoBadge}>
+                                <Ionicons name="play" size={12} color="#FFFFFF" />
+                              </View>
+                            ) : null}
+                          </>
+                        ) : (
+                          <View style={styles.entryCoverPlaceholder}>
+                            <Ionicons name="image-outline" size={24} color={colors.textSecondary} />
+                            <Text style={[styles.entryCoverPlaceholderText, { color: colors.textSecondary }]}>
+                              暂无封面
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                      {entry.content?.weather ? (
-                        <View
-                          style={[
-                            styles.entryTag,
-                            {
-                              backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F7FAFC',
-                              borderColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.entryTagText, { color: colors.textSecondary }]}>
-                            {entry.content.weather}
-                          </Text>
-                        </View>
-                      ) : null}
-                      {entry.content?.mood ? (
-                        <View
-                          style={[
-                            styles.entryTag,
-                            {
-                              backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F7FAFC',
-                              borderColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.entryTagText, { color: colors.textSecondary }]}>
-                            {entry.content.mood}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </View>
 
-                  <View
-                    style={[
-                      styles.entryCoverWrap,
-                      {
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F7FAFC',
-                        borderColor: colors.border,
-                      },
-                    ]}
-                  >
-                    {coverUri ? <Image source={{ uri: coverUri }} style={styles.entryCover} /> : null}
-                  </View>
-                </View>
-              </Pressable>
-            );
-          })
+                      <View style={styles.entryInfo}>
+                        <Text numberOfLines={2} style={[styles.entryTitle, { color: colors.text }]}>
+                          {entry.content?.title || `${item.name_zh} 游玩记录 ${index + 1}`}
+                        </Text>
+
+                        <View style={styles.entryStatsRow}>
+                          <View style={styles.entryStatItem}>
+                            <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
+                            <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
+                              {interaction.likes}
+                            </Text>
+                          </View>
+                          <View style={styles.entryStatItem}>
+                            <Ionicons name="chatbubble-ellipses-outline" size={14} color={colors.textSecondary} />
+                            <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
+                              {interaction.comments}
+                            </Text>
+                          </View>
+                          <View style={styles.entryStatItem}>
+                            <Ionicons name="bookmark-outline" size={14} color={colors.textSecondary} />
+                            <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
+                              {interaction.favorites}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
         ) : (
           <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="document-text-outline" size={28} color={colors.textSecondary} />
@@ -331,68 +388,72 @@ const styles = StyleSheet.create({
     width: 84,
     height: 40,
   },
-  entryCard: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 16,
-  },
-  entryCardBody: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  entryMain: {
-    flex: 1,
-  },
-  entryCardHeader: {
+  masonryRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
+  },
+  masonryColumn: {
+    flex: 1,
     gap: 12,
   },
-  entryTitleWrap: {
-    flex: 1,
+  masonryColumnRight: {
+    marginLeft: 12,
+  },
+  entryCard: {
+    borderWidth: 1,
+    borderRadius: 18,
+    overflow: 'hidden',
   },
   entryTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
   },
-  entryMeta: {
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 19,
+  entryCoverWrap: {
+    overflow: 'hidden',
   },
-  entryDescription: {
-    marginTop: 12,
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  entryFooter: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  entryCoverPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    marginTop: 14,
   },
-  entryTag: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  entryTagText: {
+  entryCoverPlaceholderText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  entryCoverWrap: {
-    width: 84,
-    height: 84,
-    borderWidth: 1,
-    borderRadius: 14,
-    overflow: 'hidden',
-    flexShrink: 0,
   },
   entryCover: {
     width: '100%',
     height: '100%',
+  },
+  videoBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(15,23,42,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  entryInfo: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  entryStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 10,
+  },
+  entryStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  entryStatText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   emptyCard: {
     borderWidth: 1,

@@ -79,7 +79,7 @@ export const NineGridMedia: React.FC<NineGridMediaProps> = ({
 
             {mediaItem.type === 'video' ? (
               <View style={styles.playOverlay}>
-                <Ionicons name="play" size={Math.max(24, itemWidth * 0.3)} color="#FFF" />
+                <Ionicons name="play" size={Math.max(18, itemWidth * 0.22)} color="#FFF" />
               </View>
             ) : null}
 
