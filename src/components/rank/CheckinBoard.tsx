@@ -135,7 +135,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
   const entryCountMap = React.useMemo(() => {
     const nextMap: Record<string, number> = {};
     userCheckins.forEach((checkin) => {
-      nextMap[checkin.item_id] = (nextMap[checkin.item_id] || 0) + 1;
+      nextMap[checkin.item_id] = Array.isArray(checkin.contents) ? checkin.contents.length : 0;
     });
     return nextMap;
   }, [userCheckins]);
@@ -265,6 +265,9 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
       renderItem={({ item }) => {
         const isChecked = checkedIds.has(item._id);
         const entryCount = entryCountMap[item._id] || 0;
+        const cardHighlightColor = isDark ? 'rgba(124,140,255,0.18)' : 'rgba(79,70,229,0.08)';
+        const cardBaseColor = isDark ? 'rgba(255,255,255,0.02)' : '#F8FBFF';
+        const markerColor = isDark ? 'rgba(129,140,248,0.9)' : colors.primary;
 
         return (
           <Pressable
@@ -272,17 +275,21 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
             style={[
               styles.itemCard,
               {
-                backgroundColor: isChecked
-                  ? isDark
-                    ? 'rgba(124,140,255,0.14)'
-                    : 'rgba(79,70,229,0.06)'
-                  : isDark
-                    ? 'rgba(255,255,255,0.02)'
-                    : '#F8FBFF',
+                backgroundColor: isChecked ? cardHighlightColor : cardBaseColor,
                 borderColor: isChecked ? colors.primary : colors.border,
               },
             ]}
           >
+            {isChecked ? (
+              <View
+                style={[
+                  styles.itemActiveMarker,
+                  {
+                    backgroundColor: markerColor,
+                  },
+                ]}
+              />
+            ) : null}
             <View
               style={[
                 styles.itemIndexBadge,
@@ -302,6 +309,20 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
             <View style={styles.itemMain}>
               <View style={styles.itemTitleRow}>
                 <Text style={[styles.itemTitle, { color: colors.text }]}>{item.name_zh}</Text>
+                {isChecked ? (
+                  <View
+                    style={[
+                      styles.recordedBadge,
+                      {
+                        backgroundColor: isDark ? 'rgba(129,140,248,0.18)' : 'rgba(79,70,229,0.10)',
+                        borderColor: isDark ? 'rgba(129,140,248,0.34)' : 'rgba(79,70,229,0.20)',
+                      },
+                    ]}
+                  >
+                    <Ionicons name="checkmark-circle" size={12} color={colors.primary} />
+                    <Text style={[styles.recordedBadgeText, { color: colors.primary }]}>已录入</Text>
+                  </View>
+                ) : null}
                 <View
                   style={[
                     styles.itemCategoryTag,
@@ -319,6 +340,11 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
               <Text style={[styles.itemSubtitle, { color: colors.textSecondary }]}>
                 {item.name_en || '暂无英文名'}
               </Text>
+              {isChecked ? (
+                <Text style={[styles.itemRecordedHint, { color: colors.primary }]}>
+                  已有 {entryCount} 篇记录，点击可继续补充或编辑
+                </Text>
+              ) : null}
             </View>
             <View
               style={[
@@ -458,6 +484,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 14,
     marginBottom: 12,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  itemActiveMarker: {
+    position: 'absolute',
+    left: 0,
+    top: 10,
+    bottom: 10,
+    width: 4,
+    borderTopRightRadius: 999,
+    borderBottomRightRadius: 999,
   },
   itemIndexBadge: {
     width: 42,
@@ -481,6 +518,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
+  recordedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  recordedBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
   itemTitle: {
     fontSize: 16,
     fontWeight: '800',
@@ -499,6 +549,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     lineHeight: 19,
+  },
+  itemRecordedHint: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: '700',
   },
   statusWrap: {
     minWidth: 82,
