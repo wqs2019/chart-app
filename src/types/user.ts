@@ -49,3 +49,10 @@ export type AppleLoginPayload = {
   identityToken?: string | null;
   authorizationCode?: string | null;
 };
+
+export type UpdateUserPayload = {
+  _id: string;
+  full_name?: string;
+  username?: string;
+  profile?: User['profile'];
+};

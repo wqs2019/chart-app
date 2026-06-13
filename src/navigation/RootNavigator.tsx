@@ -5,6 +5,7 @@ import CheckinEntryDetailScreen from '../screens/checkin/CheckinEntryDetailScree
 import CheckinEntryEditorScreen from '../screens/checkin/CheckinEntryEditorScreen';
 import CheckinItemRecordsScreen from '../screens/checkin/CheckinItemRecordsScreen';
 import CheckinScreen from '../screens/checkin/CheckinScreen';
+import EditProfileScreen from '../screens/me/EditProfileScreen';
 import MainTabsScreen from '../screens/tabs/MainTabsScreen';
 import { useAppStore } from '../store/appStore';
 import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
@@ -12,6 +13,7 @@ import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
 export type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
+  EditProfile: undefined;
   Checkin: {
     code: LeaderboardCode;
     viewedUserId?: string;
@@ -46,6 +48,7 @@ export const RootNavigator = () => {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="MainTabs" component={MainTabsScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: '编辑资料' }} />
           <Stack.Screen name="Checkin" component={CheckinScreen} />
           <Stack.Screen name="CheckinItemRecords" component={CheckinItemRecordsScreen} />
           <Stack.Screen name="CheckinEntryDetail" component={CheckinEntryDetailScreen} />

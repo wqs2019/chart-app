@@ -17,6 +17,7 @@ type AppState = {
   initTheme: () => Promise<void>;
   initAuth: () => Promise<void>;
   signInWithApple: (session: AuthSession) => Promise<void>;
+  updateCurrentUser: (user: AuthUser) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -78,6 +79,27 @@ export const useAppStore = create<AppState>((set) => ({
       currentSession: session,
       currentUser: session.user,
     });
+  },
+  updateCurrentUser: async (user) => {
+    let nextSession: AuthSession | null = null;
+
+    set((state) => {
+      nextSession = state.currentSession
+        ? {
+            ...state.currentSession,
+            user,
+          }
+        : null;
+
+      return {
+        currentUser: user,
+        currentSession: nextSession,
+      };
+    });
+
+    if (nextSession) {
+      await StorageUtil.set(STORAGE_KEYS.authSession, nextSession);
+    }
   },
   signOut: async () => {
     await StorageUtil.remove(STORAGE_KEYS.authSession);
