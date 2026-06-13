@@ -23,26 +23,51 @@ export interface StandardItem {
   sort_order: number;
 }
 
+export interface CheckinAttachment {
+  file_id: string;
+  media_type: 'image' | 'video';
+  name?: string;
+  temp_url?: string;
+  thumbnail_file_id?: string;
+  thumbnail_temp_url?: string;
+  duration_ms?: number;
+}
+
+export interface CheckinContentEntry {
+  entry_id?: string;
+  title?: string;
+  description?: string;
+  images?: string[];
+  attachments?: CheckinAttachment[];
+  visit_time?: string;
+  city_name?: string;
+  location_name?: string;
+  weather?: string;
+  mood?: string;
+  is_complete?: boolean;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+}
+
 export interface UserCheckin {
   _id?: string;
+  parent_checkin_id?: string;
   user_id: string;
   leaderboard_code: LeaderboardCode;
   item_id: string;      // 关联 StandardItem._id
+  item_type?: string;
+  is_active?: boolean;
   source_type: 'history_backfill' | 'realtime';
-  content?: {
-    title?: string;
-    description?: string;
-    images?: string[];
-    visit_time?: string;
-    city_name?: string;
-    is_complete?: boolean;
-  };
+  content?: CheckinContentEntry;
+  contents?: CheckinContentEntry[];
   interaction?: {
     likes_count: number;
     comments_count: number;
     favorites_count: number;
   };
+  checked_in_at?: Date | string;
   created_at: Date | string;
+  updated_at?: Date | string;
 }
 
 export interface UserScoreSnapshot {

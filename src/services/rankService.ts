@@ -1,4 +1,10 @@
-import { LeaderboardCode, StandardItem, UserCheckin, UserScoreSnapshot } from '../types/rank';
+import {
+  CheckinAttachment,
+  LeaderboardCode,
+  StandardItem,
+  UserCheckin,
+  UserScoreSnapshot,
+} from '../types/rank';
 import CloudService from './tcb';
 
 type RankCloudResult<T> = {
@@ -78,6 +84,40 @@ const callRankFunction = async <T>(action: string, data: Record<string, unknown>
   return response.data.data;
 };
 
+const resolveCheckinAttachmentUrls = async (checkins: UserCheckin[]): Promise<UserCheckin[]> => {
+  const fileIDs = Array.from(
+    new Set(
+      checkins.flatMap((checkin) =>
+        (checkin.content?.attachments || [])
+          .flatMap((attachment) => [attachment.file_id, attachment.thumbnail_file_id])
+          .filter((fileId): fileId is string => Boolean(fileId))
+      )
+    )
+  );
+
+  if (!fileIDs.length) {
+    return checkins;
+  }
+
+  const tempUrlMap = await CloudService.getTempFileURLs(fileIDs);
+
+  return checkins.map((checkin) => ({
+    ...checkin,
+    content: checkin.content
+      ? {
+          ...checkin.content,
+          attachments: (checkin.content.attachments || []).map((attachment) => ({
+            ...attachment,
+            temp_url: tempUrlMap[attachment.file_id] || attachment.temp_url,
+            thumbnail_temp_url:
+              (attachment.thumbnail_file_id && tempUrlMap[attachment.thumbnail_file_id]) ||
+              attachment.thumbnail_temp_url,
+          })),
+        }
+      : checkin.content,
+  }));
+};
+
 export const rankService = {
   /**
    * 获取指定榜单的标准项列表
@@ -91,6 +131,55 @@ export const rankService = {
    */
   async getUserCheckins(userId: string, code: LeaderboardCode): Promise<UserCheckin[]> {
     return callRankFunction<UserCheckin[]>('getUserCheckins', { userId, code });
+  },
+
+  async getItemCheckinEntries(userId: string, code: LeaderboardCode, itemId: string): Promise<UserCheckin[]> {
+    const checkins = await callRankFunction<UserCheckin[]>('getItemCheckinEntries', { userId, code, itemId });
+    return resolveCheckinAttachmentUrls(checkins);
+  },
+
+  async saveCheckinEntry(
+    userId: string,
+    item: StandardItem,
+    payload: {
+      entryId?: string;
+      title: string;
+      description: string;
+      attachments: CheckinAttachment[];
+      visit_time: string;
+      location_name: string;
+      weather: string;
+      mood: string;
+    }
+  ): Promise<UserCheckin> {
+    const checkin = await callRankFunction<UserCheckin>('saveCheckinEntry', {
+      userId,
+      item,
+      entryId: payload.entryId,
+      content: {
+        title: payload.title,
+        description: payload.description,
+        attachments: payload.attachments.map((attachment) => ({
+          file_id: attachment.file_id,
+          media_type: attachment.media_type,
+          name: attachment.name,
+          thumbnail_file_id: attachment.thumbnail_file_id,
+          duration_ms: attachment.duration_ms,
+        })),
+        images: payload.attachments
+          .filter((attachment) => attachment.media_type === 'image')
+          .map((attachment) => attachment.file_id),
+        visit_time: payload.visit_time,
+        city_name: payload.location_name,
+        location_name: payload.location_name,
+        weather: payload.weather,
+        mood: payload.mood,
+        is_complete: Boolean(payload.title || payload.description || payload.attachments.length),
+      },
+    });
+
+    const [resolved] = await resolveCheckinAttachmentUrls([checkin]);
+    return resolved;
   },
 
   /**

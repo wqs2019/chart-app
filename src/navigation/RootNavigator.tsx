@@ -1,15 +1,19 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import AppleLoginScreen from '../screens/auth/AppleLoginScreen';
+import CheckinEntryEditorScreen from '../screens/rank/CheckinEntryEditorScreen';
+import CheckinItemRecordsScreen from '../screens/rank/CheckinItemRecordsScreen';
 import CheckinScreen from '../screens/rank/CheckinScreen';
 import MainTabsScreen from '../screens/tabs/MainTabsScreen';
 import { useAppStore } from '../store/appStore';
-import { LeaderboardCode } from '../types/rank';
+import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
 
 export type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
   Checkin: { code: LeaderboardCode };
+  CheckinItemRecords: { code: LeaderboardCode; item: StandardItem };
+  CheckinEntryEditor: { code: LeaderboardCode; item: StandardItem; entry?: UserCheckin };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -23,6 +27,8 @@ export const RootNavigator = () => {
         <>
           <Stack.Screen name="MainTabs" component={MainTabsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Checkin" component={CheckinScreen} />
+          <Stack.Screen name="CheckinItemRecords" component={CheckinItemRecordsScreen} />
+          <Stack.Screen name="CheckinEntryEditor" component={CheckinEntryEditorScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={AppleLoginScreen} options={{ headerShown: false }} />

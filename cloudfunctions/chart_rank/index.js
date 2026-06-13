@@ -1,4 +1,5 @@
 const cloud = require('@cloudbase/node-sdk');
+const STS = require('qcloud-cos-sts');
 
 const app = cloud.init({
   env: cloud.SYMBOL_CURRENT_ENV,
@@ -9,6 +10,10 @@ const _ = db.command;
 const standardItemsCollection = db.collection('chart_standard_items');
 const checkinsCollection = db.collection('chart_checkins');
 const snapshotsCollection = db.collection('chart_score_snapshots');
+const DEFAULT_COS_BUCKET = '6d61-maoqiu-diary-app-2fpzvwp2e01dbaf-1417164439';
+const DEFAULT_COS_REGION = 'ap-shanghai';
+const DEFAULT_COS_PUBLIC_DOMAIN = `https://${DEFAULT_COS_BUCKET}.tcb.qcloud.la`;
+
 function ok(data) {
   return {
     success: true,
@@ -22,6 +27,16 @@ function fail(message, error) {
     message,
     ...(error ? { error: error.message || String(error) } : {}),
   };
+}
+
+function getEnvValue(keys, fallback = '') {
+  for (const key of keys) {
+    if (process.env[key]) {
+      return process.env[key];
+    }
+  }
+
+  return fallback;
 }
 
 function getDocData(result) {
@@ -81,6 +96,15 @@ async function findCheckin(userId, leaderboardCode, itemId) {
   return getDocData(result);
 }
 
+async function findCheckinEntryById(entryId) {
+  if (!entryId) {
+    return null;
+  }
+
+  const result = await checkinsCollection.doc(entryId).get();
+  return getDocData(result);
+}
+
 function buildSnapshotTags(code, rawCount) {
   if (rawCount <= 0) {
     return [];
@@ -111,6 +135,65 @@ function getInteractionRawScore(interaction = {}) {
 
 function roundScore(value) {
   return Number(Number(value || 0).toFixed(2));
+}
+
+function createEntryId() {
+  return `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeEntryContent(content = {}, standardItem = {}) {
+  return {
+    title: content.title || '',
+    description: content.description || '',
+    images: Array.isArray(content.images) ? content.images : [],
+    attachments: Array.isArray(content.attachments) ? content.attachments : [],
+    visit_time: content.visit_time || '',
+    city_name: content.city_name || content.location_name || standardItem.name_zh || '',
+    location_name: content.location_name || standardItem.name_zh || '',
+    weather: content.weather || '',
+    mood: content.mood || '',
+    is_complete: Boolean(content.is_complete),
+  };
+}
+
+function buildEntryRecord(content = {}, standardItem = {}, existingEntry = null) {
+  const normalizedContent = normalizeEntryContent(content, standardItem);
+  return {
+    entry_id: existingEntry?.entry_id || existingEntry?._id || createEntryId(),
+    ...normalizedContent,
+    created_at: existingEntry?.created_at || db.serverDate(),
+    updated_at: db.serverDate(),
+  };
+}
+
+function getCheckinEntries(checkin) {
+  const safeCheckin = checkin || {};
+  const contents = Array.isArray(safeCheckin.contents) ? safeCheckin.contents : [];
+  return contents;
+}
+
+function buildEntryView(checkin, entry = {}) {
+  const safeCheckin = checkin || {};
+  return {
+    ...safeCheckin,
+    _id: entry.entry_id || safeCheckin._id,
+    parent_checkin_id: safeCheckin._id,
+    checked_in_at: entry.created_at || safeCheckin.checked_in_at,
+    created_at: entry.created_at || safeCheckin.created_at,
+    updated_at: entry.updated_at || safeCheckin.updated_at,
+    content: {
+      title: entry.title || '',
+      description: entry.description || '',
+      images: Array.isArray(entry.images) ? entry.images : [],
+      attachments: Array.isArray(entry.attachments) ? entry.attachments : [],
+      visit_time: entry.visit_time || '',
+      city_name: entry.city_name || '',
+      location_name: entry.location_name || '',
+      weather: entry.weather || '',
+      mood: entry.mood || '',
+      is_complete: Boolean(entry.is_complete),
+    },
+  };
 }
 
 function createAggregateEntry(userId) {
@@ -332,12 +415,13 @@ async function refreshLeaderboardSnapshots(code) {
     }
 
     const current = aggregateMap.get(userId) || createAggregateEntry(userId);
+    current.interaction_raw_score += getInteractionRawScore(checkin.interaction);
+
     if (current.item_ids.has(checkin.item_id)) {
       continue;
     }
 
     current.item_ids.add(checkin.item_id);
-    current.interaction_raw_score += getInteractionRawScore(checkin.interaction);
 
     const standardItem = standardItemMap.get(checkin.item_id);
     if (normalizedCode === 'world_travel') {
@@ -510,6 +594,34 @@ const getUserCheckins = async (data = {}) => {
   }
 };
 
+const getItemCheckinEntries = async (data = {}) => {
+  const { userId, code, itemId } = data;
+  const normalizedCode = normalizeLeaderboardCode(code);
+  const codeCandidates = getLeaderboardCodeCandidates(normalizedCode);
+  if (!userId || !normalizedCode || !itemId) return fail('缺少参数');
+
+  try {
+    const { data: checkins } = await checkinsCollection
+      .where({
+        user_id: userId,
+        leaderboard_code: _.in(codeCandidates),
+        item_id: itemId,
+        is_active: true,
+      })
+      .orderBy('checked_in_at', 'desc')
+      .limit(1000)
+      .get();
+
+    const entries = (checkins || [])
+      .flatMap((checkin) => getCheckinEntries(checkin).map((entry) => buildEntryView(checkin, entry)))
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+    return ok(entries);
+  } catch (error) {
+    return fail('获取标准项录入记录失败', error);
+  }
+};
+
 /**
  * 切换打卡状态
  */
@@ -618,6 +730,72 @@ const batchCheckin = async (data = {}) => {
   }
 };
 
+const saveCheckinEntry = async (data = {}) => {
+  const { userId, item, itemId, code, entryId, content = {} } = data;
+  if (!userId || (!item && !itemId)) {
+    return fail('缺少参数');
+  }
+
+  try {
+    const standardItem = item || (await getStandardItemById(itemId));
+    if (!standardItem) {
+      return fail('标准项不存在');
+    }
+
+    const leaderboardCode = normalizeLeaderboardCode(standardItem.leaderboard_code || code);
+    const currentItemId = standardItem._id || itemId;
+    const anchorCheckin = await findCheckin(userId, leaderboardCode, currentItemId);
+    const existingEntries = getCheckinEntries(anchorCheckin);
+    const existingEntry = entryId
+      ? existingEntries.find((currentEntry) => currentEntry.entry_id === entryId) || null
+      : null;
+    const nextEntry = buildEntryRecord(content, standardItem, existingEntry);
+    const nextEntries = existingEntry
+      ? existingEntries.map((currentEntry) =>
+          currentEntry.entry_id === nextEntry.entry_id ? { ...currentEntry, ...nextEntry } : currentEntry
+        )
+      : [nextEntry, ...existingEntries];
+    const nextPayload = {
+      user_id: userId,
+      leaderboard_code: leaderboardCode,
+      item_id: currentItemId,
+      item_type: standardItem.item_type || standardItem.type || '',
+      is_active: true,
+      source_type: anchorCheckin?.source_type || 'realtime',
+      checked_in_at: anchorCheckin?.checked_in_at || db.serverDate(),
+      contents: nextEntries,
+      interaction: anchorCheckin?.interaction || {
+        likes_count: 0,
+        comments_count: 0,
+        favorites_count: 0,
+      },
+      updated_at: db.serverDate(),
+    };
+
+    let savedCheckinId = anchorCheckin?._id;
+
+    if (anchorCheckin?._id) {
+      await checkinsCollection.doc(anchorCheckin._id).update(nextPayload);
+      savedCheckinId = anchorCheckin._id;
+    } else {
+      const createResult = await checkinsCollection.add({
+        ...nextPayload,
+        created_at: db.serverDate(),
+      });
+      savedCheckinId = createResult.id || createResult._id;
+    }
+
+    await refreshLeaderboardSnapshots(leaderboardCode);
+
+    const savedCheckin = await findCheckinEntryById(savedCheckinId);
+    const savedEntries = getCheckinEntries(savedCheckin);
+    const savedEntry = savedEntries.find((currentEntry) => currentEntry.entry_id === nextEntry.entry_id) || nextEntry;
+    return ok(buildEntryView(savedCheckin, savedEntry));
+  } catch (error) {
+    return fail('保存录入记录失败', error);
+  }
+};
+
 /**
  * 获取我的榜单位置
  */
@@ -693,13 +871,71 @@ const getLeaderboardRankings = async (data = {}) => {
   }
 };
 
+const getUploadCredentials = async () => {
+  try {
+    const secretId = getEnvValue(['COS_SECRET_ID', 'TCB_SECRET_ID', 'CLOUDBASE_SECRET_ID']);
+    const secretKey = getEnvValue(['COS_SECRET_KEY', 'TCB_SECRET_KEY', 'CLOUDBASE_SECRET_KEY']);
+
+    if (!secretId || !secretKey) {
+      return fail('COS 密钥未配置，请先在云函数环境变量中配置 COS_SECRET_ID 和 COS_SECRET_KEY');
+    }
+
+    const bucket = getEnvValue(['COS_BUCKET'], DEFAULT_COS_BUCKET);
+    const region = getEnvValue(['COS_REGION'], DEFAULT_COS_REGION);
+    const publicDomain = getEnvValue(['COS_PUBLIC_DOMAIN'], DEFAULT_COS_PUBLIC_DOMAIN);
+    const allowPrefix = 'checkins/*';
+    const allowActions = [
+      'name/cos:PutObject',
+      'name/cos:PostObject',
+      'name/cos:InitiateMultipartUpload',
+      'name/cos:ListMultipartUploads',
+      'name/cos:ListParts',
+      'name/cos:UploadPart',
+      'name/cos:CompleteMultipartUpload',
+      'name/cos:AbortMultipartUpload',
+    ];
+
+    const policy = STS.getPolicy(
+      allowActions.map((action) => ({
+        action,
+        bucket,
+        region,
+        prefix: allowPrefix,
+      }))
+    );
+
+    const result = await STS.getCredential({
+      secretId,
+      secretKey,
+      durationSeconds: 1800,
+      policy,
+    });
+
+    return ok({
+      tmpSecretId: result.credentials.tmpSecretId,
+      tmpSecretKey: result.credentials.tmpSecretKey,
+      sessionToken: result.credentials.sessionToken,
+      expiredTime: result.expiredTime,
+      startTime: result.startTime,
+      bucket,
+      region,
+      publicDomain,
+    });
+  } catch (error) {
+    return fail('获取上传凭证失败', error);
+  }
+};
+
 const actionMap = {
   getStandardItems,
   getUserCheckins,
+  getItemCheckinEntries,
   toggleCheckin,
   batchCheckin,
+  saveCheckinEntry,
   getMyRank,
   getLeaderboardRankings,
+  getUploadCredentials,
 };
 
 function normalizeEventPayload(event = {}) {

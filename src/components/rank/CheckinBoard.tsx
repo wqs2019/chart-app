@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   Alert,
@@ -12,9 +13,11 @@ import {
 
 import Loading from '../common/Loading';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
-import { LeaderboardCode, LEADERBOARD_CONFIGS, StandardItem } from '../../types/rank';
+import { LeaderboardCode, LEADERBOARD_CONFIGS, StandardItem, UserCheckin } from '../../types/rank';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type CheckinBoardProps = {
   code: LeaderboardCode;
@@ -55,12 +58,14 @@ const getItemCategoryLabel = (item: StandardItem) =>
 
 const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
   const { colors, isDark } = useAppTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const currentUser = useAppStore((state) => state.currentUser);
   const userId = currentUser?._id;
   const config = LEADERBOARD_CONFIGS[code];
 
   const [loading, setLoading] = React.useState(true);
   const [items, setItems] = React.useState<StandardItem[]>([]);
+  const [userCheckins, setUserCheckins] = React.useState<UserCheckin[]>([]);
   const [checkedIds, setCheckedIds] = React.useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = React.useState(ALL_CATEGORY);
 
@@ -78,6 +83,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
       ]);
 
       setItems(allOptions);
+      setUserCheckins(myCheckins);
       setCheckedIds(new Set(myCheckins.map((item) => item.item_id)));
     } catch (error) {
       Alert.alert('加载失败', '当前榜单数据暂时不可用，请稍后重试。');
@@ -126,30 +132,13 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
     () => filteredItems.filter((item) => checkedIds.has(item._id)).length,
     [filteredItems, checkedIds]
   );
-
-  const handleToggle = async (item: StandardItem) => {
-    if (!userId) {
-      return;
-    }
-
-    const isChecked = checkedIds.has(item._id);
-    const nextCheckedIds = new Set(checkedIds);
-
-    if (isChecked) {
-      nextCheckedIds.delete(item._id);
-    } else {
-      nextCheckedIds.add(item._id);
-    }
-
-    setCheckedIds(nextCheckedIds);
-
-    try {
-      await rankService.toggleCheckin(userId, item, !isChecked);
-    } catch (error) {
-      Alert.alert('保存失败', '录入状态未成功同步，请稍后再试。');
-      fetchData();
-    }
-  };
+  const entryCountMap = React.useMemo(() => {
+    const nextMap: Record<string, number> = {};
+    userCheckins.forEach((checkin) => {
+      nextMap[checkin.item_id] = (nextMap[checkin.item_id] || 0) + 1;
+    });
+    return nextMap;
+  }, [userCheckins]);
 
   if (loading) {
     return <Loading message="正在加载当前榜单可录入项..." />;
@@ -275,10 +264,11 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
       }
       renderItem={({ item }) => {
         const isChecked = checkedIds.has(item._id);
+        const entryCount = entryCountMap[item._id] || 0;
 
         return (
           <Pressable
-            onPress={() => handleToggle(item)}
+            onPress={() => navigation.navigate('CheckinItemRecords', { code, item })}
             style={[
               styles.itemCard,
               {
@@ -344,12 +334,12 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
               ]}
             >
               <Ionicons
-                name={isChecked ? 'checkmark' : 'add'}
+                name={isChecked ? 'documents' : 'add'}
                 size={16}
                 color={isChecked ? '#FFFFFF' : colors.textSecondary}
               />
               <Text style={[styles.statusText, { color: isChecked ? '#FFFFFF' : colors.textSecondary }]}>
-                {isChecked ? '已录入' : '未录入'}
+                {isChecked ? `${entryCount}篇记录` : '录入数据'}
               </Text>
             </View>
           </Pressable>
