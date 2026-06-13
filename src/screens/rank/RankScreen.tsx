@@ -23,14 +23,12 @@ import {
   UserScoreSnapshot,
 } from '../../types/rank';
 
-type RankMedalIcon = React.ComponentProps<typeof Ionicons>['name'];
-
 const formatPercentile = (value?: number) => {
   if (value === undefined || value === null || Number.isNaN(Number(value))) {
     return '暂无';
   }
 
-  return `超过 ${Number(value).toFixed(0)}% 用户`;
+  return `超越 ${Number(value).toFixed(0)}% 用户`;
 };
 
 const formatScore = (value?: number | null) => {
@@ -39,22 +37,6 @@ const formatScore = (value?: number | null) => {
   }
 
   return Number(value).toFixed(2);
-};
-
-const getRankMedal = (rank: number) => {
-  if (rank === 1) {
-    return { icon: 'trophy' as RankMedalIcon, label: 'TOP 1' };
-  }
-
-  if (rank === 2) {
-    return { icon: 'medal' as RankMedalIcon, label: 'TOP 2' };
-  }
-
-  if (rank === 3) {
-    return { icon: 'ribbon' as RankMedalIcon, label: 'TOP 3' };
-  }
-
-  return null;
 };
 
 const getScoreRuleLines = (code: LeaderboardCode) => {
@@ -117,9 +99,6 @@ const RankScreen: React.FC = () => {
   const currentConfig = LEADERBOARD_CONFIGS[selectedCode];
   const scoreRuleLines = React.useMemo(() => getScoreRuleLines(selectedCode), [selectedCode]);
   const scoreSourceHint = React.useMemo(() => getScoreSourceHint(selectedCode), [selectedCode]);
-  const leadingRows = React.useMemo(() => rows.slice(0, 3), [rows]);
-  const remainingRows = React.useMemo(() => rows.slice(3), [rows]);
-
   const fetchData = React.useCallback(async () => {
     if (!userId) {
       setLoading(false);
@@ -162,10 +141,7 @@ const RankScreen: React.FC = () => {
         <View style={styles.topHeader}>
           <View>
             <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>RANKING CENTER</Text>
-            <Text style={[styles.title, { color: colors.text }]}>榜单</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              聚焦当前榜单排名，突出列表与个人成绩。
-            </Text>
+            <Text style={[styles.title, { color: colors.text }]}>{currentConfig.title}</Text>
           </View>
           <Pressable
             onPress={() => setShowScoreGuide(true)}
@@ -189,154 +165,6 @@ const RankScreen: React.FC = () => {
 
         <View
           style={[
-            styles.summaryCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              shadowOpacity: isDark ? 0 : 0.08,
-            },
-          ]}
-        >
-          <View style={styles.summaryHeader}>
-            <View>
-              <Text style={[styles.summaryOverline, { color: colors.primary }]}>{currentConfig.title}</Text>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>我的当前成绩</Text>
-            </View>
-            <View
-              style={[
-                styles.inlineBadge,
-                {
-                  backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)',
-                },
-              ]}
-            >
-              <Text style={[styles.inlineBadgeText, { color: colors.primary }]}>{currentConfig.unit}</Text>
-            </View>
-          </View>
-          {myRank ? (
-            <>
-              <View
-                style={[
-                  styles.summaryHero,
-                  {
-                    backgroundColor: isDark ? 'rgba(124,140,255,0.12)' : 'rgba(79,70,229,0.06)',
-                    borderColor: isDark ? 'rgba(124,140,255,0.18)' : 'rgba(79,70,229,0.10)',
-                  },
-                ]}
-              >
-                <View style={styles.summaryHeroMain}>
-                  <Text style={[styles.heroScore, { color: colors.text }]}>
-                    {formatScore(myRank.final_score)}
-                  </Text>
-                  <Text style={[styles.heroScoreHint, { color: colors.textSecondary }]}>
-                    当前总分
-                  </Text>
-                </View>
-                <View style={styles.summaryHeroAside}>
-                  <Text style={[styles.rankPill, { color: colors.primary }]}>#{myRank.rank || '--'}</Text>
-                  <Text style={[styles.rankPillHint, { color: colors.textSecondary }]}>
-                    {formatPercentile(myRank.percentile)}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.summaryGrid}>
-                <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>录入数量</Text>
-                  <Text style={[styles.summaryValue, { color: colors.text }]}>{myRank.raw_count ?? 0}</Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>成就分</Text>
-                  <Text style={[styles.summaryValue, { color: colors.text }]}>
-                    {formatScore(myRank.achievement_score)}
-                  </Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>影响力分</Text>
-                  <Text style={[styles.summaryValue, { color: colors.text }]}>
-                    {formatScore(myRank.influence_score)}
-                  </Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>榜单状态</Text>
-                  <Text style={[styles.summaryMinor, { color: colors.primary }]}>已进入排名</Text>
-                </View>
-              </View>
-            </>
-          ) : (
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              你当前还没有进入 {currentConfig.title} 排行，先去录入这个榜单的内容吧。
-            </Text>
-          )}
-        </View>
-
-        {leadingRows.length ? (
-          <View style={styles.focusWrap}>
-            {leadingRows.map((row, index) => {
-              const medal = getRankMedal(index + 1);
-              const isMine = row.user_id === userId;
-              const displayRank = row.rank || index + 1;
-              const displayName = isMine ? '我' : `用户 ${String(row.user_id).slice(-6)}`;
-
-              return (
-                <View
-                  key={`${row.user_id}-${displayRank}-spotlight`}
-                  style={[
-                    styles.spotlightCard,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: isMine ? colors.primary : colors.border,
-                      shadowOpacity: isDark ? 0 : 0.08,
-                    },
-                  ]}
-                >
-                  <View style={styles.spotlightHeader}>
-                    <View
-                      style={[
-                        styles.spotlightBadge,
-                        {
-                          backgroundColor: isMine
-                            ? colors.primary
-                            : isDark
-                              ? 'rgba(148,163,184,0.10)'
-                              : '#EEF3F9',
-                        },
-                      ]}
-                    >
-                      {medal ? (
-                        <Ionicons
-                          name={medal.icon}
-                          size={14}
-                          color={isMine ? '#FFFFFF' : colors.textSecondary}
-                        />
-                      ) : null}
-                      <Text
-                        style={[
-                          styles.spotlightBadgeText,
-                          { color: isMine ? '#FFFFFF' : colors.textSecondary },
-                        ]}
-                      >
-                        #{displayRank}
-                      </Text>
-                    </View>
-                    {isMine ? (
-                      <Text style={[styles.spotlightMine, { color: colors.primary }]}>我的席位</Text>
-                    ) : null}
-                  </View>
-                  <Text style={[styles.spotlightName, { color: colors.text }]}>{displayName}</Text>
-                  <Text style={[styles.spotlightMeta, { color: colors.textSecondary }]}>
-                    已录入 {row.raw_count ?? 0}{currentConfig.unit}
-                  </Text>
-                  <Text style={[styles.spotlightScore, { color: colors.text }]}>
-                    {formatScore(row.final_score)}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        ) : null}
-
-        <View
-          style={[
             styles.listCard,
             {
               backgroundColor: colors.surface,
@@ -348,9 +176,7 @@ const RankScreen: React.FC = () => {
           <View style={styles.sectionHeaderRow}>
             <View>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{currentConfig.title} 排行榜</Text>
-              <Text style={[styles.listHint, { color: colors.textSecondary }]}>
-                榜单重点展示当前排行列表与实时分数。
-              </Text>
+              <Text style={[styles.listHint, { color: colors.textSecondary }]}>按总分实时排序</Text>
             </View>
             <View
               style={[
@@ -364,10 +190,59 @@ const RankScreen: React.FC = () => {
             </View>
           </View>
 
+          <View
+            style={[
+              styles.compactSummaryCard,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FBFF',
+                borderColor: myRank ? colors.primary : colors.border,
+              },
+            ]}
+          >
+            {myRank ? (
+              <View style={styles.compactSummaryInline}>
+                <View style={styles.compactSummaryMain}>
+                  <Text style={[styles.compactSummaryLabel, { color: colors.textSecondary }]}>我的排名</Text>
+                  <Text style={[styles.compactSummaryRank, { color: colors.text }]}>#{myRank.rank || '--'}</Text>
+                </View>
+                <View style={styles.compactSummaryMetrics}>
+                  <View style={styles.compactMetricRow}>
+                    <View style={styles.compactMetricItem}>
+                      <Text style={[styles.compactMetricValue, { color: colors.text }]}>
+                        {formatScore(myRank.final_score)}
+                      </Text>
+                      <Text style={[styles.compactMetricLabel, { color: colors.textSecondary }]}>总分</Text>
+                    </View>
+                    <View style={styles.compactMetricItem}>
+                      <Text style={[styles.compactMetricValue, { color: colors.text }]}>
+                        {myRank.raw_count ?? 0}
+                      </Text>
+                      <Text style={[styles.compactMetricLabel, { color: colors.textSecondary }]}>
+                        已录入{currentConfig.unit}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.compactPercentileRow}>
+                    <Text style={[styles.compactMetricValue, styles.compactMetricValueMultiline, { color: colors.primary }]}>
+                      {formatPercentile(myRank.percentile)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.compactSummaryEmpty}>
+                <Ionicons name="flag-outline" size={16} color={colors.textSecondary} />
+                <Text style={[styles.compactSummaryEmptyText, { color: colors.textSecondary }]}>
+                  你当前还没有进入 {currentConfig.title} 排行，先去录入这个榜单的内容吧。
+                </Text>
+              </View>
+            )}
+          </View>
+
           {rows.length ? (
-            (remainingRows.length ? remainingRows : rows).map((row, index) => {
+            rows.map((row, index) => {
               const isMine = row.user_id === userId;
-              const displayRank = row.rank || index + 1 + (remainingRows.length ? 3 : 0);
+              const displayRank = row.rank || index + 1;
               const displayName = isMine ? '我' : `用户 ${String(row.user_id).slice(-6)}`;
 
               return (
@@ -531,30 +406,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '800',
   },
-  subtitle: {
-    marginTop: 8,
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  summaryCard: {
-    borderWidth: 1,
-    borderRadius: 26,
-    padding: 20,
-    shadowColor: '#020617',
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 24,
-    elevation: 3,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryOverline: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
@@ -567,112 +418,6 @@ const styles = StyleSheet.create({
   inlineBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-  },
-  summaryHero: {
-    marginTop: 16,
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryHeroMain: {
-    flex: 1,
-  },
-  heroScore: {
-    fontSize: 34,
-    fontWeight: '900',
-  },
-  heroScoreHint: {
-    marginTop: 4,
-    fontSize: 13,
-  },
-  summaryHeroAside: {
-    alignItems: 'flex-end',
-    marginLeft: 16,
-  },
-  rankPill: {
-    fontSize: 24,
-    fontWeight: '900',
-  },
-  rankPillHint: {
-    marginTop: 4,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  summaryGrid: {
-    marginTop: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  summaryItem: {
-    width: '47%',
-  },
-  summaryLabel: {
-    fontSize: 13,
-  },
-  summaryValue: {
-    marginTop: 6,
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  summaryMinor: {
-    marginTop: 8,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  focusWrap: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  spotlightCard: {
-    flex: 1,
-    minHeight: 138,
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 14,
-    shadowColor: '#020617',
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 2,
-  },
-  spotlightHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  spotlightBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  spotlightBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  spotlightMine: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  spotlightName: {
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  spotlightMeta: {
-    marginTop: 6,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  spotlightScore: {
-    marginTop: 18,
-    fontSize: 24,
-    fontWeight: '900',
   },
   listCard: {
     borderWidth: 1,
@@ -692,6 +437,70 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  compactSummaryCard: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  compactSummaryInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  compactSummaryMain: {
+    minWidth: 72,
+  },
+  compactSummaryLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  compactSummaryRank: {
+    marginTop: 4,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  compactSummaryMetrics: {
+    flex: 1,
+    gap: 10,
+  },
+  compactMetricRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  compactMetricItem: {
+    flex: 1,
+  },
+  compactMetricValue: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  compactMetricValueMultiline: {
+    lineHeight: 18,
+    flexShrink: 1,
+  },
+  compactPercentileRow: {
+    paddingTop: 2,
+  },
+  compactMetricLabel: {
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  compactSummaryEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  compactSummaryEmptyText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   infoButton: {
     width: 36,
