@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -53,6 +54,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
   const [dataByCode, setDataByCode] = React.useState<Partial<Record<LeaderboardCode, CheckinBoardData>>>({});
   const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
   const [selectedCategory, setSelectedCategory] = React.useState(ALL_CATEGORY);
+  const [searchKeyword, setSearchKeyword] = React.useState('');
   const requestIdRef = React.useRef(0);
 
   const currentData = dataByCode[code];
@@ -101,6 +103,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
 
   React.useEffect(() => {
     setSelectedCategory(ALL_CATEGORY);
+    setSearchKeyword('');
   }, [code]);
 
   React.useEffect(() => {
@@ -128,13 +131,33 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
     return nextMap;
   }, [visibleItems]);
 
-  const filteredItems = React.useMemo(() => {
+  const filteredByCategoryItems = React.useMemo(() => {
     if (selectedCategory === ALL_CATEGORY) {
       return visibleItems;
     }
 
     return visibleItems.filter((item) => item.category === selectedCategory);
   }, [selectedCategory, visibleItems]);
+  const normalizedSearchKeyword = searchKeyword.trim().toLowerCase();
+  const filteredItems = React.useMemo(() => {
+    if (!normalizedSearchKeyword) {
+      return filteredByCategoryItems;
+    }
+
+    return filteredByCategoryItems.filter((item) => {
+      const searchPool = [
+        item.name_zh,
+        item.name_en,
+        item.category,
+        item.category_label_zh,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchPool.includes(normalizedSearchKeyword);
+    });
+  }, [filteredByCategoryItems, normalizedSearchKeyword]);
   const completionRate = items.length ? checkedIds.size / items.length : 0;
   const progressPercent = Math.round(completionRate * 100);
   const activeCategoryLabel =
@@ -255,6 +278,29 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
 
               <View style={styles.categoryHeader}>
                 <Text style={[styles.categoryTitle, { color: colors.text }]}>分类筛选</Text>
+              </View>
+
+              <View
+                style={[
+                  styles.searchWrap,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF6F0',
+                  },
+                ]}
+              >
+                <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
+                <TextInput
+                  value={searchKeyword}
+                  onChangeText={setSearchKeyword}
+                  placeholder="搜索国家、省份、项目"
+                  placeholderTextColor={colors.textSecondary}
+                  style={[styles.searchInput, { color: colors.text }]}
+                />
+                {searchKeyword ? (
+                  <Pressable onPress={() => setSearchKeyword('')} hitSlop={8}>
+                    <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+                  </Pressable>
+                ) : null}
               </View>
 
               <ScrollView
@@ -407,9 +453,13 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
       }}
       ListEmptyComponent={
         <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>当前分类暂无条目</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            {normalizedSearchKeyword ? '没有找到相关条目' : '当前分类暂无条目'}
+          </Text>
           <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-            可以切换顶部分类后，继续查看 {ownerLabel} 在这个榜单下的条目列表。
+            {normalizedSearchKeyword
+              ? `试试更换关键词，或切换分类后继续查看 ${ownerLabel} 在这个榜单下的条目列表。`
+              : `可以切换顶部分类后，继续查看 ${ownerLabel} 在这个榜单下的条目列表。`}
           </Text>
         </View>
       }
@@ -506,6 +556,21 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 16,
     fontWeight: '800',
+  },
+  searchWrap: {
+    marginTop: 12,
+    marginBottom: 2,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 0,
   },
   categoryHint: {
     fontSize: 12,
