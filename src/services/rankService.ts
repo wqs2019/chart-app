@@ -166,9 +166,6 @@ export const rankService = {
           thumbnail_file_id: attachment.thumbnail_file_id,
           duration_ms: attachment.duration_ms,
         })),
-        images: payload.attachments
-          .filter((attachment) => attachment.media_type === 'image')
-          .map((attachment) => attachment.file_id),
         visit_time: payload.visit_time,
         city_name: payload.location_name,
         location_name: payload.location_name,

@@ -131,9 +131,10 @@ function buildUserPayload(data = {}) {
 
 function buildAppleUserPayload(data = {}) {
   const nickname = data.fullName || `Apple用户${String(data.userId || '').slice(-4) || '0000'}`;
+  const virtualPhone = data.userId ? `apple_${String(data.userId)}` : `apple_${Date.now()}`;
 
   return {
-    phone: '',
+    phone: virtualPhone,
     email: data.email || '',
     username: data.username || `apple_${String(data.userId || '').slice(-8)}`,
     apple_user_id: data.userId,

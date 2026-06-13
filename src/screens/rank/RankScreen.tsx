@@ -291,7 +291,10 @@ const RankScreen: React.FC = () => {
                 rows.map((row, index) => {
                   const isMine = row.user_id === userId;
                   const displayRank = row.rank || index + 1;
-                  const displayName = isMine ? '我' : `用户 ${String(row.user_id).slice(-6)}`;
+                  const displayName =
+                    (isMine ? currentUser?.fullName : row.full_name) ||
+                    row.username ||
+                    `用户 ${String(row.user_id).slice(-6)}`;
 
                   return (
                     <View

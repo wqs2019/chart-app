@@ -10,6 +10,7 @@ const _ = db.command;
 const standardItemsCollection = db.collection('chart_standard_items');
 const checkinsCollection = db.collection('chart_checkins');
 const snapshotsCollection = db.collection('chart_score_snapshots');
+const usersCollection = db.collection('chart_users');
 const DEFAULT_COS_BUCKET = '6d61-maoqiu-diary-app-2fpzvwp2e01dbaf-1417164439';
 const DEFAULT_COS_REGION = 'ap-shanghai';
 const DEFAULT_COS_PUBLIC_DOMAIN = `https://${DEFAULT_COS_BUCKET}.tcb.qcloud.la`;
@@ -145,7 +146,6 @@ function normalizeEntryContent(content = {}, standardItem = {}) {
   return {
     title: content.title || '',
     description: content.description || '',
-    images: Array.isArray(content.images) ? content.images : [],
     attachments: Array.isArray(content.attachments) ? content.attachments : [],
     visit_time: content.visit_time || '',
     city_name: content.city_name || content.location_name || standardItem.name_zh || '',
@@ -184,7 +184,6 @@ function buildEntryView(checkin, entry = {}) {
     content: {
       title: entry.title || '',
       description: entry.description || '',
-      images: Array.isArray(entry.images) ? entry.images : [],
       attachments: Array.isArray(entry.attachments) ? entry.attachments : [],
       visit_time: entry.visit_time || '',
       city_name: entry.city_name || '',
@@ -194,6 +193,43 @@ function buildEntryView(checkin, entry = {}) {
       is_complete: Boolean(entry.is_complete),
     },
   };
+}
+
+async function enrichSnapshotsWithUserProfile(rows = []) {
+  if (!Array.isArray(rows) || !rows.length) {
+    return [];
+  }
+
+  const userIds = Array.from(new Set(rows.map((row) => row.user_id).filter(Boolean)));
+  if (!userIds.length) {
+    return rows;
+  }
+
+  const { data: users } = await usersCollection
+    .where({
+      _id: _.in(userIds),
+    })
+    .limit(Math.min(userIds.length, 100))
+    .get();
+
+  const userMap = new Map(
+    (users || []).map((user) => [
+      user._id,
+      {
+        full_name: user.full_name || '',
+        username: user.username || '',
+      },
+    ])
+  );
+
+  return rows.map((row) => {
+    const userProfile = userMap.get(row.user_id) || {};
+    return {
+      ...row,
+      full_name: userProfile.full_name || row.full_name || '',
+      username: userProfile.username || row.username || '',
+    };
+  });
 }
 
 function createAggregateEntry(userId) {
@@ -865,7 +901,8 @@ const getLeaderboardRankings = async (data = {}) => {
       ({ data: rows } = await queryRankings());
     }
 
-    return ok(rows);
+    const enrichedRows = await enrichSnapshotsWithUserProfile(rows || []);
+    return ok(enrichedRows);
   } catch (error) {
     return fail('获取榜单排名失败', error);
   }

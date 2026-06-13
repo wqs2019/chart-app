@@ -37,7 +37,6 @@ export interface CheckinContentEntry {
   entry_id?: string;
   title?: string;
   description?: string;
-  images?: string[];
   attachments?: CheckinAttachment[];
   visit_time?: string;
   city_name?: string;
@@ -73,6 +72,8 @@ export interface UserCheckin {
 export interface UserScoreSnapshot {
   _id: string;
   user_id: string;
+  full_name?: string;
+  username?: string;
   leaderboard_code: LeaderboardCode;
   raw_count: number;
   achievement_score: number;
