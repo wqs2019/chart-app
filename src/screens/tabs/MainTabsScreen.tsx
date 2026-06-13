@@ -11,8 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import HomeScreen from '../home/HomeScreen';
 import MeScreen from '../me/MeScreen';
+import CheckinTabScreen from '../checkin/CheckinTabScreen';
 import RankScreen from '../rank/RankScreen';
-import CheckinTabScreen from '../rank/CheckinTabScreen';
 import { LeaderboardCode } from '../../types/rank';
 
 type TabKey = 'home' | 'rank' | 'checkin' | 'me';

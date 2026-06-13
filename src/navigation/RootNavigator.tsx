@@ -1,9 +1,9 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import AppleLoginScreen from '../screens/auth/AppleLoginScreen';
-import CheckinEntryEditorScreen from '../screens/rank/CheckinEntryEditorScreen';
-import CheckinItemRecordsScreen from '../screens/rank/CheckinItemRecordsScreen';
-import CheckinScreen from '../screens/rank/CheckinScreen';
+import CheckinEntryEditorScreen from '../screens/checkin/CheckinEntryEditorScreen';
+import CheckinItemRecordsScreen from '../screens/checkin/CheckinItemRecordsScreen';
+import CheckinScreen from '../screens/checkin/CheckinScreen';
 import MainTabsScreen from '../screens/tabs/MainTabsScreen';
 import { useAppStore } from '../store/appStore';
 import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
