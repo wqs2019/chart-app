@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "RN CLI Template",
-    "slug": "rn-cli-template",
+    "name": "地球玩家",
+    "slug": "earth-player",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "rnclitemplate",
+    "icon": "./assets/icon.png",
+    "scheme": "earthplayer",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "plugins": [

@@ -2,28 +2,6 @@ import Expo
 import React
 import ReactAppDependencyProvider
 
-private func extractBundleURL(from incomingURL: URL?) -> URL? {
-  guard
-    let incomingURL,
-    let components = URLComponents(url: incomingURL, resolvingAgainstBaseURL: false),
-    let rawBundleURL = components.queryItems?.first(where: { $0.name == "url" })?.value,
-    let bundleURL = URL(string: rawBundleURL)
-  else {
-    return nil
-  }
-  return bundleURL
-}
-
-private func extractPackagerHostPort(from incomingURL: URL?) -> String? {
-  guard let bundleURL = extractBundleURL(from: incomingURL), let components = URLComponents(url: bundleURL, resolvingAgainstBaseURL: false), let host = components.host else {
-    return nil
-  }
-  if let port = components.port {
-    return "\(host):\(port)"
-  }
-  return host
-}
-
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
   var window: UIWindow?
@@ -35,8 +13,6 @@ public class AppDelegate: ExpoAppDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
-    let launchURL = launchOptions?[.url] as? URL
-    ReactNativeDelegate.injectedPackagerHostPort = extractPackagerHostPort(from: launchURL)
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -62,7 +38,6 @@ public class AppDelegate: ExpoAppDelegate {
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
-    ReactNativeDelegate.injectedPackagerHostPort = extractPackagerHostPort(from: url) ?? ReactNativeDelegate.injectedPackagerHostPort
     return super.application(app, open: url, options: options) || RCTLinkingManager.application(app, open: url, options: options)
   }
 
@@ -79,22 +54,15 @@ public class AppDelegate: ExpoAppDelegate {
 
 class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
   // Extension point for config-plugins
-  static var injectedPackagerHostPort: String?
 
   override func sourceURL(for bridge: RCTBridge) -> URL? {
     // needed to return the correct URL for expo-dev-client.
-    let bridgeURL = bridge.bundleURL
-    let fallbackURL = bundleURL()
-    return bridgeURL ?? fallbackURL
+    bridge.bundleURL ?? bundleURL()
   }
 
   override func bundleURL() -> URL? {
 #if DEBUG
-    let settings = RCTBundleURLProvider.sharedSettings()
-    if let injectedPackagerHostPort = ReactNativeDelegate.injectedPackagerHostPort, (settings.jsLocation == nil || settings.jsLocation?.isEmpty == true) {
-      settings.jsLocation = injectedPackagerHostPort
-    }
-    return settings.jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
+    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
 #else
     return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
