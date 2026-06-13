@@ -3,9 +3,10 @@ import {
   createBottomTabNavigator,
   type BottomTabBarProps,
 } from '@react-navigation/bottom-tabs';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import HomeScreen from '../home/HomeScreen';
@@ -18,11 +19,14 @@ type MainTabParamList = {
   Checkin: undefined;
   Me: undefined;
 };
+type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 
 type TabConfig = {
   routeName: keyof MainTabParamList;
   key: TabKey;
   label: string;
+  icon: TabIconName;
+  activeIcon: TabIconName;
   title: string;
   subtitle: string;
   points: string[];
@@ -34,6 +38,8 @@ const TAB_CONFIGS: TabConfig[] = [
     routeName: 'Home',
     key: 'home',
     label: '首页',
+    icon: 'home-outline',
+    activeIcon: 'home',
     title: '首页内容占位',
     subtitle: '承接产品入口、我的成绩卡片、推荐补录、年度回顾和海报入口。',
     points: [
@@ -47,6 +53,8 @@ const TAB_CONFIGS: TabConfig[] = [
     routeName: 'Rank',
     key: 'rank',
     label: '榜单',
+    icon: 'trophy-outline',
+    activeIcon: 'trophy',
     title: '榜单页内容占位',
     subtitle: '用于展示综合总榜、世界旅游榜、中国旅游榜和玩乐项目榜。',
     points: [
@@ -60,6 +68,8 @@ const TAB_CONFIGS: TabConfig[] = [
     routeName: 'Checkin',
     key: 'checkin',
     label: '录入',
+    icon: 'add-circle-outline',
+    activeIcon: 'add-circle',
     title: '录入中心占位',
     subtitle: '承接世界旅游、中国旅游、玩乐项目三类快速建档与持续补录。',
     points: [
@@ -73,6 +83,8 @@ const TAB_CONFIGS: TabConfig[] = [
     routeName: 'Me',
     key: 'me',
     label: '我的',
+    icon: 'person-outline',
+    activeIcon: 'person',
     title: '我的页内容占位',
     subtitle: '展示综合成就、单榜表现、互动数据、年度回顾和海报入口。',
     points: [
@@ -228,7 +240,6 @@ const MeTabScreen = MeScreen;
 
 const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const { colors, isDark } = useAppTheme();
-  const insets = useSafeAreaInsets();
   const tabScaleMapRef = React.useRef<Record<string, Animated.Value>>({});
   const currentRoute = state.routes[state.index];
   const currentOptions = descriptors[currentRoute.key]?.options;
@@ -259,10 +270,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
 
   return (
     <View pointerEvents="box-none" style={styles.tabBarOuter}>
-      <SafeAreaView
-        edges={['bottom']}
-        style={[styles.tabBarSafeArea, { paddingBottom: Math.max(insets.bottom - 24, 0) }]}
-      >
+      <SafeAreaView edges={['bottom']} style={styles.tabBarSafeArea}>
         <BlurView
           intensity={35}
           tint={isDark ? 'dark' : 'light'}
@@ -283,6 +291,9 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
                   ? options.tabBarLabel
                   : options.title || config?.label || route.name;
               const isFocused = state.index === index;
+              const iconName = isFocused
+                ? config?.activeIcon || config?.icon || 'ellipse'
+                : config?.icon || 'ellipse-outline';
 
               const handleTabPress = () => {
                 const tabPressEvent = navigation.emit({
@@ -319,10 +330,17 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
                         backgroundColor: isFocused
                           ? hexToRgba(colors.primary, isDark ? 0.2 : 0.14)
                           : 'transparent',
+                        minWidth: isFocused ? 84 : 68,
                         transform: [{ scale: getTabScale(route.key) }],
                       },
                     ]}
                   >
+                    <Ionicons
+                      name={iconName}
+                      size={20}
+                      color={isFocused ? colors.primary : colors.textSecondary}
+                      style={styles.tabIcon}
+                    />
                     <Text
                       style={[
                         styles.tabLabel,
@@ -489,6 +507,7 @@ const styles = StyleSheet.create({
     minHeight: 72,
     paddingHorizontal: 8,
     paddingTop: 8,
+    paddingBottom: 12,
   },
   tabButton: {
     flex: 1,
@@ -496,16 +515,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabButtonInner: {
-    minWidth: 68,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 18,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 8,
+    gap: 4,
   },
   tabLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
+  },
+  tabIcon: {
+    lineHeight: 20,
   },
   note: {
     marginTop: 12,
