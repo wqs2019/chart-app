@@ -9,8 +9,6 @@ import { useAppStore } from '../../store/appStore';
 
 import { LEADERBOARD_CONFIGS, LeaderboardCode } from '../../types/rank';
 
-import Button from '../../components/common/Button';
-
 const themeOptions: Array<{ label: string; value: 'light' | 'dark' | 'system' }> = [
   { label: '浅色', value: 'light' },
   { label: '深色', value: 'dark' },
@@ -104,14 +102,6 @@ const HomeScreen: React.FC<Props> = () => {
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>工具与 Demo</Text>
-          <Button
-            title="打开 User Demo"
-            onPress={() => navigation.navigate('UserDemo')}
-            style={{ marginTop: 16 }}
-          />
-        </View>
       </ScrollView>
 
       <TouchableOpacity
