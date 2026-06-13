@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Pressable,
@@ -11,7 +12,6 @@ import {
   View,
 } from 'react-native';
 
-import Loading from '../common/Loading';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
@@ -22,6 +22,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 type CheckinBoardProps = {
   code: LeaderboardCode;
   header?: React.ReactElement | null;
+};
+
+type CheckinBoardData = {
+  items: StandardItem[];
+  userCheckins: UserCheckin[];
 };
 
 const ALL_CATEGORY = '全部';
@@ -63,42 +68,62 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
   const userId = currentUser?._id;
   const config = LEADERBOARD_CONFIGS[code];
 
-  const [loading, setLoading] = React.useState(true);
-  const [items, setItems] = React.useState<StandardItem[]>([]);
-  const [userCheckins, setUserCheckins] = React.useState<UserCheckin[]>([]);
-  const [checkedIds, setCheckedIds] = React.useState<Set<string>>(new Set());
+  const [dataByCode, setDataByCode] = React.useState<Partial<Record<LeaderboardCode, CheckinBoardData>>>({});
+  const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
   const [selectedCategory, setSelectedCategory] = React.useState(ALL_CATEGORY);
+  const requestIdRef = React.useRef(0);
 
-  const fetchData = React.useCallback(async () => {
+  const currentData = dataByCode[code];
+  const items = currentData?.items ?? [];
+  const userCheckins = currentData?.userCheckins ?? [];
+  const checkedIds = React.useMemo(() => new Set(userCheckins.map((item) => item.item_id)), [userCheckins]);
+  const isCurrentLoading = switchingCode === code;
+  const shouldShowInlineLoading = !currentData && isCurrentLoading;
+
+  const fetchData = React.useCallback(async (nextCode: LeaderboardCode) => {
     if (!userId) {
-      setLoading(false);
+      setDataByCode({});
+      setSwitchingCode(null);
       return;
     }
 
+    const currentRequestId = requestIdRef.current + 1;
+    requestIdRef.current = currentRequestId;
+    setSwitchingCode(nextCode);
+
     try {
-      setLoading(true);
       const [allOptions, myCheckins] = await Promise.all([
-        rankService.getStandardItems(code),
-        rankService.getUserCheckins(userId, code),
+        rankService.getStandardItems(nextCode),
+        rankService.getUserCheckins(userId, nextCode),
       ]);
 
-      setItems(allOptions);
-      setUserCheckins(myCheckins);
-      setCheckedIds(new Set(myCheckins.map((item) => item.item_id)));
+      if (requestIdRef.current !== currentRequestId) {
+        return;
+      }
+
+      setDataByCode((prev) => ({
+        ...prev,
+        [nextCode]: {
+          items: allOptions,
+          userCheckins: myCheckins,
+        },
+      }));
     } catch (error) {
       Alert.alert('加载失败', '当前榜单数据暂时不可用，请稍后重试。');
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === currentRequestId) {
+        setSwitchingCode((current) => (current === nextCode ? null : current));
+      }
     }
-  }, [code, userId]);
+  }, [userId]);
 
   React.useEffect(() => {
     setSelectedCategory(ALL_CATEGORY);
   }, [code]);
 
   React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData(code);
+  }, [fetchData, code]);
 
   const categories = React.useMemo(() => {
     const nextCategories = Array.from(new Set(items.map((item) => item.category).filter(Boolean)));
@@ -140,10 +165,6 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
     return nextMap;
   }, [userCheckins]);
 
-  if (loading) {
-    return <Loading message="正在加载当前榜单可录入项..." />;
-  }
-
   if (!userId) {
     return (
       <View style={[styles.emptyWrap, { backgroundColor: colors.background }]}>
@@ -164,102 +185,119 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
       ListHeaderComponent={
         <>
           {header}
-          <View
-            style={[
-              styles.summaryCard,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <View style={styles.summaryHeader}>
-              <View>
-                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>录入进度</Text>
-                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                  {checkedIds.size}
-                  <Text style={[styles.summaryValueMuted, { color: colors.textSecondary }]}>
-                    {' '}
-                    / {items.length} {config.unit}
-                  </Text>
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.progressBadge,
-                  {
-                    backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)',
-                  },
-                ]}
-              >
-                <Text style={[styles.progressBadgeText, { color: colors.primary }]}>{progressPercent}%</Text>
-              </View>
-            </View>
-
+          {shouldShowInlineLoading ? (
             <View
               style={[
-                styles.progressTrack,
-                { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#E8EEF6' },
+                styles.inlineLoadingCard,
+                { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
             >
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.inlineLoadingText, { color: colors.textSecondary }]}>
+                正在切换 {config.title} 录入项...
+              </Text>
+            </View>
+          ) : (
+            <>
               <View
                 style={[
-                  styles.progressBar,
-                  {
-                    backgroundColor: colors.primary,
-                    width: `${progressPercent}%`,
-                  },
+                  styles.summaryCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
                 ]}
-              />
-            </View>
+              >
+                <View style={styles.summaryHeader}>
+                  <View>
+                    <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>录入进度</Text>
+                    <Text style={[styles.summaryValue, { color: colors.text }]}>
+                      {checkedIds.size}
+                      <Text style={[styles.summaryValueMuted, { color: colors.textSecondary }]}>
+                        {' '}
+                        / {items.length} {config.unit}
+                      </Text>
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.progressBadge,
+                      {
+                        backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.progressBadgeText, { color: colors.primary }]}>
+                      {isCurrentLoading ? '同步中...' : `${progressPercent}%`}
+                    </Text>
+                  </View>
+                </View>
 
-            <View style={styles.summaryMetaRow}>
-              <View style={styles.summaryMetaItem}>
-                <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前榜单</Text>
-                <Text style={[styles.summaryMetaValue, { color: colors.text }]}>{config.title}</Text>
-              </View>
-              <View style={styles.summaryMetaItem}>
-                <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前筛选</Text>
-                <Text style={[styles.summaryMetaValue, { color: colors.text }]}>{activeCategoryLabel}</Text>
-              </View>
-              <View style={styles.summaryMetaItem}>
-                <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前进度</Text>
-                <Text style={[styles.summaryMetaValue, { color: colors.text }]}>
-                  {filteredCheckedCount}/{filteredItems.length}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.categoryHeader}>
-            <Text style={[styles.categoryTitle, { color: colors.text }]}>分类筛选</Text>
-            {/* <Text style={[styles.categoryHint, { color: colors.textSecondary }]}>{activeCategoryLabel}</Text> */}
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryContent}
-          >
-            {categories.map((item) => {
-              const active = item === selectedCategory;
-
-              return (
-                <Pressable
-                  key={item}
-                  onPress={() => setSelectedCategory(item)}
+                <View
                   style={[
-                    styles.categoryChip,
-                    {
-                      backgroundColor: active ? colors.primary : colors.surface,
-                      borderColor: active ? colors.primary : colors.border,
-                    },
+                    styles.progressTrack,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#E8EEF6' },
                   ]}
                 >
-                  <Text style={[styles.categoryChipText, { color: active ? '#FFFFFF' : colors.text }]}>
-                    {categoryLabels[item] || getCategoryLabel(item)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+                  <View
+                    style={[
+                      styles.progressBar,
+                      {
+                        backgroundColor: colors.primary,
+                        width: `${progressPercent}%`,
+                      },
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.summaryMetaRow}>
+                  <View style={styles.summaryMetaItem}>
+                    <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前榜单</Text>
+                    <Text style={[styles.summaryMetaValue, { color: colors.text }]}>{config.title}</Text>
+                  </View>
+                  <View style={styles.summaryMetaItem}>
+                    <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前筛选</Text>
+                    <Text style={[styles.summaryMetaValue, { color: colors.text }]}>{activeCategoryLabel}</Text>
+                  </View>
+                  <View style={styles.summaryMetaItem}>
+                    <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前进度</Text>
+                    <Text style={[styles.summaryMetaValue, { color: colors.text }]}>
+                      {filteredCheckedCount}/{filteredItems.length}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.categoryHeader}>
+                <Text style={[styles.categoryTitle, { color: colors.text }]}>分类筛选</Text>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryContent}
+              >
+                {categories.map((item) => {
+                  const active = item === selectedCategory;
+
+                  return (
+                    <Pressable
+                      key={item}
+                      onPress={() => setSelectedCategory(item)}
+                      style={[
+                        styles.categoryChip,
+                        {
+                          backgroundColor: active ? colors.primary : colors.surface,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.categoryChipText, { color: active ? '#FFFFFF' : colors.text }]}>
+                        {categoryLabels[item] || getCategoryLabel(item)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </>
+          )}
         </>
       }
       renderItem={({ item }) => {
@@ -387,6 +425,21 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 16,
     paddingBottom: 140,
+  },
+  inlineLoadingCard: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  inlineLoadingText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   summaryCard: {
     borderWidth: 1,

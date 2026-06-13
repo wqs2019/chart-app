@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import React from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonModal from '../../components/common/CommonModal';
 import LeaderboardSwitcher from '../../components/rank/LeaderboardSwitcher';
-import Loading from '../../components/common/Loading';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
@@ -85,55 +85,83 @@ const getScoreSourceHint = (code: LeaderboardCode) => {
   return '当前分数已经把三个子榜总分按 0.7 / 0.2 / 0.1 权重合成。';
 };
 
+type RankScreenData = {
+  myRank: UserScoreSnapshot | null;
+  rows: UserScoreSnapshot[];
+};
+
 const RankScreen: React.FC = () => {
   const { colors, isDark } = useAppTheme();
   const currentUser = useAppStore((state) => state.currentUser);
   const userId = currentUser?._id;
 
   const [selectedCode, setSelectedCode] = React.useState<LeaderboardCode>('world_travel');
-  const [loading, setLoading] = React.useState(true);
-  const [myRank, setMyRank] = React.useState<UserScoreSnapshot | null>(null);
-  const [rows, setRows] = React.useState<UserScoreSnapshot[]>([]);
+  const [dataByCode, setDataByCode] = React.useState<Partial<Record<LeaderboardCode, RankScreenData>>>({});
+  const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
   const [showScoreGuide, setShowScoreGuide] = React.useState(false);
+  const requestIdRef = React.useRef(0);
 
   const currentConfig = LEADERBOARD_CONFIGS[selectedCode];
   const scoreRuleLines = React.useMemo(() => getScoreRuleLines(selectedCode), [selectedCode]);
   const scoreSourceHint = React.useMemo(() => getScoreSourceHint(selectedCode), [selectedCode]);
-  const fetchData = React.useCallback(async () => {
+  const currentData = dataByCode[selectedCode];
+  const myRank = currentData?.myRank ?? null;
+  const rows = currentData?.rows ?? [];
+  const isCurrentLoading = switchingCode === selectedCode;
+  const shouldShowInlineLoading = !currentData && isCurrentLoading;
+
+  const fetchData = React.useCallback(async (code: LeaderboardCode) => {
     if (!userId) {
-      setLoading(false);
+      setDataByCode({});
+      setSwitchingCode(null);
       return;
     }
 
-    try {
-      setLoading(true);
-      const [me, leaderboard] = await Promise.all([
-        rankService.getMyRank(userId, selectedCode),
-        rankService.getLeaderboardRankings(selectedCode, 1, 20),
-      ]);
-      setMyRank(me);
-      setRows(leaderboard);
-    } catch (error) {
-      setMyRank(null);
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCode, userId]);
+    const currentRequestId = requestIdRef.current + 1;
+    requestIdRef.current = currentRequestId;
+    setSwitchingCode(code);
 
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    try {
+      const [me, leaderboard] = await Promise.all([
+        rankService.getMyRank(userId, code),
+        rankService.getLeaderboardRankings(code, 1, 20),
+      ]);
+
+      if (requestIdRef.current !== currentRequestId) {
+        return;
+      }
+
+      setDataByCode((prev) => ({
+        ...prev,
+        [code]: {
+          myRank: me,
+          rows: leaderboard,
+        },
+      }));
+    } catch (error) {
+      if (requestIdRef.current !== currentRequestId) {
+        return;
+      }
+
+      setDataByCode((prev) => ({
+        ...prev,
+        [code]: {
+          myRank: null,
+          rows: [],
+        },
+      }));
+    } finally {
+      if (requestIdRef.current === currentRequestId) {
+        setSwitchingCode((current) => (current === code ? null : current));
+      }
+    }
+  }, [userId]);
 
   useFocusEffect(
     React.useCallback(() => {
-      fetchData();
-    }, [fetchData])
+      fetchData(selectedCode);
+    }, [fetchData, selectedCode])
   );
-
-  if (loading) {
-    return <Loading message="正在加载当前榜单排行..." />;
-  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
@@ -186,152 +214,174 @@ const RankScreen: React.FC = () => {
                 },
               ]}
             >
-              <Text style={[styles.inlineBadgeText, { color: colors.textSecondary }]}>TOP {rows.length}</Text>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.compactSummaryCard,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FBFF',
-                borderColor: myRank ? colors.primary : colors.border,
-              },
-            ]}
-          >
-            {myRank ? (
-              <View style={styles.compactSummaryInline}>
-                <View style={styles.compactSummaryMain}>
-                  <Text style={[styles.compactSummaryLabel, { color: colors.textSecondary }]}>我的排名</Text>
-                  <Text style={[styles.compactSummaryRank, { color: colors.text }]}>#{myRank.rank || '--'}</Text>
-                </View>
-                <View style={styles.compactSummaryMetrics}>
-                  <View style={styles.compactMetricRow}>
-                    <View style={styles.compactMetricItem}>
-                      <Text style={[styles.compactMetricValue, { color: colors.text }]}>
-                        {formatScore(myRank.final_score)}
-                      </Text>
-                      <Text style={[styles.compactMetricLabel, { color: colors.textSecondary }]}>总分</Text>
-                    </View>
-                    <View style={styles.compactMetricItem}>
-                      <Text style={[styles.compactMetricValue, { color: colors.text }]}>
-                        {myRank.raw_count ?? 0}
-                      </Text>
-                      <Text style={[styles.compactMetricLabel, { color: colors.textSecondary }]}>
-                        已录入{currentConfig.unit}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.compactPercentileRow}>
-                    <Text style={[styles.compactMetricValue, styles.compactMetricValueMultiline, { color: colors.primary }]}>
-                      {formatPercentile(myRank.percentile)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.compactSummaryEmpty}>
-                <Ionicons name="flag-outline" size={16} color={colors.textSecondary} />
-                <Text style={[styles.compactSummaryEmptyText, { color: colors.textSecondary }]}>
-                  你当前还没有进入 {currentConfig.title} 排行，先去录入这个榜单的内容吧。
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {rows.length ? (
-            rows.map((row, index) => {
-              const isMine = row.user_id === userId;
-              const displayRank = row.rank || index + 1;
-              const displayName = isMine ? '我' : `用户 ${String(row.user_id).slice(-6)}`;
-
-              return (
-                <View
-                  key={`${row.user_id}-${displayRank}`}
-                  style={[
-                    styles.rankRow,
-                    {
-                      backgroundColor: isMine
-                        ? isDark
-                          ? 'rgba(124,140,255,0.12)'
-                          : 'rgba(79,70,229,0.06)'
-                        : isDark
-                          ? 'rgba(255,255,255,0.02)'
-                          : '#F8FBFF',
-                      borderColor: isMine ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.rankBadge,
-                      {
-                        backgroundColor: isMine
-                          ? colors.primary
-                          : isDark
-                            ? 'rgba(148,163,184,0.12)'
-                            : '#E9EEF6',
-                      },
-                    ]}
-                  >
-                    <Text style={{ color: isMine ? '#FFFFFF' : colors.text, fontWeight: '800' }}>
-                      {displayRank}
-                    </Text>
-                  </View>
-                  <View style={styles.rankMain}>
-                    <View style={styles.rankNameRow}>
-                      <Text style={[styles.rankName, { color: colors.text }]}>{displayName}</Text>
-                      {isMine ? (
-                        <View
-                          style={[
-                            styles.mineTag,
-                            {
-                              backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)',
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.mineTagText, { color: colors.primary }]}>我</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                    <Text style={[styles.rankMeta, { color: colors.textSecondary }]}>
-                      已录入 {row.raw_count ?? 0}{currentConfig.unit} · {formatPercentile(row.percentile)}
-                    </Text>
-                    {!!row.tags?.length && (
-                      <View style={styles.tagsRow}>
-                        {row.tags.slice(0, 3).map((tag) => (
-                          <View
-                            key={tag}
-                            style={[
-                              styles.tag,
-                              {
-                                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F7FAFC',
-                                borderColor: colors.border,
-                              },
-                            ]}
-                          >
-                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{tag}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.rankScoreWrap}>
-                    <Text style={[styles.rankScore, { color: colors.text }]}>
-                      {formatScore(row.final_score)}
-                    </Text>
-                    <Text style={[styles.rankScoreLabel, { color: colors.textSecondary }]}>总分</Text>
-                  </View>
-                </View>
-              );
-            })
-          ) : (
-            <View style={[styles.emptyCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>当前榜单还没有排行数据</Text>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                可以先去录入当前榜单内容，等分数快照生成后这里就会有数据。
+              <Text style={[styles.inlineBadgeText, { color: colors.textSecondary }]}>
+                {isCurrentLoading ? '同步中...' : `TOP ${rows.length}`}
               </Text>
             </View>
+          </View>
+
+          {shouldShowInlineLoading ? (
+            <View
+              style={[
+                styles.inlineLoadingCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FBFF',
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.inlineLoadingText, { color: colors.textSecondary }]}>
+                正在切换 {currentConfig.title} 榜单...
+              </Text>
+            </View>
+          ) : (
+            <>
+              <View
+                style={[
+                  styles.compactSummaryCard,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FBFF',
+                    borderColor: myRank ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                {myRank ? (
+                  <View style={styles.compactSummaryInline}>
+                    <View style={styles.compactSummaryMain}>
+                      <Text style={[styles.compactSummaryLabel, { color: colors.textSecondary }]}>我的排名</Text>
+                      <Text style={[styles.compactSummaryRank, { color: colors.text }]}>#{myRank.rank || '--'}</Text>
+                    </View>
+                    <View style={styles.compactSummaryMetrics}>
+                      <View style={styles.compactMetricRow}>
+                        <View style={styles.compactMetricItem}>
+                          <Text style={[styles.compactMetricValue, { color: colors.text }]}>
+                            {formatScore(myRank.final_score)}
+                          </Text>
+                          <Text style={[styles.compactMetricLabel, { color: colors.textSecondary }]}>总分</Text>
+                        </View>
+                        <View style={styles.compactMetricItem}>
+                          <Text style={[styles.compactMetricValue, { color: colors.text }]}>
+                            {myRank.raw_count ?? 0}
+                          </Text>
+                          <Text style={[styles.compactMetricLabel, { color: colors.textSecondary }]}>
+                            已录入{currentConfig.unit}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.compactPercentileRow}>
+                        <Text
+                          style={[styles.compactMetricValue, styles.compactMetricValueMultiline, { color: colors.primary }]}
+                        >
+                          {formatPercentile(myRank.percentile)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.compactSummaryEmpty}>
+                    <Ionicons name="flag-outline" size={16} color={colors.textSecondary} />
+                    <Text style={[styles.compactSummaryEmptyText, { color: colors.textSecondary }]}>
+                      你当前还没有进入 {currentConfig.title} 排行，先去录入这个榜单的内容吧。
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {rows.length ? (
+                rows.map((row, index) => {
+                  const isMine = row.user_id === userId;
+                  const displayRank = row.rank || index + 1;
+                  const displayName = isMine ? '我' : `用户 ${String(row.user_id).slice(-6)}`;
+
+                  return (
+                    <View
+                      key={`${row.user_id}-${displayRank}`}
+                      style={[
+                        styles.rankRow,
+                        {
+                          backgroundColor: isMine
+                            ? isDark
+                              ? 'rgba(124,140,255,0.12)'
+                              : 'rgba(79,70,229,0.06)'
+                            : isDark
+                              ? 'rgba(255,255,255,0.02)'
+                              : '#F8FBFF',
+                          borderColor: isMine ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.rankBadge,
+                          {
+                            backgroundColor: isMine
+                              ? colors.primary
+                              : isDark
+                                ? 'rgba(148,163,184,0.12)'
+                                : '#E9EEF6',
+                          },
+                        ]}
+                      >
+                        <Text style={{ color: isMine ? '#FFFFFF' : colors.text, fontWeight: '800' }}>
+                          {displayRank}
+                        </Text>
+                      </View>
+                      <View style={styles.rankMain}>
+                        <View style={styles.rankNameRow}>
+                          <Text style={[styles.rankName, { color: colors.text }]}>{displayName}</Text>
+                          {isMine ? (
+                            <View
+                              style={[
+                                styles.mineTag,
+                                {
+                                  backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)',
+                                },
+                              ]}
+                            >
+                              <Text style={[styles.mineTagText, { color: colors.primary }]}>我</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                        <Text style={[styles.rankMeta, { color: colors.textSecondary }]}>
+                          已录入 {row.raw_count ?? 0}{currentConfig.unit} · {formatPercentile(row.percentile)}
+                        </Text>
+                        {!!row.tags?.length && (
+                          <View style={styles.tagsRow}>
+                            {row.tags.slice(0, 3).map((tag) => (
+                              <View
+                                key={tag}
+                                style={[
+                                  styles.tag,
+                                  {
+                                    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F7FAFC',
+                                    borderColor: colors.border,
+                                  },
+                                ]}
+                              >
+                                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{tag}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.rankScoreWrap}>
+                        <Text style={[styles.rankScore, { color: colors.text }]}>
+                          {formatScore(row.final_score)}
+                        </Text>
+                        <Text style={[styles.rankScoreLabel, { color: colors.textSecondary }]}>总分</Text>
+                      </View>
+                    </View>
+                  );
+                })
+              ) : (
+                <View style={[styles.emptyCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>当前榜单还没有排行数据</Text>
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    可以先去录入当前榜单内容，等分数快照生成后这里就会有数据。
+                  </Text>
+                </View>
+              )}
+            </>
           )}
         </View>
       </ScrollView>
@@ -437,6 +487,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  inlineLoadingCard: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  inlineLoadingText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   compactSummaryCard: {
     marginTop: 14,
