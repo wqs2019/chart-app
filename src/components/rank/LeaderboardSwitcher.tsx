@@ -32,6 +32,7 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
   onChange,
 }) => {
   const { colors, isDark } = useAppTheme();
+  const inactiveBg = isDark ? 'rgba(148,163,184,0.08)' : '#EEF3F9';
 
   return (
     <ScrollView
@@ -50,9 +51,11 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
             style={[
               styles.tab,
               {
-                backgroundColor: isActive ? colors.primary : colors.surface,
+                backgroundColor: isActive ? colors.surface : inactiveBg,
                 borderColor: isActive ? colors.primary : colors.border,
-                shadowOpacity: isActive && !isDark ? 0.12 : 0,
+                shadowOpacity: isActive && !isDark ? 0.14 : 0,
+                shadowRadius: isActive ? 16 : 10,
+                elevation: isActive ? 4 : 0,
               },
             ]}
           >
@@ -61,10 +64,10 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
                 styles.iconWrap,
                 {
                   backgroundColor: isActive
-                    ? 'rgba(255,255,255,0.18)'
+                    ? colors.primary
                     : isDark
-                      ? 'rgba(255,255,255,0.08)'
-                      : 'rgba(17,24,39,0.06)',
+                      ? 'rgba(255,255,255,0.07)'
+                      : 'rgba(79,70,229,0.08)',
                 },
               ]}
             >
@@ -75,18 +78,24 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
               />
             </View>
             <View style={styles.textWrap}>
-              <Text style={[styles.title, { color: isActive ? '#FFFFFF' : colors.text }]}>
+              <Text style={[styles.title, { color: colors.text }]}>
                 {config.title}
               </Text>
               <Text
                 style={[
                   styles.desc,
-                  { color: isActive ? 'rgba(255,255,255,0.78)' : colors.textSecondary },
+                  { color: isActive ? colors.primary : colors.textSecondary },
                 ]}
+                numberOfLines={1}
               >
-                {config.description}
+                {isActive ? '当前榜单' : config.description}
               </Text>
             </View>
+            {isActive ? (
+              <View style={[styles.activeBadge, { backgroundColor: 'rgba(79,70,229,0.10)' }]}>
+                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -98,25 +107,24 @@ const styles = StyleSheet.create({
   content: {
     gap: 10,
     paddingVertical: 2,
+    paddingRight: 8,
   },
   tab: {
-    width: 170,
-    minHeight: 74,
+    width: 164,
+    minHeight: 68,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 11,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
   },
   iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -126,12 +134,21 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   desc: {
     marginTop: 4,
     fontSize: 12,
-    lineHeight: 17,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  activeBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
 });
 

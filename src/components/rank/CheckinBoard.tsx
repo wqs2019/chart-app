@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
 import {
   Alert,
@@ -115,6 +116,16 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
 
     return items.filter((item) => item.category === selectedCategory);
   }, [items, selectedCategory]);
+  const completionRate = items.length ? checkedIds.size / items.length : 0;
+  const progressPercent = Math.round(completionRate * 100);
+  const activeCategoryLabel =
+    selectedCategory === ALL_CATEGORY
+      ? '全部分类'
+      : categoryLabels[selectedCategory] || getCategoryLabel(selectedCategory);
+  const filteredCheckedCount = React.useMemo(
+    () => filteredItems.filter((item) => checkedIds.has(item._id)).length,
+    [filteredItems, checkedIds]
+  );
 
   const handleToggle = async (item: StandardItem) => {
     if (!userId) {
@@ -164,14 +175,73 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
       ListHeaderComponent={
         <>
           {header}
-          <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>当前录入进度</Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>
-              已点亮 <Text style={{ color: colors.primary }}>{checkedIds.size}</Text> / {items.length} {config.unit}
-            </Text>
-            <Text style={[styles.summaryDesc, { color: colors.textSecondary }]}>
-              这里只展示 {config.title} 的标准项，录入后会影响当前榜单的排名与分数。
-            </Text>
+          <View
+            style={[
+              styles.summaryCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.summaryHeader}>
+              <View>
+                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>录入进度</Text>
+                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                  {checkedIds.size}
+                  <Text style={[styles.summaryValueMuted, { color: colors.textSecondary }]}>
+                    {' '}
+                    / {items.length} {config.unit}
+                  </Text>
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.progressBadge,
+                  {
+                    backgroundColor: isDark ? 'rgba(124,140,255,0.14)' : 'rgba(79,70,229,0.08)',
+                  },
+                ]}
+              >
+                <Text style={[styles.progressBadgeText, { color: colors.primary }]}>{progressPercent}%</Text>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.progressTrack,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#E8EEF6' },
+              ]}
+            >
+              <View
+                style={[
+                  styles.progressBar,
+                  {
+                    backgroundColor: colors.primary,
+                    width: `${progressPercent}%`,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={styles.summaryMetaRow}>
+              <View style={styles.summaryMetaItem}>
+                <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前榜单</Text>
+                <Text style={[styles.summaryMetaValue, { color: colors.text }]}>{config.title}</Text>
+              </View>
+              <View style={styles.summaryMetaItem}>
+                <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前筛选</Text>
+                <Text style={[styles.summaryMetaValue, { color: colors.text }]}>{activeCategoryLabel}</Text>
+              </View>
+              <View style={styles.summaryMetaItem}>
+                <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前进度</Text>
+                <Text style={[styles.summaryMetaValue, { color: colors.text }]}>
+                  {filteredCheckedCount}/{filteredItems.length}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.categoryHeader}>
+            <Text style={[styles.categoryTitle, { color: colors.text }]}>分类筛选</Text>
+            {/* <Text style={[styles.categoryHint, { color: colors.textSecondary }]}>{activeCategoryLabel}</Text> */}
           </View>
 
           <ScrollView
@@ -194,7 +264,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
                     },
                   ]}
                 >
-                  <Text style={{ color: active ? '#FFFFFF' : colors.text }}>
+                  <Text style={[styles.categoryChipText, { color: active ? '#FFFFFF' : colors.text }]}>
                     {categoryLabels[item] || getCategoryLabel(item)}
                   </Text>
                 </Pressable>
@@ -214,29 +284,71 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
               {
                 backgroundColor: isChecked
                   ? isDark
-                    ? 'rgba(244,114,182,0.14)'
-                    : 'rgba(236,72,153,0.08)'
-                  : colors.surface,
+                    ? 'rgba(124,140,255,0.14)'
+                    : 'rgba(79,70,229,0.06)'
+                  : isDark
+                    ? 'rgba(255,255,255,0.02)'
+                    : '#F8FBFF',
                 borderColor: isChecked ? colors.primary : colors.border,
               },
             ]}
           >
+            <View
+              style={[
+                styles.itemIndexBadge,
+                {
+                  backgroundColor: isChecked
+                    ? colors.primary
+                    : isDark
+                      ? 'rgba(148,163,184,0.10)'
+                      : '#E8EEF6',
+                },
+              ]}
+            >
+              <Text style={[styles.itemIndexText, { color: isChecked ? '#FFFFFF' : colors.textSecondary }]}>
+                {String(filteredItems.findIndex((entry) => entry._id === item._id) + 1).padStart(2, '0')}
+              </Text>
+            </View>
             <View style={styles.itemMain}>
-              <Text style={[styles.itemTitle, { color: colors.text }]}>{item.name_zh}</Text>
+              <View style={styles.itemTitleRow}>
+                <Text style={[styles.itemTitle, { color: colors.text }]}>{item.name_zh}</Text>
+                <View
+                  style={[
+                    styles.itemCategoryTag,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#EEF3F9',
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.itemCategoryTagText, { color: colors.textSecondary }]}>
+                    {getItemCategoryLabel(item)}
+                  </Text>
+                </View>
+              </View>
               <Text style={[styles.itemSubtitle, { color: colors.textSecondary }]}>
-                {item.name_en || '暂无英文名'} · {getItemCategoryLabel(item)}
+                {item.name_en || '暂无英文名'}
               </Text>
             </View>
             <View
               style={[
-                styles.statusBadge,
+                styles.statusWrap,
                 {
-                  backgroundColor: isChecked ? colors.primary : 'transparent',
+                  backgroundColor: isChecked
+                    ? colors.primary
+                    : isDark
+                      ? 'rgba(255,255,255,0.02)'
+                      : colors.surface,
                   borderColor: isChecked ? colors.primary : colors.border,
                 },
               ]}
             >
-              <Text style={{ color: isChecked ? '#FFFFFF' : colors.textSecondary, fontWeight: '700' }}>
+              <Ionicons
+                name={isChecked ? 'checkmark' : 'add'}
+                size={16}
+                color={isChecked ? '#FFFFFF' : colors.textSecondary}
+              />
+              <Text style={[styles.statusText, { color: isChecked ? '#FFFFFF' : colors.textSecondary }]}>
                 {isChecked ? '已录入' : '未录入'}
               </Text>
             </View>
@@ -262,47 +374,135 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     borderWidth: 1,
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 18,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   summaryLabel: {
     fontSize: 13,
+    fontWeight: '600',
   },
   summaryValue: {
     marginTop: 8,
-    fontSize: 24,
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  summaryValueMuted: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  progressBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  progressBadgeText: {
+    fontSize: 13,
     fontWeight: '800',
   },
-  summaryDesc: {
-    marginTop: 8,
+  progressTrack: {
+    marginTop: 16,
+    height: 8,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  summaryMetaRow: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  summaryMetaItem: {
+    flex: 1,
+  },
+  summaryMetaLabel: {
+    fontSize: 12,
+  },
+  summaryMetaValue: {
+    marginTop: 6,
     fontSize: 14,
-    lineHeight: 21,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  categoryHeader: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  categoryHint: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   categoryContent: {
     gap: 10,
-    paddingTop: 14,
+    paddingTop: 12,
     paddingBottom: 12,
   },
   categoryChip: {
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 9,
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 20,
+    padding: 14,
     marginBottom: 12,
+  },
+  itemIndexBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  itemIndexText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   itemMain: {
     flex: 1,
     paddingRight: 12,
   },
+  itemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   itemTitle: {
     fontSize: 16,
+    fontWeight: '800',
+  },
+  itemCategoryTag: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  itemCategoryTagText: {
+    fontSize: 11,
     fontWeight: '700',
   },
   itemSubtitle: {
@@ -310,14 +510,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
-  statusBadge: {
-    minWidth: 72,
+  statusWrap: {
+    minWidth: 82,
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    gap: 4,
+  },
+  statusText: {
+    fontWeight: '700',
+    fontSize: 11,
   },
   emptyWrap: {
     flex: 1,

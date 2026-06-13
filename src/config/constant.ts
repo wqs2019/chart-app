@@ -9,19 +9,19 @@ export const TCB_CONFIG = {
 };
 
 export const COLORS = {
-  primary: '#EC4899',
-  background: '#FFF8FB',
+  primary: '#4F46E5',
+  background: '#F4F7FB',
   surface: '#FFFFFF',
-  text: '#111827',
-  textSecondary: '#6B7280',
-  border: '#F3E8FF',
+  text: '#0F172A',
+  textSecondary: '#64748B',
+  border: '#D9E2EC',
 };
 
 export const DARK_COLORS = {
-  primary: '#F472B6',
-  background: '#111827',
-  surface: '#1F2937',
-  text: '#F9FAFB',
-  textSecondary: '#9CA3AF',
-  border: '#374151',
+  primary: '#7C8CFF',
+  background: '#09111F',
+  surface: '#111B2E',
+  text: '#F8FAFC',
+  textSecondary: '#94A3B8',
+  border: '#243248',
 };
