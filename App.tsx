@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -9,14 +9,17 @@ import { useAppStore } from './src/store/appStore';
 
 const Bootstrap = () => {
   const initTheme = useAppStore((state) => state.initTheme);
+  const initAuth = useAppStore((state) => state.initAuth);
   const initialized = useAppStore((state) => state.initialized);
+  const authInitialized = useAppStore((state) => state.authInitialized);
   const { isDark } = useAppTheme();
 
   useEffect(() => {
     initTheme();
-  }, [initTheme]);
+    initAuth();
+  }, [initAuth, initTheme]);
 
-  if (!initialized) {
+  if (!initialized || !authInitialized) {
     return (
       <View
         style={{

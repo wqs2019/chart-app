@@ -9,6 +9,10 @@ class StorageUtil {
     const rawValue = await AsyncStorage.getItem(key);
     return rawValue ? (JSON.parse(rawValue) as T) : null;
   }
+
+  static async remove(key: string) {
+    await AsyncStorage.removeItem(key);
+  }
 }
 
 export default StorageUtil;

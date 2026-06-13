@@ -1,5 +1,6 @@
 export const STORAGE_KEYS = {
   theme: 'template_theme',
+  authSession: 'template_auth_session',
 } as const;
 
 export const TCB_CONFIG = {

@@ -7,14 +7,16 @@
     "scheme": "rnclitemplate",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "plugins": ["expo-apple-authentication"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.template.rncli",
-      "appleTeamId": "592UG636F5"
+      "bundleIdentifier": "com.traval.chartapp",
+      "appleTeamId": "592UG636F5",
+      "usesAppleSignIn": true
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "package": "com.template.rncli"
+      "package": "com.traval.chartapp"
     }
   }
 }

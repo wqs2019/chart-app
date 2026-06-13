@@ -238,8 +238,36 @@ const actionMap = {
   getLeaderboardRankings,
 };
 
+function normalizeEventPayload(event = {}) {
+  if (!event || typeof event !== 'object') {
+    return {
+      action: undefined,
+      data: {},
+    };
+  }
+
+  if (typeof event.action === 'string') {
+    return {
+      action: event.action,
+      data: event.data || {},
+    };
+  }
+
+  if (event.data && typeof event.data === 'object' && typeof event.data.action === 'string') {
+    return {
+      action: event.data.action,
+      data: event.data.data || {},
+    };
+  }
+
+  return {
+    action: undefined,
+    data: event.data || {},
+  };
+}
+
 exports.main = async (event = {}) => {
-  const { action, data } = event;
+  const { action, data } = normalizeEventPayload(event);
   const handler = actionMap[action];
 
   if (!handler) {

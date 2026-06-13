@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>rnclitemplate</string>
-          <string>com.template.rncli</string>
+          <string>com.traval.chartapp</string>
         </array>
       </dict>
     </array>

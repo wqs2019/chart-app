@@ -8,6 +8,7 @@ import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import HomeScreen from '../home/HomeScreen';
 
 type TabKey = 'home' | 'rank' | 'checkin' | 'me';
 type MainTabParamList = {
@@ -219,7 +220,7 @@ const createPlaceholderComponent = (config: TabConfig) => {
   return ScreenComponent;
 };
 
-const HomeTabScreen = createPlaceholderComponent(TAB_CONFIGS[0]);
+const HomeTabScreen = HomeScreen;
 const RankTabScreen = createPlaceholderComponent(TAB_CONFIGS[1]);
 const CheckinTabScreen = createPlaceholderComponent(TAB_CONFIGS[2]);
 const MeTabScreen = createPlaceholderComponent(TAB_CONFIGS[3]);
