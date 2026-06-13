@@ -29,33 +29,21 @@ const getEntryCoverUri = (entry: UserCheckin) => {
 
 const isVideoEntryCover = (entry: UserCheckin) => entry.content?.attachments?.[0]?.media_type === 'video';
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
 const getEntryInteraction = (entry: UserCheckin) => ({
   likes: entry.interaction?.likes_count || 0,
   comments: entry.interaction?.comments_count || 0,
   favorites: entry.interaction?.favorites_count || 0,
 });
 
-const getEstimatedCardHeight = (
-  entry: UserCheckin,
-  cardWidth: number,
-  coverUri: string,
-  aspectRatio?: number
-) => {
+const getCardVisualHeight = (entry: UserCheckin, cardWidth: number) => {
   const titleLength = (entry.content?.title || '').length;
-  const baseInfoHeight = titleLength > 22 ? 92 : 78;
+  const coverHeight = Math.round((cardWidth * 4) / 3);
+  const infoHeight = titleLength > 22 ? 96 : 82;
 
-  if (!coverUri) {
-    return baseInfoHeight + 172;
-  }
-
-  const fallbackHeight = cardWidth * (titleLength > 16 ? 1.36 : 1.18);
-  const imageHeight = aspectRatio
-    ? clamp(cardWidth / aspectRatio, cardWidth * 0.95, cardWidth * 1.62)
-    : clamp(fallbackHeight, cardWidth * 0.95, cardWidth * 1.62);
-
-  return imageHeight + baseInfoHeight;
+  return {
+    coverHeight,
+    totalHeight: coverHeight + infoHeight,
+  };
 };
 
 const CheckinItemRecordsScreen: React.FC = () => {
@@ -71,7 +59,6 @@ const CheckinItemRecordsScreen: React.FC = () => {
   const ownerLabel = viewedUserName || (isViewerMode ? '该用户' : '我');
 
   const [entries, setEntries] = React.useState<UserCheckin[]>([]);
-  const [coverAspectMap, setCoverAspectMap] = React.useState<Record<string, number>>({});
 
   const horizontalPadding = 32;
   const columnGap = 12;
@@ -101,38 +88,6 @@ const CheckinItemRecordsScreen: React.FC = () => {
     }, [fetchEntries])
   );
 
-  React.useEffect(() => {
-    entries.forEach((entry, index) => {
-      const key = entry._id || `${item._id}-${index}`;
-      const coverUri = getEntryCoverUri(entry);
-
-      if (!coverUri || coverAspectMap[key]) {
-        return;
-      }
-
-      Image.getSize(
-        coverUri,
-        (imageWidth, imageHeight) => {
-          if (!imageWidth || !imageHeight) {
-            return;
-          }
-
-          setCoverAspectMap((current) => {
-            if (current[key]) {
-              return current;
-            }
-
-            return {
-              ...current,
-              [key]: imageWidth / imageHeight,
-            };
-          });
-        },
-        () => {}
-      );
-    });
-  }, [coverAspectMap, entries, item._id]);
-
   const columns = React.useMemo(() => {
     const left: Array<{ entry: UserCheckin; index: number; key: string; coverUri: string; coverHeight: number }> = [];
     const right: Array<{ entry: UserCheckin; index: number; key: string; coverUri: string; coverHeight: number }> = [];
@@ -142,21 +97,20 @@ const CheckinItemRecordsScreen: React.FC = () => {
     entries.forEach((entry, index) => {
       const key = entry._id || `${item._id}-${index}`;
       const coverUri = getEntryCoverUri(entry);
-      const estimatedHeight = getEstimatedCardHeight(entry, cardWidth, coverUri, coverAspectMap[key]);
-      const coverHeight = Math.max(estimatedHeight - 84, 144);
+      const { coverHeight, totalHeight } = getCardVisualHeight(entry, cardWidth);
       const nextItem = { entry, index, key, coverUri, coverHeight };
 
       if (leftHeight <= rightHeight) {
         left.push(nextItem);
-        leftHeight += estimatedHeight;
+        leftHeight += totalHeight;
       } else {
         right.push(nextItem);
-        rightHeight += estimatedHeight;
+        rightHeight += totalHeight;
       }
     });
 
     return [left, right];
-  }, [cardWidth, coverAspectMap, entries, item._id]);
+  }, [cardWidth, entries, item._id]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -241,7 +195,7 @@ const CheckinItemRecordsScreen: React.FC = () => {
                       >
                         {coverUri ? (
                           <>
-                            <Image source={{ uri: coverUri }} style={styles.entryCover} />
+                            <Image source={{ uri: coverUri }} style={styles.entryCover} resizeMode="cover" />
                             {isVideoCover ? (
                               <View style={styles.videoBadge}>
                                 <Ionicons name="play" size={12} color="#FFFFFF" />
