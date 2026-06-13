@@ -16,25 +16,36 @@ const CheckinScreen = () => {
   const route = useRoute<CheckinScreenRouteProp>();
   const navigation = useNavigation<CheckinScreenNavigationProp>();
   const { code } = route.params;
+  const viewedUserId = route.params.viewedUserId;
+  const viewedUserName = route.params.viewedUserName;
+  const readOnly = Boolean(route.params.readOnly);
   const { colors } = useAppTheme();
   const config = LEADERBOARD_CONFIGS[code];
+  const screenTitle = readOnly && viewedUserName ? `${viewedUserName}的${config.title}` : config?.title || '录入';
+  const viewerContentLabel =
+    code === 'world_travel' ? '国家足迹' : code === 'china_travel' ? '省份足迹' : '项目足迹';
+  const ownerLabel = readOnly ? viewedUserName || '该用户' : '我';
 
   React.useEffect(() => {
-    navigation.setOptions({ title: config?.title || '录入' });
-  }, [code]);
+    navigation.setOptions({ title: screenTitle });
+  }, [navigation, screenTitle]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
       <CheckinBoard
         code={code}
+        viewedUserId={viewedUserId}
+        viewedUserName={viewedUserName}
+        readOnly={readOnly}
         header={
           <View style={styles.headerWrap}>
             <View style={styles.topHeader}>
               <View>
-                <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>DIRECT CHECK-IN</Text>
-                <Text style={[styles.title, { color: colors.text }]}>{config.title}</Text>
-                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  当前为专属录入页，只展示这个榜单的标准项。
+                <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
+                  FOOTPRINT LIST
+                </Text>
+                <Text style={[styles.title, { color: colors.text }]}>
+                  {readOnly && viewedUserName ? `${viewedUserName}的${config.title}` : `我的${config.title}`}
                 </Text>
               </View>
             </View>
@@ -47,13 +58,12 @@ const CheckinScreen = () => {
             >
               <View style={styles.tipHeader}>
                 <View>
-                  <Text style={[styles.tipTitle, { color: colors.text }]}>当前单位：{config.unit}</Text>
-                  <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-                    勾选加入当前榜单，取消则从当前榜单中移除。
+                  <Text style={[styles.tipTitle, { color: colors.text }]}>
+                    {`榜单内容：${viewerContentLabel}`}
                   </Text>
-                </View>
-                <View style={[styles.unitBadge, { backgroundColor: 'rgba(79,70,229,0.08)' }]}>
-                  <Text style={[styles.unitBadgeText, { color: colors.primary }]}>专属录入</Text>
+                  <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+                    点击条目后可继续查看 {ownerLabel} 在该条目下的所有日记记录。
+                  </Text>
                 </View>
               </View>
             </View>
@@ -87,11 +97,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
   },
-  subtitle: {
-    marginTop: 8,
-    fontSize: 14,
-    lineHeight: 21,
-  },
   tipCard: {
     borderWidth: 1,
     borderRadius: 22,
@@ -110,16 +115,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     lineHeight: 19,
-  },
-  unitBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginLeft: 12,
-  },
-  unitBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
 });
 

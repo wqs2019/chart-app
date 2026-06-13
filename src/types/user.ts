@@ -3,6 +3,7 @@ export type User = {
   phone?: string;
   email?: string;
   username?: string;
+  full_name?: string;
   apple_user_id?: string;
   nickname?: string;
   avatar?: string;

@@ -13,7 +13,7 @@ export interface StandardItem {
   name_zh: string;
   name_en: string;
   category: string; // 洲、区域、或玩乐分类
-  category_label_zh?: string;
+  category_label_zh: string;
   continent?: string;
   region_group?: string;
   activity_group?: string;

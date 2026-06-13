@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import CommonModal from '../../components/common/CommonModal';
 import LeaderboardSwitcher from '../../components/rank/LeaderboardSwitcher';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import {
@@ -22,6 +23,7 @@ import {
   LEADERBOARD_CONFIGS,
   UserScoreSnapshot,
 } from '../../types/rank';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const formatPercentile = (value?: number) => {
   if (value === undefined || value === null || Number.isNaN(Number(value))) {
@@ -92,6 +94,7 @@ type RankScreenData = {
 
 const RankScreen: React.FC = () => {
   const { colors, isDark } = useAppTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const currentUser = useAppStore((state) => state.currentUser);
   const userId = currentUser?._id;
 
@@ -109,6 +112,20 @@ const RankScreen: React.FC = () => {
   const rows = currentData?.rows ?? [];
   const isCurrentLoading = switchingCode === selectedCode;
   const shouldShowInlineLoading = !currentData && isCurrentLoading;
+  const currentUserDisplayName = currentUser?.fullName || currentUser?.username || '我';
+
+  const openCheckinScreen = React.useCallback(
+    (params: RootStackParamList['Checkin']) => {
+      const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+      if (rootNavigation) {
+        rootNavigation.navigate('Checkin', params);
+        return;
+      }
+
+      navigation.navigate('Checkin', params);
+    },
+    [navigation]
+  );
 
   const fetchData = React.useCallback(async (code: LeaderboardCode) => {
     if (!userId) {
@@ -237,7 +254,18 @@ const RankScreen: React.FC = () => {
             </View>
           ) : (
             <>
-              <View
+              <Pressable
+                disabled={!myRank}
+                onPress={() => {
+                  if (myRank && userId) {
+                    openCheckinScreen({
+                      code: selectedCode,
+                      viewedUserId: userId,
+                      viewedUserName: currentUserDisplayName,
+                      readOnly: true,
+                    });
+                  }
+                }}
                 style={[
                   styles.compactSummaryCard,
                   {
@@ -286,7 +314,7 @@ const RankScreen: React.FC = () => {
                     </Text>
                   </View>
                 )}
-              </View>
+              </Pressable>
               {rows.length ? (
                 rows.map((row, index) => {
                   const isMine = row.user_id === userId;
@@ -297,7 +325,15 @@ const RankScreen: React.FC = () => {
                     `用户 ${String(row.user_id).slice(-6)}`;
 
                   return (
-                    <View
+                    <Pressable
+                      onPress={() =>
+                        openCheckinScreen({
+                          code: selectedCode,
+                          viewedUserId: row.user_id,
+                          viewedUserName: displayName,
+                          readOnly: true,
+                        })
+                      }
                       key={`${row.user_id}-${displayRank}`}
                       style={[
                         styles.rankRow,
@@ -371,9 +407,11 @@ const RankScreen: React.FC = () => {
                         <Text style={[styles.rankScore, { color: colors.text }]}>
                           {formatScore(row.final_score)}
                         </Text>
-                        <Text style={[styles.rankScoreLabel, { color: colors.textSecondary }]}>总分</Text>
+                        <Text style={[styles.rankScoreLabel, { color: colors.textSecondary }]}>
+                          查看列表
+                        </Text>
                       </View>
-                    </View>
+                    </Pressable>
                   );
                 })
               ) : (

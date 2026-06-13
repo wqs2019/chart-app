@@ -12,9 +12,27 @@ import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
 export type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
-  Checkin: { code: LeaderboardCode };
-  CheckinItemRecords: { code: LeaderboardCode; item: StandardItem };
-  CheckinEntryDetail: { code: LeaderboardCode; item: StandardItem; entry: UserCheckin };
+  Checkin: {
+    code: LeaderboardCode;
+    viewedUserId?: string;
+    viewedUserName?: string;
+    readOnly?: boolean;
+  };
+  CheckinItemRecords: {
+    code: LeaderboardCode;
+    item: StandardItem;
+    viewedUserId?: string;
+    viewedUserName?: string;
+    readOnly?: boolean;
+  };
+  CheckinEntryDetail: {
+    code: LeaderboardCode;
+    item: StandardItem;
+    entry: UserCheckin;
+    viewedUserId?: string;
+    viewedUserName?: string;
+    readOnly?: boolean;
+  };
   CheckinEntryEditor: { code: LeaderboardCode; item: StandardItem; entry?: UserCheckin };
 };
 

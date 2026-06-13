@@ -22,6 +22,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 type CheckinBoardProps = {
   code: LeaderboardCode;
   header?: React.ReactElement | null;
+  viewedUserId?: string;
+  viewedUserName?: string;
+  readOnly?: boolean;
 };
 
 type CheckinBoardData = {
@@ -31,42 +34,21 @@ type CheckinBoardData = {
 
 const ALL_CATEGORY = '全部';
 
-const CATEGORY_LABEL_MAP: Record<string, string> = {
-  asia: '亚洲',
-  europe: '欧洲',
-  north_america: '北美洲',
-  south_america: '南美洲',
-  oceania: '大洋洲',
-  africa: '非洲',
-  north_china: '华北',
-  northeast: '东北',
-  east_china: '华东',
-  central_china: '华中',
-  south_china: '华南',
-  southwest: '西南',
-  northwest: '西北',
-  special_region: '港澳台',
-  air: '高空类',
-  water: '水上类',
-  snow_ice: '冰雪类',
-  mountain: '山野类',
-  motorsport: '速度类',
-  theme: '主题乐园',
-  wildlife: '野生动物',
-  outdoor: '户外类',
-};
-
-const getCategoryLabel = (category: string) => CATEGORY_LABEL_MAP[category] || category;
-
-const getItemCategoryLabel = (item: StandardItem) =>
-  item.category_label_zh || getCategoryLabel(item.category);
-
-const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
+const CheckinBoard: React.FC<CheckinBoardProps> = ({
+  code,
+  header = null,
+  viewedUserId,
+  viewedUserName,
+  readOnly = false,
+}) => {
   const { colors, isDark } = useAppTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const currentUser = useAppStore((state) => state.currentUser);
   const userId = currentUser?._id;
   const config = LEADERBOARD_CONFIGS[code];
+  const targetUserId = viewedUserId || userId;
+  const isViewerMode = Boolean(readOnly && targetUserId);
+  const ownerLabel = viewedUserName || (isViewerMode ? '该用户' : '我');
 
   const [dataByCode, setDataByCode] = React.useState<Partial<Record<LeaderboardCode, CheckinBoardData>>>({});
   const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
@@ -81,7 +63,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
   const shouldShowInlineLoading = !currentData && isCurrentLoading;
 
   const fetchData = React.useCallback(async (nextCode: LeaderboardCode) => {
-    if (!userId) {
+    if (!targetUserId) {
       setDataByCode({});
       setSwitchingCode(null);
       return;
@@ -94,7 +76,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
     try {
       const [allOptions, myCheckins] = await Promise.all([
         rankService.getStandardItems(nextCode),
-        rankService.getUserCheckins(userId, nextCode),
+        rankService.getUserCheckins(targetUserId, nextCode),
       ]);
 
       if (requestIdRef.current !== currentRequestId) {
@@ -115,7 +97,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
         setSwitchingCode((current) => (current === nextCode ? null : current));
       }
     }
-  }, [userId]);
+  }, [targetUserId]);
 
   React.useEffect(() => {
     setSelectedCategory(ALL_CATEGORY);
@@ -125,38 +107,40 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
     fetchData(code);
   }, [fetchData, code]);
 
+  const visibleItems = React.useMemo(
+    () => (isViewerMode ? items.filter((item) => checkedIds.has(item._id)) : items),
+    [checkedIds, isViewerMode, items]
+  );
+
   const categories = React.useMemo(() => {
-    const nextCategories = Array.from(new Set(items.map((item) => item.category).filter(Boolean)));
+    const nextCategories = Array.from(new Set(visibleItems.map((item) => item.category).filter(Boolean)));
     return [ALL_CATEGORY, ...nextCategories];
-  }, [items]);
+  }, [visibleItems]);
 
   const categoryLabels = React.useMemo(() => {
     const nextMap: Record<string, string> = {};
-    items.forEach((item) => {
-      if (!nextMap[item.category]) {
-        nextMap[item.category] = getItemCategoryLabel(item);
+    visibleItems.forEach((item) => {
+      const categoryKey = item.category || 'uncategorized';
+      if (!nextMap[categoryKey]) {
+        nextMap[categoryKey] = item.category_label_zh;
       }
     });
     return nextMap;
-  }, [items]);
+  }, [visibleItems]);
 
   const filteredItems = React.useMemo(() => {
     if (selectedCategory === ALL_CATEGORY) {
-      return items;
+      return visibleItems;
     }
 
-    return items.filter((item) => item.category === selectedCategory);
-  }, [items, selectedCategory]);
+    return visibleItems.filter((item) => item.category === selectedCategory);
+  }, [selectedCategory, visibleItems]);
   const completionRate = items.length ? checkedIds.size / items.length : 0;
   const progressPercent = Math.round(completionRate * 100);
   const activeCategoryLabel =
     selectedCategory === ALL_CATEGORY
       ? '全部分类'
-      : categoryLabels[selectedCategory] || getCategoryLabel(selectedCategory);
-  const filteredCheckedCount = React.useMemo(
-    () => filteredItems.filter((item) => checkedIds.has(item._id)).length,
-    [filteredItems, checkedIds]
-  );
+      : categoryLabels[selectedCategory];
   const entryCountMap = React.useMemo(() => {
     const nextMap: Record<string, number> = {};
     userCheckins.forEach((checkin) => {
@@ -165,12 +149,14 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
     return nextMap;
   }, [userCheckins]);
 
-  if (!userId) {
+  if (!targetUserId) {
     return (
       <View style={[styles.emptyWrap, { backgroundColor: colors.background }]}>
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>未获取到登录用户</Text>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          {isViewerMode ? '未找到目标用户' : '未获取到登录用户'}
+        </Text>
         <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-          请重新登录后再录入当前榜单内容。
+          {isViewerMode ? '请返回排行榜后重试。' : '请重新登录后再录入当前榜单内容。'}
         </Text>
       </View>
     );
@@ -194,7 +180,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
             >
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.inlineLoadingText, { color: colors.textSecondary }]}>
-                正在切换 {config.title} 录入项...
+                正在切换 {config.title}{isViewerMode ? '足迹' : '录入项'}...
               </Text>
             </View>
           ) : (
@@ -207,7 +193,9 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
               >
                 <View style={styles.summaryHeader}>
                   <View>
-                    <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>录入进度</Text>
+                    <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+                      条目进度
+                    </Text>
                     <Text style={[styles.summaryValue, { color: colors.text }]}>
                       {checkedIds.size}
                       <Text style={[styles.summaryValueMuted, { color: colors.textSecondary }]}>
@@ -249,18 +237,18 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
 
                 <View style={styles.summaryMetaRow}>
                   <View style={styles.summaryMetaItem}>
+                    <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>查看对象</Text>
+                    <Text style={[styles.summaryMetaValue, { color: colors.text }]}>
+                      {ownerLabel}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryMetaItem}>
                     <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前榜单</Text>
                     <Text style={[styles.summaryMetaValue, { color: colors.text }]}>{config.title}</Text>
                   </View>
                   <View style={styles.summaryMetaItem}>
                     <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前筛选</Text>
                     <Text style={[styles.summaryMetaValue, { color: colors.text }]}>{activeCategoryLabel}</Text>
-                  </View>
-                  <View style={styles.summaryMetaItem}>
-                    <Text style={[styles.summaryMetaLabel, { color: colors.textSecondary }]}>当前进度</Text>
-                    <Text style={[styles.summaryMetaValue, { color: colors.text }]}>
-                      {filteredCheckedCount}/{filteredItems.length}
-                    </Text>
                   </View>
                 </View>
               </View>
@@ -290,7 +278,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
                       ]}
                     >
                       <Text style={[styles.categoryChipText, { color: active ? '#FFFFFF' : colors.text }]}>
-                        {categoryLabels[item] || getCategoryLabel(item)}
+                        {item === ALL_CATEGORY ? ALL_CATEGORY : categoryLabels[item]}
                       </Text>
                     </Pressable>
                   );
@@ -309,7 +297,15 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
 
         return (
           <Pressable
-            onPress={() => navigation.navigate('CheckinItemRecords', { code, item })}
+            onPress={() =>
+              navigation.navigate('CheckinItemRecords', {
+                code,
+                item,
+                viewedUserId,
+                viewedUserName,
+                readOnly,
+              })
+            }
             style={[
               styles.itemCard,
               {
@@ -358,7 +354,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
                     ]}
                   >
                     <Ionicons name="checkmark-circle" size={12} color={colors.primary} />
-                    <Text style={[styles.recordedBadgeText, { color: colors.primary }]}>已录入</Text>
+                    <Text style={[styles.recordedBadgeText, { color: colors.primary }]}>已记录</Text>
                   </View>
                 ) : null}
                 <View
@@ -371,7 +367,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
                   ]}
                 >
                   <Text style={[styles.itemCategoryTagText, { color: colors.textSecondary }]}>
-                    {getItemCategoryLabel(item)}
+                    {item.category_label_zh}
                   </Text>
                 </View>
               </View>
@@ -380,7 +376,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
               </Text>
               {isChecked ? (
                 <Text style={[styles.itemRecordedHint, { color: colors.primary }]}>
-                  已有 {entryCount} 篇记录，点击可继续补充或编辑
+                  已有 {entryCount} 篇记录，点击查看列表
                 </Text>
               ) : null}
             </View>
@@ -403,7 +399,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
                 color={isChecked ? '#FFFFFF' : colors.textSecondary}
               />
               <Text style={[styles.statusText, { color: isChecked ? '#FFFFFF' : colors.textSecondary }]}>
-                {isChecked ? `${entryCount}篇记录` : '录入数据'}
+                {isChecked ? `${entryCount}篇记录` : '查看列表'}
               </Text>
             </View>
           </Pressable>
@@ -411,9 +407,9 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({ code, header = null }) => {
       }}
       ListEmptyComponent={
         <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>当前分类暂无标准项</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>当前分类暂无条目</Text>
           <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-            可以切换顶部分类，或者稍后补充当前榜单的标准项数据。
+            可以切换顶部分类后，继续查看 {ownerLabel} 在这个榜单下的条目列表。
           </Text>
         </View>
       }

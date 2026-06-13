@@ -16,11 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Loading from '../../components/common/Loading';
 import { NineGridMedia } from '../../components/common/NineGridMedia';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import authService from '../../services/authService';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import { MediaResource } from '../../types/media';
 import { CheckinAttachment, UserCheckin } from '../../types/rank';
+import { User } from '../../types/user';
 
 type ScreenRouteProp = RouteProp<RootStackParamList, 'CheckinEntryDetail'>;
 type ScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CheckinEntryDetail'>;
@@ -62,11 +64,20 @@ const mapAttachmentsToMedia = (attachments: CheckinAttachment[]): MediaResource[
       durationMs: attachment.duration_ms,
     }));
 
-const getDisplayName = (currentUser: ReturnType<typeof useAppStore.getState>['currentUser']) =>
-  currentUser?.profile?.nickname || currentUser?.fullName || currentUser?.username || '旅行用户';
+type DisplayUser = {
+  fullName?: string | null;
+  full_name?: string;
+  username?: string;
+  profile?: {
+    nickname?: string;
+    avatar_url?: string;
+  };
+} | null;
 
-const getAvatarUri = (currentUser: ReturnType<typeof useAppStore.getState>['currentUser']) =>
-  currentUser?.profile?.avatar_url || null;
+const getDisplayName = (user: DisplayUser) =>
+  user?.fullName || user?.full_name || user?.profile?.nickname || user?.username || '旅行用户';
+
+const getAvatarUri = (user: DisplayUser) => user?.profile?.avatar_url || null;
 
 const getAvatarFallback = (name: string) => name.trim().charAt(0).toUpperCase() || '游';
 
@@ -75,11 +86,14 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const navigation = useNavigation<ScreenNavigationProp>();
   const { colors, isDark } = useAppTheme();
   const currentUser = useAppStore((state) => state.currentUser);
-  const { code, item, entry } = route.params;
+  const { code, item, entry, viewedUserId, viewedUserName, readOnly } = route.params;
   const userId = currentUser?._id;
+  const targetUserId = viewedUserId || userId;
+  const isViewerMode = Boolean(readOnly && targetUserId);
 
   const [loading, setLoading] = React.useState(true);
   const [currentEntry, setCurrentEntry] = React.useState<UserCheckin>(entry);
+  const [authorProfile, setAuthorProfile] = React.useState<User | null>(null);
 
   const attachments = currentEntry.content?.attachments || [];
   const noteMedia = React.useMemo(() => mapAttachmentsToMedia(attachments), [attachments]);
@@ -88,28 +102,34 @@ const CheckinEntryDetailScreen: React.FC = () => {
     comments_count: 0,
     favorites_count: 0,
   };
-  const displayName = getDisplayName(currentUser);
-  const avatarUri = getAvatarUri(currentUser);
+  const authorUser: DisplayUser = isViewerMode ? authorProfile : currentUser;
+  const displayName = isViewerMode && viewedUserName ? viewedUserName : getDisplayName(authorUser);
+  const avatarUri = getAvatarUri(authorUser);
   const locationText = currentEntry.content?.location_name || currentEntry.content?.city_name || item.name_zh;
 
   const fetchEntryDetail = React.useCallback(async () => {
-    if (!userId) {
+    if (!targetUserId) {
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      const rows = await rankService.getItemCheckinEntries(userId, code, item._id);
+      const [rows, profile] = await Promise.all([
+        rankService.getItemCheckinEntries(targetUserId, code, item._id),
+        isViewerMode ? authService.getUser(targetUserId).catch(() => null) : Promise.resolve(null),
+      ]);
       const nextEntry = rows.find((row) => row._id === entry._id) || entry;
       setCurrentEntry(nextEntry);
+      setAuthorProfile(profile);
     } catch (error) {
       Alert.alert('加载失败', '这篇记录详情暂时无法获取，请稍后重试。');
       setCurrentEntry(entry);
+      setAuthorProfile(null);
     } finally {
       setLoading(false);
     }
-  }, [code, entry, item._id, userId]);
+  }, [code, entry, isViewerMode, item._id, targetUserId]);
 
   React.useEffect(() => {
     navigation.setOptions({ title: currentEntry.content?.title || item.name_zh });
@@ -156,18 +176,22 @@ const CheckinEntryDetailScreen: React.FC = () => {
               </View>
             </View>
 
-            <Pressable
-              onPress={() => navigation.navigate('CheckinEntryEditor', { code, item, entry: currentEntry })}
-              style={[
-                styles.editPill,
-                {
-                  backgroundColor: isDark ? 'rgba(124,140,255,0.16)' : 'rgba(79,70,229,0.08)',
-                },
-              ]}
-            >
-              <Ionicons name="create-outline" size={15} color={colors.primary} />
-              <Text style={[styles.editPillText, { color: colors.primary }]}>编辑</Text>
-            </Pressable>
+            {!isViewerMode ? (
+              <Pressable
+                onPress={() => navigation.navigate('CheckinEntryEditor', { code, item, entry: currentEntry })}
+                style={[
+                  styles.editPill,
+                  {
+                    backgroundColor: isDark ? 'rgba(124,140,255,0.16)' : 'rgba(79,70,229,0.08)',
+                  },
+                ]}
+              >
+                <Ionicons name="create-outline" size={15} color={colors.primary} />
+                <Text style={[styles.editPillText, { color: colors.primary }]}>编辑</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.editPillPlaceholder} />
+            )}
           </View>
 
           <Text style={[styles.noteTitle, { color: colors.text }]}>
@@ -319,6 +343,10 @@ const styles = StyleSheet.create({
   editPillText: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  editPillPlaceholder: {
+    width: 56,
+    height: 34,
   },
   noteTitle: {
     marginTop: 18,

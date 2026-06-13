@@ -1,4 +1,4 @@
-import { AppleLoginPayload, AuthSession } from '../types/user';
+import { AppleLoginPayload, AuthSession, User } from '../types/user';
 import CloudService from './tcb';
 
 type CloudResult<T> = {
@@ -29,6 +29,15 @@ class AuthService {
     const response = await CloudService.callFunction<CloudResult<AuthSession>>('chart_user', {
       action: 'validateSession',
       data: { token },
+    });
+
+    return unwrap(response);
+  }
+
+  async getUser(userId: string): Promise<User> {
+    const response = await CloudService.callFunction<CloudResult<User>>('chart_user', {
+      action: 'get',
+      data: { _id: userId },
     });
 
     return unwrap(response);
