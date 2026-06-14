@@ -36,17 +36,14 @@ const NotificationCenterScreen: React.FC = () => {
   }, [navigation, screenTitle]);
 
   const resetFilteredUnreadState = React.useCallback(
-    (types?: AppNotificationType[]) => {
-      if (!types || types.length === 0) {
-        setUnreadNotificationCount(0);
-        return;
-      }
+    (totalUnreadCount: number, types?: AppNotificationType[]) => {
+      setUnreadNotificationCount(totalUnreadCount);
 
-      if (types.includes('like') || types.includes('favorite')) {
+      if (types?.includes('like') || types?.includes('favorite')) {
         setUnreadLikeFavoriteCount(0);
       }
 
-      if (types.includes('comment') || types.includes('reply')) {
+      if (types?.includes('comment') || types?.includes('reply')) {
         setUnreadCommentCount(0);
       }
     },
@@ -68,8 +65,9 @@ const NotificationCenterScreen: React.FC = () => {
       if (unreadIds.length > 0) {
         await notificationService.markRead(currentUser._id, unreadIds);
       }
+      const totalUnreadCount = await notificationService.getUnreadCount(currentUser._id);
       setNotifications(nextList.map((item) => ({ ...item, is_read: true })));
-      resetFilteredUnreadState(selectedTypes);
+      resetFilteredUnreadState(totalUnreadCount, selectedTypes);
     } catch (error) {
       Alert.alert('加载失败', '通知列表暂时无法获取，请稍后重试。');
       setNotifications([]);
