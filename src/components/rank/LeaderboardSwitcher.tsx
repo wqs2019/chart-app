@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { LeaderboardCode, LEADERBOARD_CONFIGS } from '../../types/rank';
@@ -33,11 +33,56 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
 }) => {
   const { colors, isDark } = useAppTheme();
   const inactiveBg = isDark ? 'rgba(255,255,255,0.06)' : '#F8EDE4';
+  const scrollRef = React.useRef<ScrollView | null>(null);
+  const [containerWidth, setContainerWidth] = React.useState(0);
+  const [contentWidth, setContentWidth] = React.useState(0);
+  const layoutsRef = React.useRef<Partial<Record<LeaderboardCode, { x: number; width: number }>>>({});
+
+  const scrollSelectedIntoCenter = React.useCallback(() => {
+    if (!containerWidth || !contentWidth) {
+      return;
+    }
+
+    const layout = layoutsRef.current[selectedCode];
+    if (!layout || !scrollRef.current) {
+      return;
+    }
+
+    const maxScrollX = Math.max(contentWidth - containerWidth, 0);
+    const nextOffset = Math.min(
+      Math.max(layout.x + layout.width / 2 - containerWidth / 2, 0),
+      maxScrollX
+    );
+
+    scrollRef.current.scrollTo({
+      x: nextOffset,
+      animated: true,
+    });
+  }, [containerWidth, contentWidth, selectedCode]);
+
+  React.useEffect(() => {
+    scrollSelectedIntoCenter();
+  }, [scrollSelectedIntoCenter]);
+
+  const handleTabLayout = React.useCallback(
+    (code: LeaderboardCode, event: LayoutChangeEvent) => {
+      const { x, width } = event.nativeEvent.layout;
+      layoutsRef.current[code] = { x, width };
+
+      if (code === selectedCode) {
+        requestAnimationFrame(scrollSelectedIntoCenter);
+      }
+    },
+    [scrollSelectedIntoCenter, selectedCode]
+  );
 
   return (
     <ScrollView
+      ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
+      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
+      onContentSizeChange={(width) => setContentWidth(width)}
       contentContainerStyle={styles.content}
     >
       {codes.map((code) => {
@@ -47,6 +92,7 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
         return (
           <Pressable
             key={code}
+            onLayout={(event) => handleTabLayout(code, event)}
             onPress={() => onChange(code)}
             style={[
               styles.tab,
