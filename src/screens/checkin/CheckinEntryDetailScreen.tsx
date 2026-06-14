@@ -5,6 +5,8 @@ import React from 'react';
 import {
   Alert,
   Image,
+  Keyboard,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,7 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Loading from '../../components/common/Loading';
 import { NineGridMedia } from '../../components/common/NineGridMedia';
@@ -29,26 +31,6 @@ type ScreenRouteProp = RouteProp<RootStackParamList, 'CheckinEntryDetail'>;
 type ScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CheckinEntryDetail'>;
 
 const formatTime = (value?: string) => value || '未填写时间';
-
-const formatAttachmentSummary = (attachments: CheckinAttachment[]) => {
-  if (!attachments.length) {
-    return '无附件';
-  }
-
-  const imageCount = attachments.filter((attachment) => attachment.media_type === 'image').length;
-  const videoCount = attachments.filter((attachment) => attachment.media_type === 'video').length;
-  const parts: string[] = [];
-
-  if (imageCount) {
-    parts.push(`${imageCount} 张图片`);
-  }
-
-  if (videoCount) {
-    parts.push(`${videoCount} 个视频`);
-  }
-
-  return parts.join(' · ');
-};
 
 const mapAttachmentsToMedia = (attachments: CheckinAttachment[]): MediaResource[] =>
   attachments
@@ -107,6 +89,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const route = useRoute<ScreenRouteProp>();
   const navigation = useNavigation<ScreenNavigationProp>();
   const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const currentUser = useAppStore((state) => state.currentUser);
   const { code, item, entry, viewedUserId, viewedUserName, readOnly } = route.params;
   const userId = currentUser?._id;
@@ -120,6 +103,9 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const [submittingComment, setSubmittingComment] = React.useState(false);
   const [interactionSubmitting, setInteractionSubmitting] = React.useState<'like' | 'favorite' | null>(null);
   const [replyTarget, setReplyTarget] = React.useState<CheckinComment | null>(null);
+  const [composerExpanded, setComposerExpanded] = React.useState(false);
+  const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+  const commentInputRef = React.useRef<TextInput>(null);
 
   const attachments = currentEntry.content?.attachments || [];
   const noteMedia = React.useMemo(() => mapAttachmentsToMedia(attachments), [attachments]);
@@ -186,6 +172,40 @@ const CheckinEntryDetailScreen: React.FC = () => {
     }, [fetchEntryDetail])
   );
 
+  const openComposer = React.useCallback(() => {
+    setComposerExpanded(true);
+    setTimeout(() => {
+      commentInputRef.current?.focus();
+    }, 80);
+  }, []);
+
+  React.useEffect(() => {
+    if (replyTarget) {
+      openComposer();
+    }
+  }, [openComposer, replyTarget]);
+
+  React.useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      const nextHeight = Math.max((event.endCoordinates?.height || 0) - insets.bottom, 0);
+      setKeyboardHeight(nextHeight);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [insets.bottom]);
+
+  const bottomBarPaddingBottom = Math.max(insets.bottom, 10);
+  const composerOffsetBottom = keyboardHeight;
+
   if (loading) {
     return <Loading message="正在加载记录详情..." />;
   }
@@ -243,6 +263,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
       setCurrentEntry(nextEntry);
       setCommentInput('');
       setReplyTarget(null);
+      setComposerExpanded(false);
     } catch (error) {
       Alert.alert('发送失败', replyTarget ? '回复暂时发送失败，请稍后重试。' : '评论暂时发送失败，请稍后重试。');
     } finally {
@@ -252,8 +273,9 @@ const CheckinEntryDetailScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.noteContent}>
+      <View style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.noteContent}>
           <View style={styles.authorRow}>
             <View style={styles.authorLeft}>
               {avatarUri ? (
@@ -309,16 +331,6 @@ const CheckinEntryDetailScreen: React.FC = () => {
 
           {currentEntry.content?.weather || currentEntry.content?.mood || attachments.length ? (
             <View style={styles.noteTagRow}>
-              <View
-                style={[
-                  styles.noteTag,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)',
-                  },
-                ]}
-              >
-                <Text style={[styles.noteTagText, { color: colors.primary }]}>{formatAttachmentSummary(attachments)}</Text>
-              </View>
               {currentEntry.content?.weather ? (
                 <View
                   style={[
@@ -358,61 +370,6 @@ const CheckinEntryDetailScreen: React.FC = () => {
 
           <View
             style={[
-              styles.interactionBar,
-              {
-                borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB',
-              },
-            ]}
-          >
-            <Pressable
-              onPress={handleToggleLike}
-              style={styles.interactionItem}
-              disabled={interactionSubmitting !== null}
-            >
-              <Ionicons
-                name={interaction.viewer_has_liked ? 'heart' : 'heart-outline'}
-                size={18}
-                color={interaction.viewer_has_liked ? colors.primary : colors.textSecondary}
-              />
-              <Text style={[styles.interactionValue, { color: colors.text }]}>{interaction.likes_count || 0}</Text>
-              <Text
-                style={[
-                  styles.interactionLabel,
-                  { color: interaction.viewer_has_liked ? colors.primary : colors.textSecondary },
-                ]}
-              >
-                点赞
-              </Text>
-            </Pressable>
-            <View style={styles.interactionItem}>
-              <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.textSecondary} />
-              <Text style={[styles.interactionValue, { color: colors.text }]}>{interaction.comments_count || 0}</Text>
-              <Text style={[styles.interactionLabel, { color: colors.textSecondary }]}>评论</Text>
-            </View>
-            <Pressable
-              onPress={handleToggleFavorite}
-              style={styles.interactionItem}
-              disabled={interactionSubmitting !== null}
-            >
-              <Ionicons
-                name={interaction.viewer_has_favorited ? 'star' : 'star-outline'}
-                size={18}
-                color={interaction.viewer_has_favorited ? colors.primary : colors.textSecondary}
-              />
-              <Text style={[styles.interactionValue, { color: colors.text }]}>{interaction.favorites_count || 0}</Text>
-              <Text
-                style={[
-                  styles.interactionLabel,
-                  { color: interaction.viewer_has_favorited ? colors.primary : colors.textSecondary },
-                ]}
-              >
-                收藏
-              </Text>
-            </Pressable>
-          </View>
-
-          <View
-            style={[
               styles.commentSection,
               { borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' },
             ]}
@@ -420,53 +377,6 @@ const CheckinEntryDetailScreen: React.FC = () => {
             <View style={styles.commentHeader}>
               <Text style={[styles.commentTitle, { color: colors.text }]}>评论区</Text>
               <Text style={[styles.commentCount, { color: colors.textSecondary }]}>{comments.length} 条主评论</Text>
-            </View>
-
-            {replyTarget ? (
-              <View
-                style={[
-                  styles.replyBanner,
-                  { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)' },
-                ]}
-              >
-                <Text style={[styles.replyBannerText, { color: colors.primary }]}>
-                  正在回复 {getCommentDisplayName(replyTarget)}
-                </Text>
-                <Pressable onPress={() => setReplyTarget(null)}>
-                  <Text style={[styles.replyCancelText, { color: colors.primary }]}>取消</Text>
-                </Pressable>
-              </View>
-            ) : null}
-
-            <View
-              style={[
-                styles.commentComposer,
-                {
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FBFF',
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <TextInput
-                value={commentInput}
-                onChangeText={setCommentInput}
-                placeholder={replyTarget ? '写下你的回复...' : '写下你的评论...'}
-                placeholderTextColor={colors.textSecondary}
-                multiline
-                style={[styles.commentInput, { color: colors.text }]}
-              />
-              <Pressable
-                onPress={handleSubmitComment}
-                disabled={!commentInput.trim() || submittingComment}
-                style={[
-                  styles.commentSubmitButton,
-                  {
-                    backgroundColor: commentInput.trim() ? colors.primary : colors.border,
-                  },
-                ]}
-              >
-                <Text style={styles.commentSubmitText}>{submittingComment ? '发送中' : '发送'}</Text>
-              </Pressable>
             </View>
 
             {comments.length ? (
@@ -535,8 +445,173 @@ const CheckinEntryDetailScreen: React.FC = () => {
               </Text>
             )}
           </View>
+          </View>
+        </ScrollView>
+
+        {composerExpanded || commentInput.trim() || replyTarget ? (
+          <View
+            pointerEvents="box-none"
+            style={[
+              styles.composerOverlay,
+              {
+                bottom: composerOffsetBottom,
+              },
+            ]}
+          >
+            {replyTarget ? (
+              <View
+                style={[
+                  styles.replyBanner,
+                  { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)' },
+                ]}
+              >
+                <Text style={[styles.replyBannerText, { color: colors.primary }]}>
+                  正在回复 {getCommentDisplayName(replyTarget)}
+                </Text>
+                <Pressable onPress={() => setReplyTarget(null)}>
+                  <Text style={[styles.replyCancelText, { color: colors.primary }]}>取消</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            <View
+              style={[
+                styles.floatingComposer,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FBFF',
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <TextInput
+                ref={commentInputRef}
+                value={commentInput}
+                onChangeText={setCommentInput}
+                placeholder={replyTarget ? `回复 ${getCommentDisplayName(replyTarget)}...` : '说点什么...'}
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                autoFocus={composerExpanded}
+                textAlignVertical="top"
+                style={[styles.floatingComposerInput, { color: colors.text }]}
+                onBlur={() => {
+                  if (!commentInput.trim() && !replyTarget) {
+                    setComposerExpanded(false);
+                  }
+                }}
+              />
+              <View style={styles.floatingComposerFooter}>
+                <Pressable
+                  onPress={() => {
+                    setReplyTarget(null);
+                    if (!commentInput.trim()) {
+                      setComposerExpanded(false);
+                    }
+                  }}
+                  style={styles.floatingComposerGhostButton}
+                >
+                  <Text style={[styles.floatingComposerGhostText, { color: colors.textSecondary }]}>收起</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleSubmitComment}
+                  disabled={!commentInput.trim() || submittingComment}
+                  style={[
+                    styles.floatingComposerSendButton,
+                    {
+                      backgroundColor: commentInput.trim() ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={styles.floatingComposerSendText}>{submittingComment ? '发送中' : '发送'}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        <View
+          style={[
+            styles.bottomBar,
+            {
+              backgroundColor: colors.background,
+              borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB',
+              paddingBottom: bottomBarPaddingBottom,
+            },
+          ]}
+        >
+
+          <View style={styles.bottomBarRow}>
+            <View
+              style={[
+                styles.bottomInputWrap,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FBFF',
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Pressable onPress={openComposer} style={styles.bottomInputFake}>
+                <Ionicons name="create-outline" size={15} color={colors.textSecondary} />
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.bottomInputPlaceholder,
+                    { color: commentInput.trim() ? colors.text : colors.textSecondary },
+                  ]}
+                >
+                  {commentInput.trim() || (replyTarget ? `回复 ${getCommentDisplayName(replyTarget)}...` : '说点什么...')}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.bottomStats}>
+              <Pressable
+                onPress={handleToggleLike}
+                style={styles.bottomStatItem}
+                disabled={interactionSubmitting !== null}
+              >
+                <Ionicons
+                  name={interaction.viewer_has_liked ? 'heart' : 'heart-outline'}
+                  size={22}
+                  color={interaction.viewer_has_liked ? colors.primary : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.bottomStatText,
+                    { color: interaction.viewer_has_liked ? colors.primary : colors.textSecondary },
+                  ]}
+                >
+                  {interaction.likes_count || 0}
+                </Text>
+              </Pressable>
+
+              <Pressable onPress={openComposer} style={styles.bottomStatItem}>
+                <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.textSecondary} />
+                <Text style={[styles.bottomStatText, { color: colors.textSecondary }]}>{interaction.comments_count || 0}</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleToggleFavorite}
+                style={styles.bottomStatItem}
+                disabled={interactionSubmitting !== null}
+              >
+                <Ionicons
+                  name={interaction.viewer_has_favorited ? 'star' : 'star-outline'}
+                  size={22}
+                  color={interaction.viewer_has_favorited ? colors.primary : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.bottomStatText,
+                    { color: interaction.viewer_has_favorited ? colors.primary : colors.textSecondary },
+                  ]}
+                >
+                  {interaction.favorites_count || 0}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -547,7 +622,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 160,
   },
   noteContent: {
     paddingTop: 6,
@@ -637,27 +712,6 @@ const styles = StyleSheet.create({
   mediaGridWrap: {
     marginTop: 14,
   },
-  interactionBar: {
-    marginTop: 18,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  interactionItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  interactionValue: {
-    marginTop: 6,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  interactionLabel: {
-    marginTop: 2,
-    fontSize: 12,
-  },
   commentSection: {
     marginTop: 20,
     paddingTop: 16,
@@ -692,30 +746,6 @@ const styles = StyleSheet.create({
   },
   replyCancelText: {
     fontSize: 12,
-    fontWeight: '700',
-  },
-  commentComposer: {
-    marginTop: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 12,
-    gap: 12,
-  },
-  commentInput: {
-    minHeight: 72,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlignVertical: 'top',
-  },
-  commentSubmitButton: {
-    alignSelf: 'flex-end',
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  commentSubmitText: {
-    color: '#FFFFFF',
-    fontSize: 13,
     fontWeight: '700',
   },
   commentList: {
@@ -802,6 +832,100 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 13,
     lineHeight: 20,
+  },
+  composerOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    gap: 0,
+  },
+  bottomBar: {
+    borderTopWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  bottomBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  bottomInputWrap: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingLeft: 14,
+    paddingRight: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bottomInputFake: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bottomInputPlaceholder: {
+    flex: 1,
+    fontSize: 13,
+  },
+  bottomStats: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  bottomStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+  },
+  bottomStatText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  floatingComposer: {
+    borderWidth: 1,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  floatingComposerInput: {
+    minHeight: 96,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  floatingComposerFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  floatingComposerGhostButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+  },
+  floatingComposerGhostText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  floatingComposerSendButton: {
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  floatingComposerSendText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 
