@@ -68,19 +68,25 @@ const getCardVisualHeight = (entry: UserCheckin, cardWidth: number) => {
 
 const getSummaryLabel = (code: LeaderboardCode) => {
   if (code === 'world_travel') {
-    return '世界榜';
+    return '世界旅游榜';
   }
 
   if (code === 'china_travel') {
-    return '中国榜';
+    return '中国旅游榜';
   }
 
   if (code === 'activity') {
-    return '玩乐榜';
+    return '玩乐项目榜';
   }
 
   return '综合';
 };
+
+const getEntryInteraction = (entry: UserCheckin) => ({
+  likes: entry.interaction?.likes_count || 0,
+  comments: entry.interaction?.comments_count || 0,
+  favorites: entry.interaction?.favorites_count || 0,
+});
 
 const getCheckinEntries = (checkin: UserCheckin) => {
   if (Array.isArray(checkin.contents) && checkin.contents.length) {
@@ -295,55 +301,77 @@ const OverallDiaryFeedScreen: React.FC = () => {
                 key={`column-${columnIndex}`}
                 style={[styles.masonryColumn, columnIndex === 1 ? styles.masonryColumnRight : null]}
               >
-                {column.map(({ entry, coverUri, coverHeight, key }) => (
-                  <DiaryMasonryCard
-                    key={key}
-                    width={cardWidth}
-                    coverHeight={coverHeight}
-                    coverUri={coverUri}
-                    showVideoBadge={isVideoEntryCover(entry)}
-                    placeholderText={entry.item.name_zh}
-                    placeholderIconName={getLeaderboardIcon(entry.leaderboard_code)}
-                    placeholderIconColor={colors.primary}
-                    onPress={() =>
-                      navigation.navigate('CheckinEntryDetail', {
-                        code: entry.leaderboard_code,
-                        item: entry.item,
-                        entry,
-                        viewedUserId: isSelf ? undefined : viewedUserId,
-                        viewedUserName: isSelf ? undefined : viewedUserName,
-                        readOnly: !isSelf,
-                      })
-                    }
-                  >
-                    <View style={styles.entryTagRow}>
-                      <View
-                        style={[
-                          styles.entryTag,
-                          { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' },
-                        ]}
-                      >
-                        <Text style={[styles.entryTagText, { color: colors.primary }]}>
-                          {LEADERBOARD_CONFIGS[entry.leaderboard_code].title}
+                {column.map(({ entry, coverUri, coverHeight, key }) => {
+                  const interaction = getEntryInteraction(entry);
+
+                  return (
+                    <DiaryMasonryCard
+                      key={key}
+                      width={cardWidth}
+                      coverHeight={coverHeight}
+                      coverUri={coverUri}
+                      showVideoBadge={isVideoEntryCover(entry)}
+                      placeholderText={entry.item.name_zh}
+                      placeholderIconName={getLeaderboardIcon(entry.leaderboard_code)}
+                      placeholderIconColor={colors.primary}
+                      onPress={() =>
+                        navigation.navigate('CheckinEntryDetail', {
+                          code: entry.leaderboard_code,
+                          item: entry.item,
+                          entry,
+                          viewedUserId: isSelf ? undefined : viewedUserId,
+                          viewedUserName: isSelf ? undefined : viewedUserName,
+                          readOnly: !isSelf,
+                        })
+                      }
+                    >
+                      <View style={styles.entryTagRow}>
+                        <View
+                          style={[
+                            styles.entryTag,
+                            { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' },
+                          ]}
+                        >
+                          <Text style={[styles.entryTagText, { color: colors.primary }]}>
+                            {LEADERBOARD_CONFIGS[entry.leaderboard_code].title}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text numberOfLines={2} style={[styles.entryTitle, { color: colors.text }]}>
+                        {entry.content?.title || entry.item.name_zh}
+                      </Text>
+                      <View style={styles.entryInfoRow}>
+                        <Text numberOfLines={1} style={[styles.entrySubtitle, { color: colors.textSecondary }]}>
+                          {entry.content?.location_name || entry.item.name_zh}
+                        </Text>
+
+                        <Text numberOfLines={1} style={[styles.entryMetaText, { color: colors.textSecondary }]}>
+                          {entry.content?.visit_time || '未填写时间'}
                         </Text>
                       </View>
-                    </View>
 
-                    <Text numberOfLines={2} style={[styles.entryTitle, { color: colors.text }]}>
-                      {entry.content?.title || entry.item.name_zh}
-                    </Text>
-                    <Text numberOfLines={1} style={[styles.entrySubtitle, { color: colors.textSecondary }]}>
-                      {entry.content?.location_name || entry.item.name_zh}
-                    </Text>
-
-                    <View style={styles.entryMetaRow}>
-                      <Text style={[styles.entryMetaText, { color: colors.textSecondary }]}>
-                        {entry.content?.visit_time || '未填写时间'}
-                      </Text>
-                      <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-                    </View>
-                  </DiaryMasonryCard>
-                ))}
+                      <View style={styles.entryStatsRow}>
+                        <View style={styles.entryStatItem}>
+                          <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
+                          <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>{interaction.likes}</Text>
+                        </View>
+                        <View style={styles.entryStatItem}>
+                          <Ionicons name="chatbubble-ellipses-outline" size={14} color={colors.textSecondary} />
+                          <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
+                            {interaction.comments}
+                          </Text>
+                        </View>
+                        <View style={styles.entryStatItem}>
+                          <Ionicons name="bookmark-outline" size={14} color={colors.textSecondary} />
+                          <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
+                            {interaction.favorites}
+                          </Text>
+                        </View>
+                      </View>
+                    </DiaryMasonryCard>
+                  );
+                })}
               </View>
             ))}
           </View>
@@ -489,9 +517,10 @@ const styles = StyleSheet.create({
   entrySubtitle: {
     marginTop: 4,
     fontSize: 12,
+    flex: 1,
   },
-  entryMetaRow: {
-    marginTop: 10,
+  entryInfoRow: {
+    marginTop: 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -499,7 +528,22 @@ const styles = StyleSheet.create({
   },
   entryMetaText: {
     fontSize: 11,
-    flex: 1,
+    flexShrink: 0,
+  },
+  entryStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 10,
+  },
+  entryStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  entryStatText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   emptyCard: {
     borderRadius: 22,
