@@ -20,6 +20,23 @@ const MeScreen: React.FC = () => {
   const avatarUrl = currentUser?.profile?.avatar_url || '';
   const bio = currentUser?.profile?.bio || '还没有填写个人简介，去补充一句你的旅行宣言吧。';
   const avatarFallback = displayName.trim().charAt(0).toUpperCase() || '我';
+  const socialOverviewItems: Array<{
+    title: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }> = [
+    {
+      title: '点赞与收藏',
+      icon: 'heart-outline',
+    },
+    {
+      title: '粉丝关注',
+      icon: 'people-outline',
+    },
+    {
+      title: '评论区',
+      icon: 'chatbubble-ellipses-outline',
+    },
+  ];
   const gender = currentUser?.profile?.gender || 'unspecified';
   const genderMeta =
     gender === 'male'
@@ -135,6 +152,33 @@ const MeScreen: React.FC = () => {
               </View>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{bio}</Text>
             </View>
+          </View>
+        </View>
+
+        <View style={[styles.socialCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>互动中心</Text>
+          <View style={styles.socialGrid}>
+            {socialOverviewItems.map((item) => (
+              <Pressable
+                key={item.title}
+                style={[
+                  styles.socialGridItem,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF7F1',
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.socialIconWrap,
+                    { backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.10)' },
+                  ]}
+                >
+                  <Ionicons name={item.icon} size={18} color={colors.primary} />
+                </View>
+                <Text style={[styles.socialItemTitle, { color: colors.text }]}>{item.title}</Text>
+              </Pressable>
+            ))}
           </View>
         </View>
 
@@ -284,9 +328,39 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 18,
   },
+  socialCard: {
+    borderRadius: 22,
+    padding: 18,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
+  },
+  socialGrid: {
+    marginTop: 14,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  socialGridItem: {
+    flex: 1,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  socialIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  socialItemTitle: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   sectionSubtitle: {
     marginTop: 4,
