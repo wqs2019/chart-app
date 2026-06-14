@@ -90,7 +90,7 @@
 ```
 
 ### 2.4 chart_checkins (打卡与内容嵌套)
-核心业务表。将打卡行为与详细内容嵌套，减少查询。
+核心业务表。保留打卡行为与内容主体，互动明细拆到独立集合，`interaction` 仅缓存计数。
 
 ```json
 {
@@ -110,7 +110,7 @@
     "city_name": "string",
     "is_complete": "boolean" // 是否达到“完整记录”标准
   },
-  "interaction": {          // 汇总数据
+  "interaction": {          // 汇总缓存
     "likes_count": "number",
     "comments_count": "number",
     "favorites_count": "number"
@@ -126,7 +126,7 @@
   "_id": "ObjectId",
   "user_id": "string",
   "target_type": "string", // "checkin_content"
-  "target_id": "string",   // chart_checkins._id
+  "target_id": "string",   // entry_id，指向具体内容条目
   "target_user_id": "string",
   "interaction_type": "string", // "like" | "favorite"
   "status": "string", // "active" | "cancelled"
@@ -141,7 +141,7 @@
   "actor_user_id": "string",
   "target_user_id": "string",
   "target_type": "string", // "checkin_content"
-  "target_id": "string",
+  "target_id": "string",   // entry_id，指向具体内容条目
   "content": "string",
   "reply_to_comment_id": "string", // 支持简单二级评论
   "status": "string",

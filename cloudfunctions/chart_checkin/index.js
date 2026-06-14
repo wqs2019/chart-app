@@ -187,6 +187,21 @@ function createEntryId() {
   return `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function countComments(comments = []) {
+  return (comments || []).reduce((total, comment) => {
+    return total + 1 + countComments(Array.isArray(comment?.replies) ? comment.replies : []);
+  }, 0);
+}
+
+function normalizeCachedInteraction(interaction = {}, fallbackInteraction = null) {
+  const base = fallbackInteraction || {};
+  return {
+    likes_count: Math.max(Number(interaction.likes_count ?? base.likes_count ?? 0) || 0, 0),
+    comments_count: Math.max(Number(interaction.comments_count ?? base.comments_count ?? 0) || 0, 0),
+    favorites_count: Math.max(Number(interaction.favorites_count ?? base.favorites_count ?? 0) || 0, 0),
+  };
+}
+
 function normalizeEntryContent(content = {}, standardItem = {}) {
   return {
     title: content.title || '',
@@ -204,22 +219,8 @@ function normalizeEntryContent(content = {}, standardItem = {}) {
 function buildEntryRecord(content = {}, standardItem = {}, existingEntry = null, fallbackInteraction = null) {
   const normalizedContent = normalizeEntryContent(content, standardItem);
   const comments = Array.isArray(existingEntry?.comments) ? existingEntry.comments : [];
-  const commentCount = comments.reduce(function countNested(total, comment) {
-    const replies = Array.isArray(comment?.replies) ? comment.replies : [];
-    return (
-      total +
-      1 +
-      replies.reduce(countNested, 0)
-    );
-  }, 0);
-  const sourceInteraction = existingEntry?.interaction || fallbackInteraction || {};
-  const interaction = {
-    likes_count: Math.max(Number(sourceInteraction.likes_count || 0) || 0, 0),
-    comments_count: commentCount,
-    favorites_count: Math.max(Number(sourceInteraction.favorites_count || 0) || 0, 0),
-    liked_user_ids: Array.from(new Set((sourceInteraction.liked_user_ids || []).filter(Boolean))),
-    favorited_user_ids: Array.from(new Set((sourceInteraction.favorited_user_ids || []).filter(Boolean))),
-  };
+  const interaction = normalizeCachedInteraction(existingEntry?.interaction || {}, fallbackInteraction);
+  interaction.comments_count = Math.max(countComments(comments), interaction.comments_count || 0);
 
   return {
     entry_id: existingEntry?.entry_id || existingEntry?._id || createEntryId(),
@@ -237,31 +238,19 @@ function getCheckinEntries(checkin) {
   return contents;
 }
 
-function buildEntryView(checkin, entry = {}, viewerUserId = '') {
+function buildEntryView(checkin, entry = {}) {
   const safeCheckin = checkin || {};
   const safeEntries = getCheckinEntries(safeCheckin);
   const fallbackInteraction =
     entry?.interaction || (safeEntries.length <= 1 ? safeCheckin?.interaction || null : null) || {};
-  const sourceInteraction = entry?.interaction || fallbackInteraction || {};
   const comments = Array.isArray(entry.comments) ? entry.comments : [];
-  const commentCount = comments.reduce(function countNested(total, comment) {
-    const replies = Array.isArray(comment?.replies) ? comment.replies : [];
-    return (
-      total +
-      1 +
-      replies.reduce(countNested, 0)
-    );
-  }, 0);
-  const likedUserIds = Array.isArray(sourceInteraction.liked_user_ids) ? sourceInteraction.liked_user_ids : [];
-  const favoritedUserIds = Array.isArray(sourceInteraction.favorited_user_ids)
-    ? sourceInteraction.favorited_user_ids
-    : [];
+  const sourceInteraction = normalizeCachedInteraction(entry?.interaction || {}, fallbackInteraction);
   const interaction = {
-    likes_count: Math.max(Number(sourceInteraction.likes_count || 0) || 0, 0),
-    comments_count: commentCount || Math.max(Number(sourceInteraction.comments_count || 0) || 0, 0),
-    favorites_count: Math.max(Number(sourceInteraction.favorites_count || 0) || 0, 0),
-    viewer_has_liked: Boolean(viewerUserId && likedUserIds.includes(viewerUserId)),
-    viewer_has_favorited: Boolean(viewerUserId && favoritedUserIds.includes(viewerUserId)),
+    likes_count: sourceInteraction.likes_count,
+    comments_count: Math.max(countComments(comments), sourceInteraction.comments_count || 0),
+    favorites_count: sourceInteraction.favorites_count,
+    viewer_has_liked: false,
+    viewer_has_favorited: false,
   };
 
   return {
@@ -287,6 +276,23 @@ function buildEntryView(checkin, entry = {}, viewerUserId = '') {
       comments,
     },
   };
+}
+
+function summarizeCheckinInteraction(entries = [], fallbackInteraction = null) {
+  if (!Array.isArray(entries) || !entries.length) {
+    return normalizeCachedInteraction(fallbackInteraction);
+  }
+
+  return entries.reduce(
+    (summary, entry) => {
+      const entryInteraction = normalizeCachedInteraction(entry.interaction);
+      summary.likes_count += entryInteraction.likes_count;
+      summary.comments_count += entryInteraction.comments_count;
+      summary.favorites_count += entryInteraction.favorites_count;
+      return summary;
+    },
+    normalizeCachedInteraction(fallbackInteraction)
+  );
 }
 
 async function enrichSnapshotsWithUserProfile(rows = []) {
@@ -729,7 +735,7 @@ const getUserCheckins = async (data = {}) => {
 };
 
 const getItemCheckinEntries = async (data = {}) => {
-  const { userId, code, itemId, viewerUserId = '' } = data;
+  const { userId, code, itemId } = data;
   const normalizedCode = normalizeLeaderboardCode(code);
   const codeCandidates = getLeaderboardCodeCandidates(normalizedCode);
   if (!userId || !normalizedCode || !itemId) return fail('缺少参数');
@@ -747,7 +753,7 @@ const getItemCheckinEntries = async (data = {}) => {
       .get();
 
     const entries = (checkins || [])
-      .flatMap((checkin) => getCheckinEntries(checkin).map((entry) => buildEntryView(checkin, entry, viewerUserId)))
+      .flatMap((checkin) => getCheckinEntries(checkin).map((entry) => buildEntryView(checkin, entry)))
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
     return ok(entries);
@@ -927,7 +933,7 @@ const saveCheckinEntry = async (data = {}) => {
     const savedCheckin = await findCheckinEntryById(savedCheckinId);
     const savedEntries = getCheckinEntries(savedCheckin);
     const savedEntry = savedEntries.find((currentEntry) => currentEntry.entry_id === nextEntry.entry_id) || nextEntry;
-    return ok(buildEntryView(savedCheckin, savedEntry, userId));
+    return ok(buildEntryView(savedCheckin, savedEntry));
   } catch (error) {
     return fail('保存录入记录失败', error);
   }

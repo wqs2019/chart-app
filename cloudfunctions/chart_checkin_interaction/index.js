@@ -10,6 +10,11 @@ const checkinsCollection = db.collection('chart_checkins');
 const standardItemsCollection = db.collection('chart_standard_items');
 const snapshotsCollection = db.collection('chart_score_snapshots');
 const usersCollection = db.collection('chart_users');
+const commentsCollection = db.collection('chart_comments');
+const interactionsCollection = db.collection('chart_interactions');
+const CHECKIN_CONTENT_TARGET_TYPE = 'checkin_content';
+const ACTIVE_STATUS = 'active';
+const CANCELLED_STATUS = 'cancelled';
 
 function ok(data) {
   return {
@@ -81,26 +86,6 @@ async function findCheckinById(checkinId) {
 
   const result = await checkinsCollection.doc(checkinId).get();
   return getDocData(result);
-}
-
-async function getUserSnapshot(userId) {
-  if (!userId) {
-    return {
-      user_id: '',
-      full_name: '',
-      username: '',
-      avatar_url: '',
-    };
-  }
-
-  const user = await usersCollection.doc(userId).get().then(getDocData).catch(() => null);
-
-  return {
-    user_id: userId,
-    full_name: user?.full_name || '',
-    username: user?.username || '',
-    avatar_url: user?.profile?.avatar_url || '',
-  };
 }
 
 function getInteractionRawScore(interaction = {}) {
@@ -370,13 +355,7 @@ function createEmptyInteraction() {
     likes_count: 0,
     comments_count: 0,
     favorites_count: 0,
-    liked_user_ids: [],
-    favorited_user_ids: [],
   };
-}
-
-function createEntryId() {
-  return `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function createCommentId() {
@@ -385,17 +364,11 @@ function createCommentId() {
 
 function normalizeStoredInteraction(interaction = {}, fallbackInteraction = null) {
   const base = fallbackInteraction || createEmptyInteraction();
-  const likedUserIds = Array.from(new Set((interaction.liked_user_ids || base.liked_user_ids || []).filter(Boolean)));
-  const favoritedUserIds = Array.from(
-    new Set((interaction.favorited_user_ids || base.favorited_user_ids || []).filter(Boolean))
-  );
 
   return {
     likes_count: Math.max(Number(interaction.likes_count ?? base.likes_count ?? 0) || 0, 0),
     comments_count: Math.max(Number(interaction.comments_count ?? base.comments_count ?? 0) || 0, 0),
     favorites_count: Math.max(Number(interaction.favorites_count ?? base.favorites_count ?? 0) || 0, 0),
-    liked_user_ids: likedUserIds,
-    favorited_user_ids: favoritedUserIds,
   };
 }
 
@@ -431,6 +404,120 @@ function countComments(comments = []) {
   );
 }
 
+function flattenCommentTree(comments = []) {
+  return (comments || []).flatMap((comment) => [
+    {
+      comment_id: comment.comment_id || createCommentId(),
+      parent_comment_id: comment.parent_comment_id || '',
+      content: String(comment.content || '').trim(),
+      created_at: comment.created_at || db.serverDate(),
+      updated_at: comment.updated_at || comment.created_at || db.serverDate(),
+      author: normalizeCommentAuthor(comment.author),
+    },
+    ...flattenCommentTree(Array.isArray(comment.replies) ? comment.replies : []),
+  ]);
+}
+
+function sortCommentTree(comments = [], isRootLevel = true) {
+  const sorted = (comments || [])
+    .slice()
+    .sort((a, b) =>
+      isRootLevel ? getDateValue(b.created_at) - getDateValue(a.created_at) : getDateValue(a.created_at) - getDateValue(b.created_at)
+    );
+
+  return sorted.map((comment) => ({
+    ...comment,
+    replies: sortCommentTree(comment.replies || [], false),
+  }));
+}
+
+function buildUserSnapshotMap(users = []) {
+  return new Map(
+    (users || []).map((user) => [
+      user._id,
+      {
+        user_id: user._id,
+        full_name: user.full_name || '',
+        username: user.username || '',
+        avatar_url: user.profile?.avatar_url || '',
+      },
+    ])
+  );
+}
+
+async function getUserSnapshotMapByIds(userIds = []) {
+  const uniqueUserIds = Array.from(new Set((userIds || []).filter(Boolean)));
+  if (!uniqueUserIds.length) {
+    return new Map();
+  }
+
+  const snapshots = [];
+  for (let index = 0; index < uniqueUserIds.length; index += 100) {
+    const batch = uniqueUserIds.slice(index, index + 100);
+    const { data } = await usersCollection
+      .where({
+        _id: _.in(batch),
+      })
+      .limit(batch.length)
+      .get();
+    snapshots.push(...(data || []));
+  }
+
+  return buildUserSnapshotMap(snapshots);
+}
+
+function buildCommentTree(legacyComments = [], commentDocs = [], userSnapshotMap = new Map()) {
+  const nodes = new Map();
+
+  const registerNode = (node) => {
+    if (!node?.comment_id || nodes.has(node.comment_id)) {
+      return;
+    }
+
+    nodes.set(node.comment_id, {
+      comment_id: node.comment_id,
+      parent_comment_id: node.parent_comment_id || '',
+      content: String(node.content || '').trim(),
+      created_at: node.created_at || db.serverDate(),
+      updated_at: node.updated_at || node.created_at || db.serverDate(),
+      author: normalizeCommentAuthor(node.author),
+      replies: [],
+    });
+  };
+
+  flattenCommentTree(normalizeStoredComments(legacyComments)).forEach(registerNode);
+
+  (commentDocs || [])
+    .filter((doc) => doc?.status === ACTIVE_STATUS)
+    .forEach((doc) => {
+      registerNode({
+        comment_id: doc.comment_id || doc._id,
+        parent_comment_id: doc.reply_to_comment_id || '',
+        content: doc.content || '',
+        created_at: doc.created_at || db.serverDate(),
+        updated_at: doc.updated_at || doc.created_at || db.serverDate(),
+        author: userSnapshotMap.get(doc.actor_user_id) || {
+          user_id: doc.actor_user_id || '',
+          full_name: '',
+          username: '',
+          avatar_url: '',
+        },
+      });
+    });
+
+  const roots = [];
+  nodes.forEach((node) => {
+    if (node.parent_comment_id && nodes.has(node.parent_comment_id)) {
+      nodes.get(node.parent_comment_id).replies.push(node);
+      return;
+    }
+
+    roots.push(node);
+  });
+
+  return sortCommentTree(roots, true);
+}
+
 function getCheckinEntries(checkin) {
   const safeCheckin = checkin || {};
   return Array.isArray(safeCheckin.contents) ? safeCheckin.contents : [];
@@ -456,11 +543,9 @@ function summarizeCheckinInteraction(entries = [], fallbackInteraction = null) {
   return entries.reduce(
     (summary, entry) => {
       const entryInteraction = normalizeStoredInteraction(entry.interaction);
-      const commentCount = countComments(entry.comments || []);
-
       summary.likes_count += entryInteraction.likes_count;
       summary.favorites_count += entryInteraction.favorites_count;
-      summary.comments_count += commentCount || entryInteraction.comments_count || 0;
+      summary.comments_count += entryInteraction.comments_count || 0;
 
       return summary;
     },
@@ -472,20 +557,110 @@ function summarizeCheckinInteraction(entries = [], fallbackInteraction = null) {
   );
 }
 
-function buildEntryView(checkin, entry = {}, viewerUserId = '') {
-  const safeCheckin = checkin || {};
-  const safeEntries = getCheckinEntries(safeCheckin);
-  const fallbackInteraction = getEntryFallbackInteraction(safeCheckin, safeEntries, entry);
-  const storedInteraction = normalizeStoredInteraction(entry.interaction, fallbackInteraction);
-  const comments = normalizeStoredComments(entry.comments || []);
-  const commentCount = countComments(comments);
+async function getActiveCommentDocs(entryId) {
+  if (!entryId) {
+    return [];
+  }
+
+  const { data } = await commentsCollection
+    .where({
+      target_type: CHECKIN_CONTENT_TARGET_TYPE,
+      target_id: entryId,
+      status: ACTIVE_STATUS,
+    })
+    .limit(1000)
+    .get();
+
+  return Array.isArray(data) ? data : [];
+}
+
+async function getViewerInteractionDocs(entryId, viewerUserId) {
+  if (!entryId || !viewerUserId) {
+    return [];
+  }
+
+  const { data } = await interactionsCollection
+    .where({
+      target_type: CHECKIN_CONTENT_TARGET_TYPE,
+      target_id: entryId,
+      user_id: viewerUserId,
+      interaction_type: _.in(['like', 'favorite']),
+    })
+    .limit(20)
+    .get();
+
+  return Array.isArray(data) ? data : [];
+}
+
+function pickLatestRecord(records = []) {
+  if (!Array.isArray(records) || !records.length) {
+    return null;
+  }
+
+  return records
+    .slice()
+    .sort((a, b) => getDateValue(b.updated_at || b.created_at) - getDateValue(a.updated_at || a.created_at))[0];
+}
+
+async function findExistingInteractionRecord(entryId, userId, reactionType) {
+  if (!entryId || !userId || !reactionType) {
+    return null;
+  }
+
+  const { data } = await interactionsCollection
+    .where({
+      target_type: CHECKIN_CONTENT_TARGET_TYPE,
+      target_id: entryId,
+      user_id: userId,
+      interaction_type: reactionType,
+    })
+    .limit(20)
+    .get();
+
+  return pickLatestRecord(data || []);
+}
+
+async function resolveEntrySocialData(checkin, entry = {}, viewerUserId = '') {
+  const legacyComments = normalizeStoredComments(entry.comments || []);
+  const cachedInteraction = normalizeStoredInteraction(
+    entry.interaction,
+    getEntryFallbackInteraction(checkin, getCheckinEntries(checkin), entry)
+  );
+  const [commentDocs, viewerInteractionDocs] = await Promise.all([
+    getActiveCommentDocs(entry.entry_id),
+    getViewerInteractionDocs(entry.entry_id, viewerUserId),
+  ]);
+  const userSnapshotMap = await getUserSnapshotMapByIds(commentDocs.map((doc) => doc.actor_user_id));
+  const comments = buildCommentTree(legacyComments, commentDocs, userSnapshotMap);
+  const legacyLikedUserIds = Array.from(new Set((entry?.interaction?.liked_user_ids || []).filter(Boolean)));
+  const legacyFavoritedUserIds = Array.from(new Set((entry?.interaction?.favorited_user_ids || []).filter(Boolean)));
+  const viewerLikeRecord = pickLatestRecord(
+    (viewerInteractionDocs || []).filter((record) => record.interaction_type === 'like')
+  );
+  const viewerFavoriteRecord = pickLatestRecord(
+    (viewerInteractionDocs || []).filter((record) => record.interaction_type === 'favorite')
+  );
   const interaction = {
-    likes_count: storedInteraction.likes_count,
-    comments_count: commentCount || storedInteraction.comments_count || 0,
-    favorites_count: storedInteraction.favorites_count,
-    viewer_has_liked: Boolean(viewerUserId && storedInteraction.liked_user_ids.includes(viewerUserId)),
-    viewer_has_favorited: Boolean(viewerUserId && storedInteraction.favorited_user_ids.includes(viewerUserId)),
+    likes_count: cachedInteraction.likes_count,
+    comments_count: Math.max(countComments(comments), cachedInteraction.comments_count || 0),
+    favorites_count: cachedInteraction.favorites_count,
+    viewer_has_liked: viewerLikeRecord
+      ? viewerLikeRecord.status === ACTIVE_STATUS
+      : Boolean(viewerUserId && legacyLikedUserIds.includes(viewerUserId)),
+    viewer_has_favorited: viewerFavoriteRecord
+      ? viewerFavoriteRecord.status === ACTIVE_STATUS
+      : Boolean(viewerUserId && legacyFavoritedUserIds.includes(viewerUserId)),
   };
+
+  return {
+    comments,
+    interaction,
+  };
+}
+
+async function buildEntryView(checkin, entry = {}, viewerUserId = '') {
+  const safeCheckin = checkin || {};
+  const { comments, interaction } = await resolveEntrySocialData(safeCheckin, entry, viewerUserId);
 
   return {
     ...safeCheckin,
@@ -510,6 +685,27 @@ function buildEntryView(checkin, entry = {}, viewerUserId = '') {
       comments,
     },
   };
+}
+
+async function updateEntryInteractionCache(checkin, entryId, nextEntryInteraction) {
+  const entries = getCheckinEntries(checkin);
+  const nextEntries = entries.map((currentEntry) => {
+    if (currentEntry.entry_id !== entryId) {
+      return currentEntry;
+    }
+
+    return {
+      ...currentEntry,
+      interaction: normalizeStoredInteraction(nextEntryInteraction),
+      updated_at: db.serverDate(),
+    };
+  });
+
+  await checkinsCollection.doc(checkin._id).update({
+    contents: nextEntries,
+    interaction: summarizeCheckinInteraction(nextEntries, checkin.interaction),
+    updated_at: db.serverDate(),
+  });
 }
 
 async function refreshLeaderboardSnapshots(code) {
@@ -658,7 +854,7 @@ async function refreshLeaderboardSnapshots(code) {
 async function getEntryDetail(data = {}) {
   const { ownerUserId, viewerUserId = '', code, itemId, entryId } = data;
   const normalizedCode = normalizeLeaderboardCode(code);
-  if (!ownerUserId || !viewerUserId || !normalizedCode || !itemId || !entryId) {
+  if (!ownerUserId || !normalizedCode || !itemId || !entryId) {
     return fail('缺少参数');
   }
 
@@ -673,7 +869,7 @@ async function getEntryDetail(data = {}) {
       return fail('日记不存在');
     }
 
-    return ok(buildEntryView(checkin, entry, viewerUserId));
+    return ok(await buildEntryView(checkin, entry, viewerUserId));
   } catch (error) {
     return fail('获取日记详情失败', error);
   }
@@ -700,40 +896,49 @@ async function toggleReaction(data = {}, reactionType) {
     }
 
     const entry = entries[entryIndex];
-    const fallbackInteraction = getEntryFallbackInteraction(checkin, entries, entry);
-    const normalizedInteraction = normalizeStoredInteraction(entry.interaction, fallbackInteraction);
-    const userIdsKey = reactionType === 'like' ? 'liked_user_ids' : 'favorited_user_ids';
-    const countKey = reactionType === 'like' ? 'likes_count' : 'favorites_count';
-    const currentUserIds = Array.isArray(normalizedInteraction[userIdsKey]) ? normalizedInteraction[userIdsKey] : [];
-    const hasReacted = currentUserIds.includes(userId);
-    const nextUserIds = hasReacted
-      ? currentUserIds.filter((currentUserId) => currentUserId !== userId)
-      : [...currentUserIds, userId];
-    const nextInteraction = {
-      ...normalizedInteraction,
-      [userIdsKey]: nextUserIds,
-      [countKey]: Math.max(Number(normalizedInteraction[countKey] || 0) + (hasReacted ? -1 : 1), 0),
-    };
-    const nextEntries = entries.map((currentEntry, index) =>
-      index === entryIndex
-        ? {
-            ...currentEntry,
-            interaction: nextInteraction,
-            updated_at: db.serverDate(),
-          }
-        : currentEntry
+    const cachedInteraction = normalizeStoredInteraction(
+      entry.interaction,
+      getEntryFallbackInteraction(checkin, entries, entry)
     );
+    const countKey = reactionType === 'like' ? 'likes_count' : 'favorites_count';
+    const userIdsKey = reactionType === 'like' ? 'liked_user_ids' : 'favorited_user_ids';
+    const legacyUserIds = Array.isArray(entry?.interaction?.[userIdsKey]) ? entry.interaction[userIdsKey] : [];
+    const existingRecord = await findExistingInteractionRecord(entryId, userId, reactionType);
+    const hasReacted = existingRecord
+      ? existingRecord.status === ACTIVE_STATUS
+      : Boolean(userId && legacyUserIds.includes(userId));
+    const nextStatus = hasReacted ? CANCELLED_STATUS : ACTIVE_STATUS;
 
-    await checkinsCollection.doc(checkin._id).update({
-      contents: nextEntries,
-      interaction: summarizeCheckinInteraction(nextEntries, checkin.interaction),
-      updated_at: db.serverDate(),
+    if (existingRecord?._id) {
+      await interactionsCollection.doc(existingRecord._id).update({
+        status: nextStatus,
+        updated_at: db.serverDate(),
+      });
+    } else {
+      await interactionsCollection.add({
+        user_id: userId,
+        target_type: CHECKIN_CONTENT_TARGET_TYPE,
+        target_id: entryId,
+        target_user_id: targetOwnerId,
+        interaction_type: reactionType,
+        status: nextStatus,
+        parent_checkin_id: checkin._id,
+        leaderboard_code: normalizedCode,
+        item_id: itemId,
+        created_at: db.serverDate(),
+        updated_at: db.serverDate(),
+      });
+    }
+
+    await updateEntryInteractionCache(checkin, entryId, {
+      ...cachedInteraction,
+      [countKey]: Math.max(Number(cachedInteraction[countKey] || 0) + (hasReacted ? -1 : 1), 0),
     });
     await refreshLeaderboardSnapshots(normalizedCode);
 
     const savedCheckin = await findCheckinById(checkin._id);
     const savedEntry = getCheckinEntries(savedCheckin).find((currentEntry) => currentEntry.entry_id === entryId) || entry;
-    return ok(buildEntryView(savedCheckin, savedEntry, userId));
+    return ok(await buildEntryView(savedCheckin, savedEntry, userId));
   } catch (error) {
     return fail(reactionType === 'like' ? '点赞操作失败' : '收藏操作失败', error);
   }
@@ -761,44 +966,35 @@ async function addComment(data = {}) {
     }
 
     const entry = entries[entryIndex];
-    const author = await getUserSnapshot(userId);
-    const nextComments = [
-      {
-        comment_id: createCommentId(),
-        parent_comment_id: '',
-        content: trimmedContent,
-        author,
-        replies: [],
-        created_at: db.serverDate(),
-        updated_at: db.serverDate(),
-      },
-      ...normalizeStoredComments(entry.comments || []),
-    ];
-    const fallbackInteraction = getEntryFallbackInteraction(checkin, entries, entry);
-    const nextInteraction = normalizeStoredInteraction(entry.interaction, fallbackInteraction);
-    nextInteraction.comments_count = countComments(nextComments);
-
-    const nextEntries = entries.map((currentEntry, index) =>
-      index === entryIndex
-        ? {
-            ...currentEntry,
-            comments: nextComments,
-            interaction: nextInteraction,
-            updated_at: db.serverDate(),
-          }
-        : currentEntry
+    const cachedInteraction = normalizeStoredInteraction(
+      entry.interaction,
+      getEntryFallbackInteraction(checkin, entries, entry)
     );
-
-    await checkinsCollection.doc(checkin._id).update({
-      contents: nextEntries,
-      interaction: summarizeCheckinInteraction(nextEntries, checkin.interaction),
+    await commentsCollection.add({
+      comment_id: createCommentId(),
+      actor_user_id: userId,
+      target_user_id: targetOwnerId,
+      target_type: CHECKIN_CONTENT_TARGET_TYPE,
+      target_id: entryId,
+      content: trimmedContent,
+      reply_to_comment_id: '',
+      status: ACTIVE_STATUS,
+      parent_checkin_id: checkin._id,
+      leaderboard_code: normalizedCode,
+      item_id: itemId,
+      created_at: db.serverDate(),
       updated_at: db.serverDate(),
+    });
+
+    await updateEntryInteractionCache(checkin, entryId, {
+      ...cachedInteraction,
+      comments_count: Math.max(Number(cachedInteraction.comments_count || 0) + 1, 0),
     });
     await refreshLeaderboardSnapshots(normalizedCode);
 
     const savedCheckin = await findCheckinById(checkin._id);
     const savedEntry = getCheckinEntries(savedCheckin).find((currentEntry) => currentEntry.entry_id === entryId) || entry;
-    return ok(buildEntryView(savedCheckin, savedEntry, userId));
+    return ok(await buildEntryView(savedCheckin, savedEntry, userId));
   } catch (error) {
     return fail('发表评论失败', error);
   }
@@ -826,60 +1022,41 @@ async function replyComment(data = {}) {
     }
 
     const entry = entries[entryIndex];
-    const author = await getUserSnapshot(userId);
-    let foundComment = false;
-    const nextComments = normalizeStoredComments(entry.comments || []).map((comment) => {
-      if (comment.comment_id !== commentId) {
-        return comment;
-      }
-
-      foundComment = true;
-      return {
-        ...comment,
-        replies: [
-          ...(comment.replies || []),
-          {
-            comment_id: createCommentId(),
-            parent_comment_id: commentId,
-            content: trimmedContent,
-            author,
-            replies: [],
-            created_at: db.serverDate(),
-            updated_at: db.serverDate(),
-          },
-        ],
-        updated_at: db.serverDate(),
-      };
-    });
-
-    if (!foundComment) {
+    const cachedInteraction = normalizeStoredInteraction(
+      entry.interaction,
+      getEntryFallbackInteraction(checkin, entries, entry)
+    );
+    const { comments } = await resolveEntrySocialData(checkin, entry, '');
+    const hasTargetComment = flattenCommentTree(comments).some((comment) => comment.comment_id === commentId);
+    if (!hasTargetComment) {
       return fail('评论不存在');
     }
 
-    const fallbackInteraction = getEntryFallbackInteraction(checkin, entries, entry);
-    const nextInteraction = normalizeStoredInteraction(entry.interaction, fallbackInteraction);
-    nextInteraction.comments_count = countComments(nextComments);
-    const nextEntries = entries.map((currentEntry, index) =>
-      index === entryIndex
-        ? {
-            ...currentEntry,
-            comments: nextComments,
-            interaction: nextInteraction,
-            updated_at: db.serverDate(),
-          }
-        : currentEntry
-    );
-
-    await checkinsCollection.doc(checkin._id).update({
-      contents: nextEntries,
-      interaction: summarizeCheckinInteraction(nextEntries, checkin.interaction),
+    await commentsCollection.add({
+      comment_id: createCommentId(),
+      actor_user_id: userId,
+      target_user_id: targetOwnerId,
+      target_type: CHECKIN_CONTENT_TARGET_TYPE,
+      target_id: entryId,
+      content: trimmedContent,
+      reply_to_comment_id: commentId,
+      status: ACTIVE_STATUS,
+      parent_checkin_id: checkin._id,
+      leaderboard_code: normalizedCode,
+      item_id: itemId,
+      created_at: db.serverDate(),
       updated_at: db.serverDate(),
+    });
+
+    await updateEntryInteractionCache(checkin, entryId, {
+      ...cachedInteraction,
+      comments_count: Math.max(Number(cachedInteraction.comments_count || 0) + 1, 0),
     });
     await refreshLeaderboardSnapshots(normalizedCode);
 
     const savedCheckin = await findCheckinById(checkin._id);
     const savedEntry = getCheckinEntries(savedCheckin).find((currentEntry) => currentEntry.entry_id === entryId) || entry;
-    return ok(buildEntryView(savedCheckin, savedEntry, userId));
+    return ok(await buildEntryView(savedCheckin, savedEntry, userId));
   } catch (error) {
     return fail('回复评论失败', error);
   }
