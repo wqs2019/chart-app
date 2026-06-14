@@ -133,6 +133,19 @@ const RankScreen: React.FC = () => {
     [navigation]
   );
 
+  const openOverallDiaryFeed = React.useCallback(
+    (params: RootStackParamList['OverallDiaryFeed']) => {
+      const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+      if (rootNavigation) {
+        rootNavigation.navigate('OverallDiaryFeed', params);
+        return;
+      }
+
+      navigation.navigate('OverallDiaryFeed', params);
+    },
+    [navigation]
+  );
+
   const fetchData = React.useCallback(async (code: LeaderboardCode) => {
     if (!userId) {
       setDataByCode({});
@@ -261,16 +274,27 @@ const RankScreen: React.FC = () => {
           ) : (
             <>
               <Pressable
-                disabled={!myRank || selectedCode === 'overall'}
+                disabled={!myRank}
                 onPress={() => {
-                  if (myRank && userId && selectedCode !== 'overall') {
-                    openCheckinScreen({
-                      code: selectedCode,
+                  if (!myRank || !userId) {
+                    return;
+                  }
+
+                  if (selectedCode === 'overall') {
+                    openOverallDiaryFeed({
                       viewedUserId: userId,
                       viewedUserName: currentUserDisplayName,
-                      readOnly: true,
+                      viewedAvatarUrl: currentUser?.profile?.avatar_url || '',
                     });
+                    return;
                   }
+
+                  openCheckinScreen({
+                    code: selectedCode,
+                    viewedUserId: userId,
+                    viewedUserName: currentUserDisplayName,
+                    readOnly: true,
+                  });
                 }}
                 style={[
                   styles.compactSummaryCard,
@@ -336,6 +360,11 @@ const RankScreen: React.FC = () => {
                     <Pressable
                       onPress={() => {
                         if (selectedCode === 'overall') {
+                          openOverallDiaryFeed({
+                            viewedUserId: row.user_id,
+                            viewedUserName: displayName,
+                            viewedAvatarUrl: avatarUri,
+                          });
                           return;
                         }
 

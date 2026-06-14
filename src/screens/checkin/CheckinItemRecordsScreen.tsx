@@ -5,6 +5,7 @@ import React from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import DiaryMasonryCard from '../../components/common/DiaryMasonryCard';
 import { MediaPreviewer } from '../../components/common/MediaPreviewer';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -208,8 +209,13 @@ const CheckinItemRecordsScreen: React.FC = () => {
                   const isVideoCover = isVideoEntryCover(entry);
 
                   return (
-                    <Pressable
+                    <DiaryMasonryCard
                       key={key}
+                      width={cardWidth}
+                      coverHeight={coverHeight}
+                      coverUri={coverUri}
+                      showVideoBadge={isVideoCover}
+                      placeholderText="暂无封面"
                       onPress={() =>
                         navigation.navigate('CheckinEntryDetail', {
                           code,
@@ -220,70 +226,30 @@ const CheckinItemRecordsScreen: React.FC = () => {
                           readOnly,
                         })
                       }
-                      style={[
-                        styles.entryCard,
-                        {
-                          width: cardWidth,
-                          backgroundColor: colors.surface,
-                          borderColor: colors.border,
-                        },
-                      ]}
                     >
-                      <View
-                        style={[
-                          styles.entryCoverWrap,
-                          {
-                            height: coverHeight,
-                            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF6F0',
-                          },
-                        ]}
-                      >
-                        {coverUri ? (
-                          <>
-                            <Image source={{ uri: coverUri }} style={styles.entryCover} resizeMode="cover" />
-                            {isVideoCover ? (
-                              <View style={styles.videoBadge}>
-                                <Ionicons name="play" size={12} color="#FFFFFF" />
-                              </View>
-                            ) : null}
-                          </>
-                        ) : (
-                          <View style={styles.entryCoverPlaceholder}>
-                            <Ionicons name="image-outline" size={24} color={colors.textSecondary} />
-                            <Text style={[styles.entryCoverPlaceholderText, { color: colors.textSecondary }]}>
-                              暂无封面
-                            </Text>
-                          </View>
-                        )}
-                      </View>
+                      <Text numberOfLines={2} style={[styles.entryTitle, { color: colors.text }]}>
+                        {entry.content?.title || `${item.name_zh} 游玩记录 ${index + 1}`}
+                      </Text>
 
-                      <View style={styles.entryInfo}>
-                        <Text numberOfLines={2} style={[styles.entryTitle, { color: colors.text }]}>
-                          {entry.content?.title || `${item.name_zh} 游玩记录 ${index + 1}`}
-                        </Text>
-
-                        <View style={styles.entryStatsRow}>
-                          <View style={styles.entryStatItem}>
-                            <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
-                            <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
-                              {interaction.likes}
-                            </Text>
-                          </View>
-                          <View style={styles.entryStatItem}>
-                            <Ionicons name="chatbubble-ellipses-outline" size={14} color={colors.textSecondary} />
-                            <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
-                              {interaction.comments}
-                            </Text>
-                          </View>
-                          <View style={styles.entryStatItem}>
-                            <Ionicons name="bookmark-outline" size={14} color={colors.textSecondary} />
-                            <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
-                              {interaction.favorites}
-                            </Text>
-                          </View>
+                      <View style={styles.entryStatsRow}>
+                        <View style={styles.entryStatItem}>
+                          <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
+                          <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>{interaction.likes}</Text>
+                        </View>
+                        <View style={styles.entryStatItem}>
+                          <Ionicons name="chatbubble-ellipses-outline" size={14} color={colors.textSecondary} />
+                          <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
+                            {interaction.comments}
+                          </Text>
+                        </View>
+                        <View style={styles.entryStatItem}>
+                          <Ionicons name="bookmark-outline" size={14} color={colors.textSecondary} />
+                          <Text style={[styles.entryStatText, { color: colors.textSecondary }]}>
+                            {interaction.favorites}
+                          </Text>
                         </View>
                       </View>
-                    </Pressable>
+                    </DiaryMasonryCard>
                   );
                 })}
               </View>
@@ -440,46 +406,9 @@ const styles = StyleSheet.create({
   masonryColumnRight: {
     marginLeft: 12,
   },
-  entryCard: {
-    borderWidth: 0,
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
   entryTitle: {
     fontSize: 14,
     fontWeight: '800',
-  },
-  entryCoverWrap: {
-    overflow: 'hidden',
-  },
-  entryCoverPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  entryCoverPlaceholderText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  entryCover: {
-    width: '100%',
-    height: '100%',
-  },
-  videoBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(15,23,42,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  entryInfo: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
   },
   entryStatsRow: {
     flexDirection: 'row',

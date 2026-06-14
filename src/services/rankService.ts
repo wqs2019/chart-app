@@ -85,10 +85,15 @@ const callRankFunction = async <T>(action: string, data: Record<string, unknown>
 };
 
 const resolveCheckinAttachmentUrls = async (checkins: UserCheckin[]): Promise<UserCheckin[]> => {
+  const getEntryAttachments = (checkin: UserCheckin) => [
+    ...(checkin.content?.attachments || []),
+    ...((checkin.contents || []).flatMap((entry) => entry.attachments || [])),
+  ];
+
   const fileIDs = Array.from(
     new Set(
       checkins.flatMap((checkin) =>
-        (checkin.content?.attachments || [])
+        getEntryAttachments(checkin)
           .flatMap((attachment) => [attachment.file_id, attachment.thumbnail_file_id])
           .filter((fileId): fileId is string => Boolean(fileId))
       )
@@ -115,6 +120,16 @@ const resolveCheckinAttachmentUrls = async (checkins: UserCheckin[]): Promise<Us
           })),
         }
       : checkin.content,
+    contents: (checkin.contents || []).map((entry) => ({
+      ...entry,
+      attachments: (entry.attachments || []).map((attachment) => ({
+        ...attachment,
+        temp_url: tempUrlMap[attachment.file_id] || attachment.temp_url,
+        thumbnail_temp_url:
+          (attachment.thumbnail_file_id && tempUrlMap[attachment.thumbnail_file_id]) ||
+          attachment.thumbnail_temp_url,
+      })),
+    })),
   }));
 };
 
@@ -130,7 +145,8 @@ export const rankService = {
    * 获取用户在指定榜单下的所有打卡记录
    */
   async getUserCheckins(userId: string, code: LeaderboardCode): Promise<UserCheckin[]> {
-    return callRankFunction<UserCheckin[]>('getUserCheckins', { userId, code });
+    const checkins = await callRankFunction<UserCheckin[]>('getUserCheckins', { userId, code });
+    return resolveCheckinAttachmentUrls(checkins);
   },
 
   async getItemCheckinEntries(userId: string, code: LeaderboardCode, itemId: string): Promise<UserCheckin[]> {

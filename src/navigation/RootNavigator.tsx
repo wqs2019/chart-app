@@ -5,6 +5,7 @@ import CheckinEntryDetailScreen from '../screens/checkin/CheckinEntryDetailScree
 import CheckinEntryEditorScreen from '../screens/checkin/CheckinEntryEditorScreen';
 import CheckinItemRecordsScreen from '../screens/checkin/CheckinItemRecordsScreen';
 import CheckinScreen from '../screens/checkin/CheckinScreen';
+import OverallDiaryFeedScreen from '../screens/rank/OverallDiaryFeedScreen';
 import AboutAppScreen from '../screens/me/AboutAppScreen';
 import AccountSecurityScreen from '../screens/me/AccountSecurityScreen';
 import AppSettingsScreen from '../screens/me/AppSettingsScreen';
@@ -26,6 +27,11 @@ export type RootStackParamList = {
   HelpFeedback: undefined;
   YearReview: undefined;
   AchievementPoster: undefined;
+  OverallDiaryFeed: {
+    viewedUserId: string;
+    viewedUserName?: string;
+    viewedAvatarUrl?: string;
+  };
   Checkin: {
     code: LeaderboardCode;
     viewedUserId?: string;
@@ -71,6 +77,7 @@ export const RootNavigator = () => {
             component={AchievementPosterScreen}
             options={{ title: '成就海报' }}
           />
+          <Stack.Screen name="OverallDiaryFeed" component={OverallDiaryFeedScreen} options={{ title: '综合日记' }} />
           <Stack.Screen name="Checkin" component={CheckinScreen} />
           <Stack.Screen name="CheckinItemRecords" component={CheckinItemRecordsScreen} />
           <Stack.Screen name="CheckinEntryDetail" component={CheckinEntryDetailScreen} />
