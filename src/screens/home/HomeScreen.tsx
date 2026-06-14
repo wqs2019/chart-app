@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { NavigationProp, useFocusEffect, useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -43,6 +43,17 @@ const getLeaderboardIcon = (code: LeaderboardCode): keyof typeof Ionicons.glyphM
   return 'trophy-outline';
 };
 
+const MILESTONE_MAP: Record<Exclude<LeaderboardCode, 'overall'>, number[]> = {
+  world_travel: [5, 10, 20, 30, 50, 80, 100],
+  china_travel: [5, 10, 15, 20, 25, 31],
+  activity: [10, 20, 30, 50, 80, 100],
+};
+
+const getStrongestCode = (summaryByCode: SummaryMap): LeaderboardCode =>
+  rankOptions
+    .slice()
+    .sort((a, b) => (summaryByCode[b]?.final_score || 0) - (summaryByCode[a]?.final_score || 0))[0] || 'world_travel';
+
 const getRecommendedCode = (summaryByCode: SummaryMap): LeaderboardCode => {
   const missingCode = rankOptions.find((code) => !summaryByCode[code]?.raw_count);
   if (missingCode) {
@@ -54,6 +65,15 @@ const getRecommendedCode = (summaryByCode: SummaryMap): LeaderboardCode => {
       .slice()
       .sort((a, b) => (summaryByCode[a]?.raw_count || 0) - (summaryByCode[b]?.raw_count || 0))[0] || 'world_travel'
   );
+};
+
+const getNextMilestoneValue = (code: LeaderboardCode, rawCount: number) => {
+  if (code === 'overall') {
+    return rawCount;
+  }
+
+  const target = MILESTONE_MAP[code].find((value) => value > rawCount);
+  return target ?? rawCount + 5;
 };
 
 const HomeScreen: React.FC<Props> = () => {
@@ -93,15 +113,24 @@ const HomeScreen: React.FC<Props> = () => {
   );
 
   const overallSnapshot = summaryByCode.overall;
+  const strongestCode = React.useMemo(() => getStrongestCode(summaryByCode), [summaryByCode]);
   const recommendedCode = React.useMemo(() => getRecommendedCode(summaryByCode), [summaryByCode]);
+  const strongestConfig = LEADERBOARD_CONFIGS[strongestCode];
   const recommendedConfig = LEADERBOARD_CONFIGS[recommendedCode];
+  const strongestSnapshot = summaryByCode[strongestCode];
+  const recommendedSnapshot = summaryByCode[recommendedCode];
   const totalCheckins = rankOptions.reduce((sum, code) => sum + (summaryByCode[code]?.raw_count || 0), 0);
+  const nextMilestoneValue = React.useMemo(
+    () => getNextMilestoneValue(recommendedCode, recommendedSnapshot?.raw_count || 0),
+    [recommendedCode, recommendedSnapshot?.raw_count]
+  );
+  const nextMilestoneGap = Math.max(nextMilestoneValue - (recommendedSnapshot?.raw_count || 0), 1);
 
   const openCheckin = React.useCallback(
     (code: LeaderboardCode) => {
-      navigation?.navigate('Checkin', { code });
+      tabNavigation.navigate('Checkin', { code });
     },
-    [navigation]
+    [tabNavigation]
   );
 
   const openRankTab = React.useCallback(() => {
@@ -166,33 +195,23 @@ const HomeScreen: React.FC<Props> = () => {
 
           <View style={styles.heroActionRow}>
             <Pressable
-              onPress={() => openCheckin(recommendedCode)}
+              onPress={openRankTab}
               style={[styles.primaryButton, { backgroundColor: colors.primary }]}
             >
-              <Text style={styles.primaryButtonText}>继续补录 {recommendedConfig.title}</Text>
+              <Text style={styles.primaryButtonText}>查看榜单</Text>
               <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
             </Pressable>
             <Pressable
-              onPress={openRankTab}
+              onPress={() => navigation?.navigate('YearReview')}
               style={[styles.secondaryButton, { backgroundColor: colors.surface }]}
             >
-              <Ionicons name="trophy-outline" size={16} color={colors.primary} />
-              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>查看榜单</Text>
+              <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
+              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>年度回顾</Text>
             </Pressable>
           </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionHeaderText}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>核心入口</Text>
-              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
-                首页负责分发最重要的榜单、回顾和分享入口。
-              </Text>
-            </View>
-            {loadingSummary ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-          </View>
-
           <Pressable
             onPress={openRankTab}
             style={[
@@ -222,11 +241,16 @@ const HomeScreen: React.FC<Props> = () => {
                 { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
               ]}
             >
-              <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(99,102,241,0.22)' : '#EEF2FF' }]}>
-                <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
+              <View style={[styles.secondaryFeatureRow, { backgroundColor: 'transparent' }]}>
+                <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(99,102,241,0.22)' : '#EEF2FF' }]}>
+                  <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
+                </View>
+                <View style={styles.secondaryFeatureTextWrap}>
+                  <Text style={[styles.secondaryFeatureTitle, { color: colors.text }]}>年度回顾</Text>
+                  <Text style={[styles.secondaryFeatureDesc, { color: colors.textSecondary }]}>回顾今年新增与成长轨迹。</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
               </View>
-              <Text style={[styles.featureTitle, { color: colors.text }]}>年度回顾</Text>
-              <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>回顾今年新增与成长轨迹。</Text>
             </Pressable>
 
             <Pressable
@@ -236,64 +260,78 @@ const HomeScreen: React.FC<Props> = () => {
                 { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
               ]}
             >
-              <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.18)' : '#FFF1E8' }]}>
-                <Ionicons name="image-outline" size={18} color={colors.primary} />
+              <View style={[styles.secondaryFeatureRow, { backgroundColor: 'transparent' }]}>
+                <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.18)' : '#FFF1E8' }]}>
+                  <Ionicons name="image-outline" size={16} color={colors.primary} />
+                </View>
+                <View style={styles.secondaryFeatureTextWrap}>
+                  <Text style={[styles.secondaryFeatureTitle, { color: colors.text }]}>成就海报</Text>
+                  <Text style={[styles.secondaryFeatureDesc, { color: colors.textSecondary }]}>把当前成绩快速分享出去。</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
               </View>
-              <Text style={[styles.featureTitle, { color: colors.text }]}>成就海报</Text>
-              <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>把当前成绩快速分享出去。</Text>
             </Pressable>
           </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>继续录入</Text>
-          <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
-            推荐优先补录 {recommendedConfig.title}，它最有机会继续抬高你的综合成绩。
-          </Text>
-          <View style={styles.rankGrid}>
-            {rankOptions.map((code) => {
-              const config = LEADERBOARD_CONFIGS[code];
-              const snapshot = summaryByCode[code];
-              const isRecommended = code === recommendedCode;
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>阶段焦点</Text>
+          <View style={styles.focusGrid}>
+            <View
+              style={[
+                styles.focusCard,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
+              ]}
+            >
+              <Text style={[styles.focusLabel, { color: colors.textSecondary }]}>当前最强榜单</Text>
+              <View style={styles.focusTitleRow}>
+                <Ionicons name={getLeaderboardIcon(strongestCode)} size={16} color={colors.primary} />
+                <Text style={[styles.focusTitle, { color: colors.text }]}>{strongestConfig.title}</Text>
+              </View>
+              <Text style={[styles.focusValue, { color: colors.text }]}>
+                {formatScore(strongestSnapshot?.final_score)}
+              </Text>
+              <Text style={[styles.focusMeta, { color: colors.textSecondary }]}>
+                {formatRank(strongestSnapshot?.rank)} · 已录入 {strongestSnapshot?.raw_count ?? 0}
+              </Text>
+            </View>
 
-              return (
-                <Pressable
-                  key={code}
-                  style={[
-                    styles.rankCard,
-                    {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF',
-                      borderColor: isRecommended ? colors.primary : 'transparent',
-                    },
-                  ]}
-                  onPress={() => openCheckin(code)}
-                >
-                  <View style={styles.rankCardTopRow}>
-                    <View style={[styles.rankIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' }]}>
-                      <Ionicons name={getLeaderboardIcon(code)} size={18} color={colors.primary} />
-                    </View>
-                    {isRecommended ? (
-                      <View style={[styles.recommendBadge, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' }]}>
-                        <Text style={[styles.recommendBadgeText, { color: colors.primary }]}>推荐</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <Text style={[styles.rankTitle, { color: colors.text }]}>{config.title}</Text>
-                  <Text style={[styles.rankDesc, { color: colors.textSecondary }]}>{config.description}</Text>
-                  <View style={styles.rankMetricsRow}>
-                    <View style={styles.rankMetricItem}>
-                      <Text style={[styles.rankMetricValue, { color: colors.text }]}>{snapshot?.raw_count ?? 0}</Text>
-                      <Text style={[styles.rankMetricLabel, { color: colors.textSecondary }]}>已录入</Text>
-                    </View>
-                    <View style={styles.rankMetricItem}>
-                      <Text style={[styles.rankMetricValue, { color: colors.text }]}>{formatRank(snapshot?.rank)}</Text>
-                      <Text style={[styles.rankMetricLabel, { color: colors.textSecondary }]}>当前排名</Text>
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })}
+            <View
+              style={[
+                styles.focusCard,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
+              ]}
+            >
+              <Text style={[styles.focusLabel, { color: colors.textSecondary }]}>下一里程碑</Text>
+              <View style={styles.focusTitleRow}>
+                <Ionicons name="flag-outline" size={16} color={colors.primary} />
+                <Text style={[styles.focusTitle, { color: colors.text }]}>{recommendedConfig.title}</Text>
+              </View>
+              <Text style={[styles.focusValue, { color: colors.text }]}>还差 {nextMilestoneGap}</Text>
+              <Text style={[styles.focusMeta, { color: colors.textSecondary }]}>
+                达到 {nextMilestoneValue} {recommendedConfig.unit}
+              </Text>
+            </View>
           </View>
+
+          <Pressable
+            onPress={() => openCheckin(recommendedCode)}
+            style={[
+              styles.focusActionRow,
+              { backgroundColor: isDark ? 'rgba(255,155,122,0.12)' : '#FFF4EC' },
+            ]}
+          >
+            <View style={[styles.focusActionIconWrap, { backgroundColor: colors.surface }]}>
+              <Ionicons name={getLeaderboardIcon(recommendedCode)} size={16} color={colors.primary} />
+            </View>
+            <View style={styles.focusActionTextWrap}>
+              <Text style={[styles.focusActionTitle, { color: colors.text }]}>下一步建议</Text>
+              <Text style={[styles.focusActionDesc, { color: colors.textSecondary }]}>
+                当前更建议补录 {recommendedConfig.title}。
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          </Pressable>
         </View>
 
       </ScrollView>
@@ -312,11 +350,11 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 24,
-    padding: 18,
+    padding: 14,
   },
   heroCard: {
     borderRadius: 28,
-    padding: 20,
+    padding: 14,
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -429,24 +467,41 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   primaryFeatureCard: {
-    marginTop: 12,
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   secondaryFeatureGrid: {
-    marginTop: 10,
+    marginTop: 8,
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   secondaryFeatureCard: {
     flex: 1,
     borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  secondaryFeatureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  secondaryFeatureTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  secondaryFeatureTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  secondaryFeatureDesc: {
+    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 15,
   },
   featureIconWrap: {
     width: 32,
@@ -468,62 +523,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
-  rankGrid: {
+  focusGrid: {
+    flexDirection: 'row',
     gap: 10,
     marginTop: 12,
   },
-  rankCard: {
+  focusCard: {
+    flex: 1,
     borderRadius: 18,
-    borderWidth: 1,
-    paddingVertical: 12,
     paddingHorizontal: 12,
+    paddingVertical: 12,
   },
-  rankCardTopRow: {
+  focusLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  focusTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
+    marginTop: 8,
   },
-  rankIconWrap: {
+  focusTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    flexShrink: 1,
+  },
+  focusValue: {
+    marginTop: 10,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  focusMeta: {
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  focusActionRow: {
+    marginTop: 12,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  focusActionIconWrap: {
     width: 32,
     height: 32,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recommendBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  recommendBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  rankTitle: {
-    marginTop: 10,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  rankDesc: {
-    marginTop: 4,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  rankMetricsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-  },
-  rankMetricItem: {
+  focusActionTextWrap: {
     flex: 1,
   },
-  rankMetricValue: {
+  focusActionTitle: {
     fontSize: 14,
     fontWeight: '800',
   },
-  rankMetricLabel: {
-    marginTop: 2,
-    fontSize: 10,
+  focusActionDesc: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 17,
   },
 });
 
