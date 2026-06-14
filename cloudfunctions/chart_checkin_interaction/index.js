@@ -1,4 +1,5 @@
 const cloud = require('@cloudbase/node-sdk');
+const https = require('https');
 
 const app = cloud.init({
   env: cloud.SYMBOL_CURRENT_ENV,
@@ -12,6 +13,7 @@ const snapshotsCollection = db.collection('chart_score_snapshots');
 const usersCollection = db.collection('chart_users');
 const commentsCollection = db.collection('chart_comments');
 const interactionsCollection = db.collection('chart_interactions');
+const notificationsCollection = db.collection('chart_notifications');
 const CHECKIN_CONTENT_TARGET_TYPE = 'checkin_content';
 const ACTIVE_STATUS = 'active';
 const CANCELLED_STATUS = 'cancelled';
@@ -46,6 +48,54 @@ function normalizeLeaderboardCode(code) {
 
   return code;
 }
+
+function buildDisplayName(user = {}) {
+  return user.full_name || (user.profile && user.profile.nickname) || user.username || '旅行玩家';
+}
+
+const sendPushNotification = (expoPushToken, title, body, data = {}) =>
+  new Promise((resolve, reject) => {
+    if (!expoPushToken) {
+      resolve();
+      return;
+    }
+
+    const message = {
+      to: expoPushToken,
+      sound: 'default',
+      title,
+      body,
+      data,
+    };
+
+    const req = https.request(
+      {
+        hostname: 'exp.host',
+        path: '/--/api/v2/push/send',
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Accept-encoding': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      },
+      (res) => {
+        let responseData = '';
+        res.on('data', (chunk) => {
+          responseData += chunk;
+        });
+        res.on('end', () => resolve(responseData));
+      }
+    );
+
+    req.on('error', (error) => {
+      console.error('Push notification error:', error);
+      reject(error);
+    });
+
+    req.write(JSON.stringify(message));
+    req.end();
+  });
 
 function getLeaderboardCodeCandidates(code) {
   const normalizedCode = normalizeLeaderboardCode(code);
@@ -466,6 +516,90 @@ async function getUserSnapshotMapByIds(userIds = []) {
   return buildUserSnapshotMap(snapshots);
 }
 
+async function findUserById(userId) {
+  if (!userId) {
+    return null;
+  }
+
+  try {
+    const result = await usersCollection.doc(userId).get();
+    const user = getDocData(result);
+    if (user) {
+      return user;
+    }
+  } catch (error) {
+    console.log('chart_checkin_interaction.findUserById fallback to where:', error);
+  }
+
+  const fallback = await usersCollection.where({ _id: userId }).limit(1).get();
+  return getDocData(fallback);
+}
+
+async function findCommentDocByCommentId(commentId) {
+  if (!commentId) {
+    return null;
+  }
+
+  const { data } = await commentsCollection
+    .where({
+      comment_id: commentId,
+      status: ACTIVE_STATUS,
+    })
+    .limit(1)
+    .get();
+
+  return getDocData({ data });
+}
+
+function buildNotificationSenderSnapshot(user = {}) {
+  return {
+    display_name: buildDisplayName(user),
+    avatar_url: user.profile?.avatar_url || '',
+  };
+}
+
+function getEntryPreview(entry = {}) {
+  return String(entry.title || entry.description || '').trim();
+}
+
+async function createUserNotification({
+  receiverUserId,
+  senderUser,
+  type,
+  title,
+  content,
+  relatedId = '',
+  extraData = {},
+}) {
+  if (!receiverUserId || !senderUser?._id || receiverUserId === senderUser._id) {
+    return;
+  }
+
+  const receiverUser = await findUserById(receiverUserId);
+  const senderSnapshot = buildNotificationSenderSnapshot(senderUser);
+
+  await notificationsCollection.add({
+    receiver_user_id: receiverUserId,
+    sender_user_id: senderUser._id,
+    type,
+    title,
+    content,
+    related_id: relatedId,
+    is_read: false,
+    sender_snapshot: senderSnapshot,
+    extra_data: extraData,
+    created_at: db.serverDate(),
+    updated_at: db.serverDate(),
+  });
+
+  if (receiverUser?.push_token) {
+    await sendPushNotification(receiverUser.push_token, title, content, {
+      type,
+      ...extraData,
+    });
+  }
+}
+
 function buildCommentTree(legacyComments = [], commentDocs = [], userSnapshotMap = new Map()) {
   const nodes = new Map();
 
@@ -884,9 +1018,15 @@ async function toggleReaction(data = {}, reactionType) {
   }
 
   try {
-    const checkin = await findCheckin(targetOwnerId, normalizedCode, itemId);
+    const [checkin, actorUser] = await Promise.all([
+      findCheckin(targetOwnerId, normalizedCode, itemId),
+      findUserById(userId),
+    ]);
     if (!checkin?._id) {
       return fail('日记不存在');
+    }
+    if (!actorUser?._id) {
+      return fail('用户不存在');
     }
 
     const entries = getCheckinEntries(checkin);
@@ -936,6 +1076,31 @@ async function toggleReaction(data = {}, reactionType) {
     });
     await refreshLeaderboardSnapshots(normalizedCode);
 
+    if (!hasReacted) {
+      const senderName = buildDisplayName(actorUser);
+      const entryPreview = getEntryPreview(entry);
+      const title = reactionType === 'like' ? '收到新的点赞' : '收到新的收藏';
+      const content = entryPreview
+        ? `${senderName}${reactionType === 'like' ? ' 点赞了' : ' 收藏了'}你的日记「${entryPreview}」`
+        : `${senderName}${reactionType === 'like' ? ' 点赞了' : ' 收藏了'}你的日记`;
+
+      await createUserNotification({
+        receiverUserId: targetOwnerId,
+        senderUser: actorUser,
+        type: reactionType,
+        title,
+        content,
+        relatedId: entryId,
+        extraData: {
+          screen: 'CheckinEntryDetail',
+          ownerUserId: targetOwnerId,
+          leaderboardCode: normalizedCode,
+          itemId,
+          entryId,
+        },
+      });
+    }
+
     const savedCheckin = await findCheckinById(checkin._id);
     const savedEntry = getCheckinEntries(savedCheckin).find((currentEntry) => currentEntry.entry_id === entryId) || entry;
     return ok(await buildEntryView(savedCheckin, savedEntry, userId));
@@ -954,9 +1119,15 @@ async function addComment(data = {}) {
   }
 
   try {
-    const checkin = await findCheckin(targetOwnerId, normalizedCode, itemId);
+    const [checkin, actorUser] = await Promise.all([
+      findCheckin(targetOwnerId, normalizedCode, itemId),
+      findUserById(userId),
+    ]);
     if (!checkin?._id) {
       return fail('日记不存在');
+    }
+    if (!actorUser?._id) {
+      return fail('用户不存在');
     }
 
     const entries = getCheckinEntries(checkin);
@@ -992,6 +1163,28 @@ async function addComment(data = {}) {
     });
     await refreshLeaderboardSnapshots(normalizedCode);
 
+    const senderName = buildDisplayName(actorUser);
+    const entryPreview = getEntryPreview(entry);
+    const commentPreview = trimmedContent.length > 24 ? `${trimmedContent.slice(0, 24)}...` : trimmedContent;
+    const contentText = entryPreview
+      ? `${senderName} 评论了你的日记「${entryPreview}」: ${commentPreview}`
+      : `${senderName} 评论了你的日记: ${commentPreview}`;
+    await createUserNotification({
+      receiverUserId: targetOwnerId,
+      senderUser: actorUser,
+      type: 'comment',
+      title: '收到新的评论',
+      content: contentText,
+      relatedId: entryId,
+      extraData: {
+        screen: 'CheckinEntryDetail',
+        ownerUserId: targetOwnerId,
+        leaderboardCode: normalizedCode,
+        itemId,
+        entryId,
+      },
+    });
+
     const savedCheckin = await findCheckinById(checkin._id);
     const savedEntry = getCheckinEntries(savedCheckin).find((currentEntry) => currentEntry.entry_id === entryId) || entry;
     return ok(await buildEntryView(savedCheckin, savedEntry, userId));
@@ -1010,9 +1203,15 @@ async function replyComment(data = {}) {
   }
 
   try {
-    const checkin = await findCheckin(targetOwnerId, normalizedCode, itemId);
+    const [checkin, actorUser] = await Promise.all([
+      findCheckin(targetOwnerId, normalizedCode, itemId),
+      findUserById(userId),
+    ]);
     if (!checkin?._id) {
       return fail('日记不存在');
+    }
+    if (!actorUser?._id) {
+      return fail('用户不存在');
     }
 
     const entries = getCheckinEntries(checkin);
@@ -1031,6 +1230,7 @@ async function replyComment(data = {}) {
     if (!hasTargetComment) {
       return fail('评论不存在');
     }
+    const replyTargetComment = await findCommentDocByCommentId(commentId);
 
     await commentsCollection.add({
       comment_id: createCommentId(),
@@ -1053,6 +1253,31 @@ async function replyComment(data = {}) {
       comments_count: Math.max(Number(cachedInteraction.comments_count || 0) + 1, 0),
     });
     await refreshLeaderboardSnapshots(normalizedCode);
+
+    const replyReceiverUserId =
+      replyTargetComment?.actor_user_id && replyTargetComment.actor_user_id !== userId
+        ? replyTargetComment.actor_user_id
+        : targetOwnerId !== userId
+          ? targetOwnerId
+          : '';
+    const senderName = buildDisplayName(actorUser);
+    const replyPreview = trimmedContent.length > 24 ? `${trimmedContent.slice(0, 24)}...` : trimmedContent;
+    await createUserNotification({
+      receiverUserId: replyReceiverUserId,
+      senderUser: actorUser,
+      type: 'reply',
+      title: '收到新的回复',
+      content: `${senderName} 回复了你的评论: ${replyPreview}`,
+      relatedId: entryId,
+      extraData: {
+        screen: 'CheckinEntryDetail',
+        ownerUserId: targetOwnerId,
+        leaderboardCode: normalizedCode,
+        itemId,
+        entryId,
+        commentId,
+      },
+    });
 
     const savedCheckin = await findCheckinById(checkin._id);
     const savedEntry = getCheckinEntries(savedCheckin).find((currentEntry) => currentEntry.entry_id === entryId) || entry;

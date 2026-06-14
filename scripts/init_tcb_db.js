@@ -9,6 +9,8 @@ const COLLECTIONS = [
   'chart_checkins',
   'chart_interactions',
   'chart_comments',
+  'chart_follows',
+  'chart_notifications',
   'chart_score_snapshots',
   'chart_activity_candidates',
   'chart_year_reviews',
@@ -59,6 +61,52 @@ const INDEX_DEFINITIONS = {
       keys: [
         { name: 'target_id', direction: 1 },
         { name: 'interaction_type', direction: 1 },
+      ],
+    },
+  ],
+  chart_follows: [
+    {
+      name: 'unique_follow_pair',
+      unique: true,
+      keys: [
+        { name: 'follower_user_id', direction: 1 },
+        { name: 'followed_user_id', direction: 1 },
+      ],
+    },
+    {
+      name: 'followed_unread_timeline',
+      unique: false,
+      keys: [
+        { name: 'followed_user_id', direction: 1 },
+        { name: 'followed_user_unread', direction: 1 },
+        { name: 'updated_at', direction: -1 },
+      ],
+    },
+    {
+      name: 'follower_timeline',
+      unique: false,
+      keys: [
+        { name: 'follower_user_id', direction: 1 },
+        { name: 'updated_at', direction: -1 },
+      ],
+    },
+  ],
+  chart_notifications: [
+    {
+      name: 'receiver_timeline',
+      unique: false,
+      keys: [
+        { name: 'receiver_user_id', direction: 1 },
+        { name: 'created_at', direction: -1 },
+      ],
+    },
+    {
+      name: 'receiver_unread_timeline',
+      unique: false,
+      keys: [
+        { name: 'receiver_user_id', direction: 1 },
+        { name: 'is_read', direction: 1 },
+        { name: 'created_at', direction: -1 },
       ],
     },
   ],

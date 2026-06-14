@@ -71,6 +71,7 @@ function buildAuthUser(user = {}) {
     email: user.email || null,
     fullName: user.full_name || null,
     username: user.username || '',
+    pushToken: user.push_token || '',
     profile: user.profile || {},
   };
 }
@@ -124,6 +125,7 @@ function buildUserPayload(data = {}) {
     },
     stats: createDefaultStats(),
     status: data.status || 'active',
+    push_token: data.push_token || '',
     last_login_at: null,
     created_at: db.serverDate(),
     updated_at: db.serverDate(),
@@ -149,6 +151,7 @@ function buildAppleUserPayload(data = {}) {
     },
     stats: createDefaultStats(),
     status: 'active',
+    push_token: '',
     session_token: '',
     session_issued_at: null,
     last_login_at: db.serverDate(),

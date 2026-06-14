@@ -11,11 +11,14 @@ import AccountSecurityScreen from '../screens/me/AccountSecurityScreen';
 import AppSettingsScreen from '../screens/me/AppSettingsScreen';
 import EditProfileScreen from '../screens/me/EditProfileScreen';
 import HelpFeedbackScreen from '../screens/me/HelpFeedbackScreen';
+import NotificationCenterScreen from '../screens/me/NotificationCenterScreen';
 import YearReviewScreen from '../screens/me/YearReviewScreen';
 import AchievementPosterScreen from '../screens/me/AchievementPosterScreen';
 import MainTabsScreen from '../screens/tabs/MainTabsScreen';
 import { useAppStore } from '../store/appStore';
+import { AppNotificationType } from '../types/notification';
 import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
+import { FollowTabKey } from '../types/social';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -25,6 +28,16 @@ export type RootStackParamList = {
   AppSettings: undefined;
   AboutApp: undefined;
   HelpFeedback: undefined;
+  NotificationCenter:
+    | undefined
+    | {
+        title?: string;
+        types?: AppNotificationType[];
+      };
+  FollowCenter: {
+    userId?: string;
+    initialTab?: FollowTabKey;
+  };
   YearReview: undefined;
   AchievementPoster: undefined;
   OverallDiaryFeed: {
@@ -71,6 +84,16 @@ export const RootNavigator = () => {
           <Stack.Screen name="AppSettings" component={AppSettingsScreen} options={{ title: '应用设置' }} />
           <Stack.Screen name="AboutApp" component={AboutAppScreen} options={{ title: '关于 App' }} />
           <Stack.Screen name="HelpFeedback" component={HelpFeedbackScreen} options={{ title: '帮助与反馈' }} />
+          <Stack.Screen
+            name="NotificationCenter"
+            component={NotificationCenterScreen}
+            options={{ title: '消息通知' }}
+          />
+          <Stack.Screen
+            name="FollowCenter"
+            component={require('../screens/me/FollowCenterScreen').default}
+            options={{ title: '粉丝关注' }}
+          />
           <Stack.Screen name="YearReview" component={YearReviewScreen} options={{ title: '年度回顾' }} />
           <Stack.Screen
             name="AchievementPoster"

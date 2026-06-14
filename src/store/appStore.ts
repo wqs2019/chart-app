@@ -13,11 +13,19 @@ type AppState = {
   isAuthenticated: boolean;
   currentSession: AuthSession | null;
   currentUser: AuthUser | null;
+  unreadFollowerCount: number;
+  unreadNotificationCount: number;
+  unreadLikeFavoriteCount: number;
+  unreadCommentCount: number;
   setTheme: (theme: ThemeMode) => Promise<void>;
   initTheme: () => Promise<void>;
   initAuth: () => Promise<void>;
   signInWithApple: (session: AuthSession) => Promise<void>;
   updateCurrentUser: (user: AuthUser) => Promise<void>;
+  setUnreadFollowerCount: (count: number) => void;
+  setUnreadNotificationCount: (count: number) => void;
+  setUnreadLikeFavoriteCount: (count: number) => void;
+  setUnreadCommentCount: (count: number) => void;
   signOut: () => Promise<void>;
 };
 
@@ -28,6 +36,10 @@ export const useAppStore = create<AppState>((set) => ({
   isAuthenticated: false,
   currentSession: null,
   currentUser: null,
+  unreadFollowerCount: 0,
+  unreadNotificationCount: 0,
+  unreadLikeFavoriteCount: 0,
+  unreadCommentCount: 0,
   setTheme: async (theme) => {
     await StorageUtil.set(STORAGE_KEYS.theme, theme);
     set({ theme });
@@ -48,6 +60,10 @@ export const useAppStore = create<AppState>((set) => ({
         isAuthenticated: false,
         currentSession: null,
         currentUser: null,
+        unreadFollowerCount: 0,
+        unreadNotificationCount: 0,
+        unreadLikeFavoriteCount: 0,
+        unreadCommentCount: 0,
       });
       return;
     }
@@ -69,6 +85,10 @@ export const useAppStore = create<AppState>((set) => ({
         isAuthenticated: false,
         currentSession: null,
         currentUser: null,
+        unreadFollowerCount: 0,
+        unreadNotificationCount: 0,
+        unreadLikeFavoriteCount: 0,
+        unreadCommentCount: 0,
       });
     }
   },
@@ -78,6 +98,10 @@ export const useAppStore = create<AppState>((set) => ({
       isAuthenticated: true,
       currentSession: session,
       currentUser: session.user,
+      unreadFollowerCount: 0,
+      unreadNotificationCount: 0,
+      unreadLikeFavoriteCount: 0,
+      unreadCommentCount: 0,
     });
   },
   updateCurrentUser: async (user) => {
@@ -101,12 +125,36 @@ export const useAppStore = create<AppState>((set) => ({
       await StorageUtil.set(STORAGE_KEYS.authSession, nextSession);
     }
   },
+  setUnreadFollowerCount: (count) => {
+    set({
+      unreadFollowerCount: Math.max(0, Number(count) || 0),
+    });
+  },
+  setUnreadNotificationCount: (count) => {
+    set({
+      unreadNotificationCount: Math.max(0, Number(count) || 0),
+    });
+  },
+  setUnreadLikeFavoriteCount: (count) => {
+    set({
+      unreadLikeFavoriteCount: Math.max(0, Number(count) || 0),
+    });
+  },
+  setUnreadCommentCount: (count) => {
+    set({
+      unreadCommentCount: Math.max(0, Number(count) || 0),
+    });
+  },
   signOut: async () => {
     await StorageUtil.remove(STORAGE_KEYS.authSession);
     set({
       isAuthenticated: false,
       currentSession: null,
       currentUser: null,
+      unreadFollowerCount: 0,
+      unreadNotificationCount: 0,
+      unreadLikeFavoriteCount: 0,
+      unreadCommentCount: 0,
     });
   },
 }));

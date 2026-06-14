@@ -11,6 +11,7 @@
     "plugins": [
       "expo-apple-authentication",
       "expo-font",
+      "expo-notifications",
       [
         "expo-image-picker",
         {
@@ -28,7 +29,16 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "package": "com.traval.chartapp"
-    }
+      "package": "com.traval.chartapp",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fa1d025e-f2e7-4a7e-9338-f9427c33252c"
+      }
+    },
+    "owner": "alanwu"
   }
 }

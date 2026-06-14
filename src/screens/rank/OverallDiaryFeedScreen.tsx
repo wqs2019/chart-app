@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +19,7 @@ import DiaryMasonryCard from '../../components/common/DiaryMasonryCard';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { checkinService } from '../../services/checkinService';
+import { socialService } from '../../services/socialService';
 import { useAppStore } from '../../store/appStore';
 import {
   CONTENT_LEADERBOARD_CODES,
@@ -26,6 +28,7 @@ import {
   StandardItem,
   UserCheckin,
 } from '../../types/rank';
+import { SocialSummary } from '../../types/social';
 
 type ScreenRouteProp = RouteProp<RootStackParamList, 'OverallDiaryFeed'>;
 type ScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'OverallDiaryFeed'>;
@@ -145,6 +148,13 @@ const OverallDiaryFeedScreen: React.FC = () => {
 
   const [entries, setEntries] = React.useState<OverallDiaryEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [followSubmitting, setFollowSubmitting] = React.useState(false);
+  const [socialSummary, setSocialSummary] = React.useState<SocialSummary>({
+    follower_count: 0,
+    following_count: 0,
+    unread_follower_count: 0,
+    viewer_is_following: false,
+  });
 
   const horizontalPadding = 32;
   const columnGap = 12;
@@ -197,10 +207,40 @@ const OverallDiaryFeedScreen: React.FC = () => {
     }
   }, [viewedUserId]);
 
+  const fetchSocialSummary = React.useCallback(async () => {
+    if (!viewedUserId) {
+      return;
+    }
+
+    try {
+      const summary = await socialService.getSocialSummary(viewedUserId, currentUserId);
+      setSocialSummary(summary);
+    } catch (error) {
+      console.warn('[OverallDiaryFeed] load social summary failed:', error);
+    }
+  }, [currentUserId, viewedUserId]);
+
+  const handleFollowPress = React.useCallback(async () => {
+    if (!currentUserId || !viewedUserId || isSelf || followSubmitting) {
+      return;
+    }
+
+    try {
+      setFollowSubmitting(true);
+      const nextSummary = await socialService.toggleFollow(currentUserId, viewedUserId);
+      setSocialSummary(nextSummary);
+    } catch (error) {
+      Alert.alert('操作失败', '关注状态更新失败，请稍后再试。');
+    } finally {
+      setFollowSubmitting(false);
+    }
+  }, [currentUserId, followSubmitting, isSelf, viewedUserId]);
+
   useFocusEffect(
     React.useCallback(() => {
       void fetchEntries();
-    }, [fetchEntries])
+      void fetchSocialSummary();
+    }, [fetchEntries, fetchSocialSummary])
   );
 
   const columns = React.useMemo(() => {
@@ -259,7 +299,43 @@ const OverallDiaryFeedScreen: React.FC = () => {
 
               <View style={styles.authorTextWrap}>
                 <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ALL DIARIES</Text>
-                <Text style={[styles.title, { color: colors.text }]}>{displayName} 的全部日记</Text>
+                <View style={styles.titleRow}>
+                  <Text style={[styles.title, { color: colors.text }]}>{displayName} 的全部日记</Text>
+                  {!isSelf ? (
+                    <Pressable
+                      onPress={() => void handleFollowPress()}
+                      disabled={followSubmitting}
+                      style={[
+                        styles.followButton,
+                        {
+                          backgroundColor: socialSummary.viewer_is_following
+                            ? isDark
+                              ? 'rgba(255,255,255,0.06)'
+                              : '#F3F4F6'
+                            : isDark
+                              ? 'rgba(255,155,122,0.14)'
+                              : '#FFF1E8',
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={socialSummary.viewer_is_following ? 'checkmark' : 'add'}
+                        size={14}
+                        color={socialSummary.viewer_is_following ? colors.textSecondary : colors.primary}
+                      />
+                      <Text
+                        style={[
+                          styles.followButtonText,
+                          {
+                            color: socialSummary.viewer_is_following ? colors.textSecondary : colors.primary,
+                          },
+                        ]}
+                      >
+                        {socialSummary.viewer_is_following ? '已关注' : '关注'}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                   综合展示世界旅游、中国旅游和玩乐项目的全部记录，不再区分榜单。
                 </Text>
@@ -438,11 +514,31 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 24,
     fontWeight: '800',
+    flex: 1,
+  },
+  titleRow: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   subtitle: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 19,
+  },
+  followButton: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+  },
+  followButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   totalBadge: {
     alignSelf: 'flex-start',

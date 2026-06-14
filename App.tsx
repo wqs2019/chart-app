@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { useNotificationBootstrap } from './src/hooks/useNotificationBootstrap';
 import { useAppTheme } from './src/hooks/useAppTheme';
 import { Navigation } from './src/navigation';
 import { useAppStore } from './src/store/appStore';
@@ -14,6 +15,8 @@ const Bootstrap = () => {
   const initialized = useAppStore((state) => state.initialized);
   const authInitialized = useAppStore((state) => state.authInitialized);
   const { isDark } = useAppTheme();
+
+  useNotificationBootstrap();
 
   useEffect(() => {
     initTheme();

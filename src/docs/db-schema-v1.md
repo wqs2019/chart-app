@@ -149,7 +149,47 @@
 }
 ```
 
-### 2.7 chart_score_snapshots (分数与排名快照)
+### 2.7 chart_follows (关注关系与粉丝未读)
+```json
+{
+  "_id": "ObjectId",
+  "follower_user_id": "string",
+  "followed_user_id": "string",
+  "status": "string", // "active" | "cancelled"
+  "followed_user_unread": "boolean",
+  "followed_user_read_at": "date | null",
+  "created_at": "date",
+  "updated_at": "date"
+}
+```
+
+### 2.8 chart_notifications (站内通知与推送记录)
+```json
+{
+  "_id": "ObjectId",
+  "receiver_user_id": "string",
+  "sender_user_id": "string",
+  "type": "string", // "follow"
+  "title": "string",
+  "content": "string",
+  "related_id": "string",
+  "is_read": "boolean",
+  "sender_snapshot": {
+    "display_name": "string",
+    "avatar_url": "string"
+  },
+  "extra_data": {
+    "screen": "string",
+    "viewed_user_id": "string",
+    "viewed_user_name": "string",
+    "viewed_avatar_url": "string"
+  },
+  "created_at": "date",
+  "updated_at": "date"
+}
+```
+
+### 2.9 chart_score_snapshots (分数与排名快照)
 用于渲染排行榜列表，定期更新。
 
 ```json
@@ -172,7 +212,7 @@
 }
 ```
 
-### 2.8 chart_activity_candidates (候选项目)
+### 2.10 chart_activity_candidates (候选项目)
 ```json
 {
   "_id": "ObjectId",
@@ -186,7 +226,7 @@
 }
 ```
 
-### 2.9 chart_year_reviews (年度回顾)
+### 2.11 chart_year_reviews (年度回顾)
 ```json
 {
   "_id": "ObjectId",
@@ -202,7 +242,7 @@
 }
 ```
 
-### 2.10 chart_share_posters (成就海报)
+### 2.12 chart_share_posters (成就海报)
 ```json
 {
   "_id": "ObjectId",
@@ -228,6 +268,10 @@
 | `chart_checkins` | `user_id`, `created_at` | 复合 | 个人主页时间线查询 |
 | `chart_score_snapshots` | `leaderboard_code`, `final_score` | 复合 | 排行榜列表排序 |
 | `chart_interactions` | `target_id`, `interaction_type` | 复合 | 统计单条记录的点赞/收藏 |
+| `chart_follows` | `follower_user_id`, `followed_user_id` | 唯一联合 | 防止重复关注关系 |
+| `chart_follows` | `followed_user_id`, `followed_user_unread`, `updated_at` | 复合 | 粉丝未读红点与时间线查询 |
+| `chart_notifications` | `receiver_user_id`, `created_at` | 复合 | 通知列表时间线查询 |
+| `chart_notifications` | `receiver_user_id`, `is_read`, `created_at` | 复合 | 未读数与角标查询 |
 | `chart_share_posters` | `user_id`, `created_at` | 复合 | 个人主页或海报历史查询 |
 
 ## 4. 冗余设计说明

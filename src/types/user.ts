@@ -22,6 +22,7 @@ export type User = {
   created_at?: string | number;
   updated_at?: string | number;
   last_login_at?: string | number | null;
+  push_token?: string;
 };
 
 export type CreateUserPayload = {
@@ -37,6 +38,7 @@ export type AuthUser = {
   email: string | null;
   fullName: string | null;
   username: string;
+  pushToken?: string;
   profile?: User['profile'];
 };
 
@@ -57,5 +59,6 @@ export type UpdateUserPayload = {
   _id: string;
   full_name?: string;
   username?: string;
+  push_token?: string;
   profile?: User['profile'];
 };

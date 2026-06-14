@@ -3,12 +3,16 @@ import {
   createBottomTabNavigator,
   type BottomTabBarProps,
 } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { notificationService } from '../../services/notificationService';
+import { socialService } from '../../services/socialService';
+import { useAppStore } from '../../store/appStore';
 import HomeScreen from '../home/HomeScreen';
 import MeScreen from '../me/MeScreen';
 import CheckinTabScreen from '../checkin/CheckinTabScreen';
@@ -128,6 +132,9 @@ const MeTabScreen = MeScreen;
 
 const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const { colors, isDark } = useAppTheme();
+  const unreadFollowerCount = useAppStore((store) => store.unreadFollowerCount);
+  const unreadNotificationCount = useAppStore((store) => store.unreadNotificationCount);
+  const meTabBadgeCount = Math.max(unreadNotificationCount, unreadFollowerCount);
   const tabScaleMapRef = React.useRef<Record<string, Animated.Value>>({});
   const currentRoute = state.routes[state.index];
   const currentOptions = descriptors[currentRoute.key]?.options;
@@ -223,12 +230,19 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
                       },
                     ]}
                   >
-                    <Ionicons
-                      name={iconName}
-                      size={20}
-                      color={isFocused ? colors.primary : colors.textSecondary}
-                      style={styles.tabIcon}
-                    />
+                    <View style={styles.tabIconWrapper}>
+                      <Ionicons
+                        name={iconName}
+                        size={20}
+                        color={isFocused ? colors.primary : colors.textSecondary}
+                        style={styles.tabIcon}
+                      />
+                      {route.name === 'Me' && meTabBadgeCount > 0 ? (
+                        <View style={styles.tabBadge}>
+                          <Text style={styles.tabBadgeText}>{Math.min(meTabBadgeCount, 99)}</Text>
+                        </View>
+                      ) : null}
+                    </View>
                     <Text
                       style={[
                         styles.tabLabel,
@@ -251,6 +265,45 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
 };
 
 const MainTabsScreen: React.FC = () => {
+  const currentUser = useAppStore((state) => state.currentUser);
+  const setUnreadFollowerCount = useAppStore((state) => state.setUnreadFollowerCount);
+  const setUnreadNotificationCount = useAppStore((state) => state.setUnreadNotificationCount);
+
+  const refreshUnreadFollowerCount = React.useCallback(async () => {
+    if (!currentUser?._id) {
+      setUnreadFollowerCount(0);
+      return;
+    }
+
+    try {
+      const count = await socialService.getUnreadFollowerCount(currentUser._id);
+      setUnreadFollowerCount(count);
+    } catch (error) {
+      console.warn('[Tabs] load unread follower count failed:', error);
+    }
+  }, [currentUser?._id, setUnreadFollowerCount]);
+
+  const refreshUnreadNotificationCount = React.useCallback(async () => {
+    if (!currentUser?._id) {
+      setUnreadNotificationCount(0);
+      return;
+    }
+
+    try {
+      const count = await notificationService.getUnreadCount(currentUser._id);
+      setUnreadNotificationCount(count);
+    } catch (error) {
+      console.warn('[Tabs] load unread notification count failed:', error);
+    }
+  }, [currentUser?._id, setUnreadNotificationCount]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      void refreshUnreadFollowerCount();
+      void refreshUnreadNotificationCount();
+    }, [refreshUnreadFollowerCount, refreshUnreadNotificationCount])
+  );
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -410,12 +463,41 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 4,
   },
+  tabIconWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 28,
+    height: 24,
+    overflow: 'visible',
+  },
   tabLabel: {
     fontSize: 12,
     fontWeight: '600',
   },
   tabIcon: {
     lineHeight: 20,
+  },
+  tabBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -14,
+    zIndex: 10,
+    elevation: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 999,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
   note: {
     marginTop: 12,
