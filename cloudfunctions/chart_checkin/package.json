@@ -1,0 +1,9 @@
+{
+  "name": "chart_checkin",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "latest",
+    "qcloud-cos-sts": "^3.1.3"
+  }
+}

@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { checkinService } from '../../services/checkinService';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import {
@@ -90,7 +91,7 @@ const YearReviewScreen: React.FC = () => {
         Promise.all(
           CONTENT_LEADERBOARD_CODES.map(async (code) => [
             code,
-            await rankService.getUserCheckins(currentUser._id, code),
+            await checkinService.getUserCheckins(currentUser._id, code),
           ] as const)
         ),
       ]);

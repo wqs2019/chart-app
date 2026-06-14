@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DiaryMasonryCard from '../../components/common/DiaryMasonryCard';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
-import { rankService } from '../../services/rankService';
+import { checkinService } from '../../services/checkinService';
 import { useAppStore } from '../../store/appStore';
 import {
   CONTENT_LEADERBOARD_CODES,
@@ -168,8 +168,8 @@ const OverallDiaryFeedScreen: React.FC = () => {
       const results = await Promise.all(
         CONTENT_LEADERBOARD_CODES.map(async (code) => {
           const [items, checkins] = await Promise.all([
-            rankService.getStandardItems(code),
-            rankService.getUserCheckins(viewedUserId, code),
+            checkinService.getStandardItems(code),
+            checkinService.getUserCheckins(viewedUserId, code),
           ]);
 
           const itemMap = new Map(items.map((item) => [item._id, item]));

@@ -41,7 +41,7 @@ class ImageService {
       success?: boolean;
       data?: UploadCredentials;
       message?: string;
-    }>('chart_rank', {
+    }>('chart_checkin', {
       action: 'getUploadCredentials',
       data: {},
     });

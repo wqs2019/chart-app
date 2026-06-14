@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MediaSelector from '../../components/common/MediaSelector';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
-import { rankService } from '../../services/rankService';
+import { checkinService } from '../../services/checkinService';
 import { useAppStore } from '../../store/appStore';
 import { CheckinAttachment } from '../../types/rank';
 
@@ -60,7 +60,7 @@ const CheckinEntryEditorScreen: React.FC = () => {
 
     try {
       setSaving(true);
-      await rankService.saveCheckinEntry(userId, item, {
+      await checkinService.saveCheckinEntry(userId, item, {
         entryId: entry?._id,
         title: title.trim(),
         description: description.trim(),

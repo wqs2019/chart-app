@@ -9,7 +9,7 @@ import DiaryMasonryCard from '../../components/common/DiaryMasonryCard';
 import { MediaPreviewer } from '../../components/common/MediaPreviewer';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
-import { rankService } from '../../services/rankService';
+import { checkinService } from '../../services/checkinService';
 import { useAppStore } from '../../store/appStore';
 import { MediaResource } from '../../types/media';
 import { UserCheckin } from '../../types/rank';
@@ -74,7 +74,7 @@ const CheckinItemRecordsScreen: React.FC = () => {
     }
 
     try {
-      const rows = await rankService.getItemCheckinEntries(targetUserId, code, item._id);
+      const rows = await checkinService.getItemCheckinEntries(targetUserId, code, item._id);
       setEntries(rows);
     } catch (error) {
       Alert.alert('加载失败', '该条目的录入记录暂时无法获取，请稍后重试。');

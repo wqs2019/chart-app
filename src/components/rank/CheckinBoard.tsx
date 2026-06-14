@@ -16,7 +16,7 @@ import {
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
-import { rankService } from '../../services/rankService';
+import { checkinService } from '../../services/checkinService';
 import { useAppStore } from '../../store/appStore';
 import { LeaderboardCode, LEADERBOARD_CONFIGS, StandardItem, UserCheckin } from '../../types/rank';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -78,8 +78,8 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
 
     try {
       const [allOptions, myCheckins] = await Promise.all([
-        rankService.getStandardItems(nextCode),
-        rankService.getUserCheckins(targetUserId, nextCode),
+        checkinService.getStandardItems(nextCode),
+        checkinService.getUserCheckins(targetUserId, nextCode),
       ]);
 
       if (requestIdRef.current !== currentRequestId) {

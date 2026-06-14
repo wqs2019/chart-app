@@ -39,6 +39,31 @@ export interface CheckinAttachment {
   duration_ms?: number;
 }
 
+export interface CheckinInteraction {
+  likes_count: number;
+  comments_count: number;
+  favorites_count: number;
+  viewer_has_liked?: boolean;
+  viewer_has_favorited?: boolean;
+}
+
+export interface CheckinCommentAuthor {
+  user_id: string;
+  full_name?: string;
+  username?: string;
+  avatar_url?: string;
+}
+
+export interface CheckinComment {
+  comment_id: string;
+  parent_comment_id?: string;
+  content: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+  author: CheckinCommentAuthor;
+  replies?: CheckinComment[];
+}
+
 export interface CheckinContentEntry {
   entry_id?: string;
   title?: string;
@@ -50,6 +75,8 @@ export interface CheckinContentEntry {
   weather?: string;
   mood?: string;
   is_complete?: boolean;
+  interaction?: CheckinInteraction;
+  comments?: CheckinComment[];
   created_at?: Date | string;
   updated_at?: Date | string;
 }
@@ -62,14 +89,11 @@ export interface UserCheckin {
   item_id: string;      // 关联 StandardItem._id
   item_type?: string;
   is_active?: boolean;
-  source_type: 'history_backfill' | 'realtime';
+  source_type: 'history_backfill' | 'realtime' | 'realtime_add';
   content?: CheckinContentEntry;
   contents?: CheckinContentEntry[];
-  interaction?: {
-    likes_count: number;
-    comments_count: number;
-    favorites_count: number;
-  };
+  interaction?: CheckinInteraction;
+  comments?: CheckinComment[];
   checked_in_at?: Date | string;
   created_at: Date | string;
   updated_at?: Date | string;

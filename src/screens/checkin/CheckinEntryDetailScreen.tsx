@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,11 +18,11 @@ import Loading from '../../components/common/Loading';
 import { NineGridMedia } from '../../components/common/NineGridMedia';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import authService from '../../services/authService';
+import checkinInteractionService from '../../services/checkinInteractionService';
 import { RootStackParamList } from '../../navigation/RootNavigator';
-import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import { MediaResource } from '../../types/media';
-import { CheckinAttachment, UserCheckin } from '../../types/rank';
+import { CheckinAttachment, CheckinComment, UserCheckin } from '../../types/rank';
 import { User } from '../../types/user';
 
 type ScreenRouteProp = RouteProp<RootStackParamList, 'CheckinEntryDetail'>;
@@ -80,6 +81,27 @@ const getDisplayName = (user: DisplayUser) =>
 const getAvatarUri = (user: DisplayUser) => user?.profile?.avatar_url || null;
 
 const getAvatarFallback = (name: string) => name.trim().charAt(0).toUpperCase() || '游';
+const formatCommentTime = (value?: Date | string) => {
+  if (!value) {
+    return '刚刚';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '刚刚';
+  }
+
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  const hour = `${date.getHours()}`.padStart(2, '0');
+  const minute = `${date.getMinutes()}`.padStart(2, '0');
+  return `${month}-${day} ${hour}:${minute}`;
+};
+
+const getCommentDisplayName = (comment: CheckinComment) =>
+  comment.author.full_name || comment.author.username || '旅行用户';
+
+const getCommentAvatarFallback = (comment: CheckinComment) => getAvatarFallback(getCommentDisplayName(comment));
 
 const CheckinEntryDetailScreen: React.FC = () => {
   const route = useRoute<ScreenRouteProp>();
@@ -94,6 +116,10 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [currentEntry, setCurrentEntry] = React.useState<UserCheckin>(entry);
   const [authorProfile, setAuthorProfile] = React.useState<User | null>(null);
+  const [commentInput, setCommentInput] = React.useState('');
+  const [submittingComment, setSubmittingComment] = React.useState(false);
+  const [interactionSubmitting, setInteractionSubmitting] = React.useState<'like' | 'favorite' | null>(null);
+  const [replyTarget, setReplyTarget] = React.useState<CheckinComment | null>(null);
 
   const attachments = currentEntry.content?.attachments || [];
   const noteMedia = React.useMemo(() => mapAttachmentsToMedia(attachments), [attachments]);
@@ -101,7 +127,10 @@ const CheckinEntryDetailScreen: React.FC = () => {
     likes_count: 0,
     comments_count: 0,
     favorites_count: 0,
+    viewer_has_liked: false,
+    viewer_has_favorited: false,
   };
+  const comments = currentEntry.comments || currentEntry.content?.comments || [];
   const authorUser: DisplayUser = isViewerMode ? authorProfile : currentUser;
   const displayName = isViewerMode && viewedUserName ? viewedUserName : getDisplayName(authorUser);
   const avatarUri = getAvatarUri(authorUser);
@@ -115,11 +144,16 @@ const CheckinEntryDetailScreen: React.FC = () => {
 
     try {
       setLoading(true);
-      const [rows, profile] = await Promise.all([
-        rankService.getItemCheckinEntries(targetUserId, code, item._id),
+      const [nextEntry, profile] = await Promise.all([
+        checkinInteractionService.getEntryDetail({
+          viewerUserId: userId || targetUserId || '',
+          ownerUserId: targetUserId,
+          code,
+          itemId: item._id,
+          entryId: entry._id || '',
+        }),
         isViewerMode ? authService.getUser(targetUserId).catch(() => null) : Promise.resolve(null),
       ]);
-      const nextEntry = rows.find((row) => row._id === entry._id) || entry;
       setCurrentEntry(nextEntry);
       setAuthorProfile(profile);
     } catch (error) {
@@ -129,7 +163,18 @@ const CheckinEntryDetailScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [code, entry, isViewerMode, item._id, targetUserId]);
+  }, [code, entry, isViewerMode, item._id, targetUserId, userId]);
+
+  const interactionPayload = React.useMemo(
+    () => ({
+      userId: userId || '',
+      ownerUserId: targetUserId || '',
+      code,
+      itemId: item._id,
+      entryId: currentEntry._id || entry._id || '',
+    }),
+    [code, currentEntry._id, entry._id, item._id, targetUserId, userId]
+  );
 
   React.useEffect(() => {
     navigation.setOptions({ title: currentEntry.content?.title || item.name_zh });
@@ -144,6 +189,66 @@ const CheckinEntryDetailScreen: React.FC = () => {
   if (loading) {
     return <Loading message="正在加载记录详情..." />;
   }
+
+  const handleToggleLike = async () => {
+    if (!userId || !targetUserId) {
+      return;
+    }
+
+    try {
+      setInteractionSubmitting('like');
+      const nextEntry = await checkinInteractionService.toggleLike(interactionPayload);
+      setCurrentEntry(nextEntry);
+    } catch (error) {
+      Alert.alert('操作失败', '点赞暂时不可用，请稍后重试。');
+    } finally {
+      setInteractionSubmitting(null);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!userId || !targetUserId) {
+      return;
+    }
+
+    try {
+      setInteractionSubmitting('favorite');
+      const nextEntry = await checkinInteractionService.toggleFavorite(interactionPayload);
+      setCurrentEntry(nextEntry);
+    } catch (error) {
+      Alert.alert('操作失败', '收藏暂时不可用，请稍后重试。');
+    } finally {
+      setInteractionSubmitting(null);
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    const trimmed = commentInput.trim();
+    if (!trimmed || !userId || !targetUserId) {
+      return;
+    }
+
+    try {
+      setSubmittingComment(true);
+      const nextEntry = replyTarget
+        ? await checkinInteractionService.replyComment({
+            ...interactionPayload,
+            commentId: replyTarget.comment_id,
+            content: trimmed,
+          })
+        : await checkinInteractionService.addComment({
+            ...interactionPayload,
+            content: trimmed,
+          });
+      setCurrentEntry(nextEntry);
+      setCommentInput('');
+      setReplyTarget(null);
+    } catch (error) {
+      Alert.alert('发送失败', replyTarget ? '回复暂时发送失败，请稍后重试。' : '评论暂时发送失败，请稍后重试。');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -259,21 +364,176 @@ const CheckinEntryDetailScreen: React.FC = () => {
               },
             ]}
           >
-            <View style={styles.interactionItem}>
-              <Ionicons name="heart-outline" size={18} color={colors.textSecondary} />
+            <Pressable
+              onPress={handleToggleLike}
+              style={styles.interactionItem}
+              disabled={interactionSubmitting !== null}
+            >
+              <Ionicons
+                name={interaction.viewer_has_liked ? 'heart' : 'heart-outline'}
+                size={18}
+                color={interaction.viewer_has_liked ? colors.primary : colors.textSecondary}
+              />
               <Text style={[styles.interactionValue, { color: colors.text }]}>{interaction.likes_count || 0}</Text>
-              <Text style={[styles.interactionLabel, { color: colors.textSecondary }]}>点赞</Text>
-            </View>
+              <Text
+                style={[
+                  styles.interactionLabel,
+                  { color: interaction.viewer_has_liked ? colors.primary : colors.textSecondary },
+                ]}
+              >
+                点赞
+              </Text>
+            </Pressable>
             <View style={styles.interactionItem}>
               <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.textSecondary} />
               <Text style={[styles.interactionValue, { color: colors.text }]}>{interaction.comments_count || 0}</Text>
               <Text style={[styles.interactionLabel, { color: colors.textSecondary }]}>评论</Text>
             </View>
-            <View style={styles.interactionItem}>
-              <Ionicons name="star-outline" size={18} color={colors.textSecondary} />
+            <Pressable
+              onPress={handleToggleFavorite}
+              style={styles.interactionItem}
+              disabled={interactionSubmitting !== null}
+            >
+              <Ionicons
+                name={interaction.viewer_has_favorited ? 'star' : 'star-outline'}
+                size={18}
+                color={interaction.viewer_has_favorited ? colors.primary : colors.textSecondary}
+              />
               <Text style={[styles.interactionValue, { color: colors.text }]}>{interaction.favorites_count || 0}</Text>
-              <Text style={[styles.interactionLabel, { color: colors.textSecondary }]}>收藏</Text>
+              <Text
+                style={[
+                  styles.interactionLabel,
+                  { color: interaction.viewer_has_favorited ? colors.primary : colors.textSecondary },
+                ]}
+              >
+                收藏
+              </Text>
+            </Pressable>
+          </View>
+
+          <View
+            style={[
+              styles.commentSection,
+              { borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' },
+            ]}
+          >
+            <View style={styles.commentHeader}>
+              <Text style={[styles.commentTitle, { color: colors.text }]}>评论区</Text>
+              <Text style={[styles.commentCount, { color: colors.textSecondary }]}>{comments.length} 条主评论</Text>
             </View>
+
+            {replyTarget ? (
+              <View
+                style={[
+                  styles.replyBanner,
+                  { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)' },
+                ]}
+              >
+                <Text style={[styles.replyBannerText, { color: colors.primary }]}>
+                  正在回复 {getCommentDisplayName(replyTarget)}
+                </Text>
+                <Pressable onPress={() => setReplyTarget(null)}>
+                  <Text style={[styles.replyCancelText, { color: colors.primary }]}>取消</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            <View
+              style={[
+                styles.commentComposer,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FBFF',
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <TextInput
+                value={commentInput}
+                onChangeText={setCommentInput}
+                placeholder={replyTarget ? '写下你的回复...' : '写下你的评论...'}
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                style={[styles.commentInput, { color: colors.text }]}
+              />
+              <Pressable
+                onPress={handleSubmitComment}
+                disabled={!commentInput.trim() || submittingComment}
+                style={[
+                  styles.commentSubmitButton,
+                  {
+                    backgroundColor: commentInput.trim() ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Text style={styles.commentSubmitText}>{submittingComment ? '发送中' : '发送'}</Text>
+              </Pressable>
+            </View>
+
+            {comments.length ? (
+              <View style={styles.commentList}>
+                {comments.map((comment) => (
+                  <View key={comment.comment_id} style={styles.commentCard}>
+                    <View style={styles.commentRow}>
+                      {comment.author.avatar_url ? (
+                        <Image source={{ uri: comment.author.avatar_url }} style={styles.commentAvatar} />
+                      ) : (
+                        <View
+                          style={[
+                            styles.commentAvatarFallback,
+                            {
+                              backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.08)',
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.commentAvatarFallbackText, { color: colors.primary }]}>
+                            {getCommentAvatarFallback(comment)}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.commentBodyWrap}>
+                        <View style={styles.commentMetaRow}>
+                          <Text style={[styles.commentAuthorName, { color: colors.text }]}>
+                            {getCommentDisplayName(comment)}
+                          </Text>
+                          <Text style={[styles.commentTimeText, { color: colors.textSecondary }]}>
+                            {formatCommentTime(comment.created_at)}
+                          </Text>
+                        </View>
+                        <Text style={[styles.commentContentText, { color: colors.textSecondary }]}>
+                          {comment.content}
+                        </Text>
+                        <Pressable onPress={() => setReplyTarget(comment)} style={styles.replyButton}>
+                          <Text style={[styles.replyButtonText, { color: colors.primary }]}>回复</Text>
+                        </Pressable>
+
+                        {comment.replies?.length ? (
+                          <View style={styles.replyList}>
+                            {comment.replies.map((reply) => (
+                              <View key={reply.comment_id} style={styles.replyItem}>
+                                <Text style={[styles.replyMetaText, { color: colors.text }]}>
+                                  {getCommentDisplayName(reply)}
+                                  <Text style={[styles.replyTimeInline, { color: colors.textSecondary }]}>
+                                    {' · '}
+                                    {formatCommentTime(reply.created_at)}
+                                  </Text>
+                                </Text>
+                                <Text style={[styles.replyContentText, { color: colors.textSecondary }]}>
+                                  {reply.content}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        ) : null}
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={[styles.commentEmptyText, { color: colors.textSecondary }]}>
+                还没有评论，来留下第一条互动吧。
+              </Text>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -397,6 +657,151 @@ const styles = StyleSheet.create({
   interactionLabel: {
     marginTop: 2,
     fontSize: 12,
+  },
+  commentSection: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  commentTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  commentCount: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  replyBanner: {
+    marginTop: 14,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  replyBannerText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  replyCancelText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  commentComposer: {
+    marginTop: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
+    gap: 12,
+  },
+  commentInput: {
+    minHeight: 72,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlignVertical: 'top',
+  },
+  commentSubmitButton: {
+    alignSelf: 'flex-end',
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  commentSubmitText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  commentList: {
+    marginTop: 16,
+    gap: 16,
+  },
+  commentCard: {
+    gap: 10,
+  },
+  commentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  commentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  commentAvatarFallback: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commentAvatarFallbackText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  commentBodyWrap: {
+    flex: 1,
+  },
+  commentMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  commentAuthorName: {
+    fontSize: 13,
+    fontWeight: '800',
+    flex: 1,
+  },
+  commentTimeText: {
+    fontSize: 11,
+  },
+  commentContentText: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  replyButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  replyButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  replyList: {
+    marginTop: 10,
+    gap: 10,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: '#F0B6A6',
+  },
+  replyItem: {
+    gap: 4,
+  },
+  replyMetaText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  replyTimeInline: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  replyContentText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  commentEmptyText: {
+    marginTop: 16,
+    fontSize: 13,
+    lineHeight: 20,
   },
 });
 

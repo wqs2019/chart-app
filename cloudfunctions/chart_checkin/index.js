@@ -1,4 +1,5 @@
 const cloud = require('@cloudbase/node-sdk');
+const STS = require('qcloud-cos-sts');
 
 const app = cloud.init({
   env: cloud.SYMBOL_CURRENT_ENV,
@@ -10,6 +11,9 @@ const standardItemsCollection = db.collection('chart_standard_items');
 const checkinsCollection = db.collection('chart_checkins');
 const snapshotsCollection = db.collection('chart_score_snapshots');
 const usersCollection = db.collection('chart_users');
+const DEFAULT_COS_BUCKET = '6d61-maoqiu-diary-app-2fpzvwp2e01dbaf-1417164439';
+const DEFAULT_COS_REGION = 'ap-shanghai';
+const DEFAULT_COS_PUBLIC_DOMAIN = `https://${DEFAULT_COS_BUCKET}.tcb.qcloud.la`;
 
 function ok(data) {
   return {
@@ -24,6 +28,24 @@ function fail(message, error) {
     message,
     ...(error ? { error: error.message || String(error) } : {}),
   };
+}
+
+function getEnvValue(keys, fallback = '') {
+  for (const key of keys) {
+    if (process.env[key]) {
+      return process.env[key];
+    }
+  }
+
+  return fallback;
+}
+
+function getDocData(result) {
+  if (!result || !result.data) {
+    return null;
+  }
+
+  return Array.isArray(result.data) ? result.data[0] || null : result.data;
 }
 
 function normalizeLeaderboardCode(code) {
@@ -46,6 +68,42 @@ function getLeaderboardCodeCandidates(code) {
   }
 
   return normalizedCode ? [normalizedCode] : [];
+}
+
+async function getStandardItemById(itemId) {
+  if (!itemId) {
+    return null;
+  }
+
+  const result = await standardItemsCollection.doc(itemId).get();
+  return getDocData(result);
+}
+
+async function findCheckin(userId, leaderboardCode, itemId) {
+  if (!userId || !leaderboardCode || !itemId) {
+    return null;
+  }
+
+  const codeCandidates = getLeaderboardCodeCandidates(leaderboardCode);
+  const result = await checkinsCollection
+    .where({
+      user_id: userId,
+      leaderboard_code: _.in(codeCandidates),
+      item_id: itemId,
+    })
+    .limit(1)
+    .get();
+
+  return getDocData(result);
+}
+
+async function findCheckinEntryById(entryId) {
+  if (!entryId) {
+    return null;
+  }
+
+  const result = await checkinsCollection.doc(entryId).get();
+  return getDocData(result);
 }
 
 function buildSnapshotTags(code, rawCount) {
@@ -125,10 +183,110 @@ function compareOverallRows(a, b) {
   return compareSnapshotScoreReachedAt(a, b);
 }
 
+function createEntryId() {
+  return `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeEntryContent(content = {}, standardItem = {}) {
+  return {
+    title: content.title || '',
+    description: content.description || '',
+    attachments: Array.isArray(content.attachments) ? content.attachments : [],
+    visit_time: content.visit_time || '',
+    city_name: content.city_name || content.location_name || standardItem.name_zh || '',
+    location_name: content.location_name || standardItem.name_zh || '',
+    weather: content.weather || '',
+    mood: content.mood || '',
+    is_complete: Boolean(content.is_complete),
+  };
+}
+
+function buildEntryRecord(content = {}, standardItem = {}, existingEntry = null, fallbackInteraction = null) {
+  const normalizedContent = normalizeEntryContent(content, standardItem);
+  const comments = Array.isArray(existingEntry?.comments) ? existingEntry.comments : [];
+  const commentCount = comments.reduce(function countNested(total, comment) {
+    const replies = Array.isArray(comment?.replies) ? comment.replies : [];
+    return (
+      total +
+      1 +
+      replies.reduce(countNested, 0)
+    );
+  }, 0);
+  const sourceInteraction = existingEntry?.interaction || fallbackInteraction || {};
+  const interaction = {
+    likes_count: Math.max(Number(sourceInteraction.likes_count || 0) || 0, 0),
+    comments_count: commentCount,
+    favorites_count: Math.max(Number(sourceInteraction.favorites_count || 0) || 0, 0),
+    liked_user_ids: Array.from(new Set((sourceInteraction.liked_user_ids || []).filter(Boolean))),
+    favorited_user_ids: Array.from(new Set((sourceInteraction.favorited_user_ids || []).filter(Boolean))),
+  };
+
+  return {
+    entry_id: existingEntry?.entry_id || existingEntry?._id || createEntryId(),
+    ...normalizedContent,
+    interaction,
+    comments,
+    created_at: existingEntry?.created_at || db.serverDate(),
+    updated_at: db.serverDate(),
+  };
+}
+
 function getCheckinEntries(checkin) {
   const safeCheckin = checkin || {};
   const contents = Array.isArray(safeCheckin.contents) ? safeCheckin.contents : [];
   return contents;
+}
+
+function buildEntryView(checkin, entry = {}, viewerUserId = '') {
+  const safeCheckin = checkin || {};
+  const safeEntries = getCheckinEntries(safeCheckin);
+  const fallbackInteraction =
+    entry?.interaction || (safeEntries.length <= 1 ? safeCheckin?.interaction || null : null) || {};
+  const sourceInteraction = entry?.interaction || fallbackInteraction || {};
+  const comments = Array.isArray(entry.comments) ? entry.comments : [];
+  const commentCount = comments.reduce(function countNested(total, comment) {
+    const replies = Array.isArray(comment?.replies) ? comment.replies : [];
+    return (
+      total +
+      1 +
+      replies.reduce(countNested, 0)
+    );
+  }, 0);
+  const likedUserIds = Array.isArray(sourceInteraction.liked_user_ids) ? sourceInteraction.liked_user_ids : [];
+  const favoritedUserIds = Array.isArray(sourceInteraction.favorited_user_ids)
+    ? sourceInteraction.favorited_user_ids
+    : [];
+  const interaction = {
+    likes_count: Math.max(Number(sourceInteraction.likes_count || 0) || 0, 0),
+    comments_count: commentCount || Math.max(Number(sourceInteraction.comments_count || 0) || 0, 0),
+    favorites_count: Math.max(Number(sourceInteraction.favorites_count || 0) || 0, 0),
+    viewer_has_liked: Boolean(viewerUserId && likedUserIds.includes(viewerUserId)),
+    viewer_has_favorited: Boolean(viewerUserId && favoritedUserIds.includes(viewerUserId)),
+  };
+
+  return {
+    ...safeCheckin,
+    _id: entry.entry_id || safeCheckin._id,
+    parent_checkin_id: safeCheckin._id,
+    checked_in_at: entry.created_at || safeCheckin.checked_in_at,
+    created_at: entry.created_at || safeCheckin.created_at,
+    updated_at: entry.updated_at || safeCheckin.updated_at,
+    interaction,
+    comments,
+    content: {
+      title: entry.title || '',
+      description: entry.description || '',
+      attachments: Array.isArray(entry.attachments) ? entry.attachments : [],
+      visit_time: entry.visit_time || '',
+      city_name: entry.city_name || '',
+      location_name: entry.location_name || '',
+      weather: entry.weather || '',
+      mood: entry.mood || '',
+      is_complete: Boolean(entry.is_complete),
+      interaction,
+      comments,
+    },
+  };
 }
 
 async function enrichSnapshotsWithUserProfile(rows = []) {
@@ -519,6 +677,263 @@ async function hasActiveCheckins(code, userId) {
 }
 
 /**
+ * 获取标准项列表
+ */
+const getStandardItems = async (data = {}) => {
+  const { code } = data;
+  const normalizedCode = normalizeLeaderboardCode(code);
+  const codeCandidates = getLeaderboardCodeCandidates(normalizedCode);
+  if (!normalizedCode) return fail('缺少 leaderboard_code');
+
+  try {
+    const { data: items } = await db
+      .collection('chart_standard_items')
+      .where({
+        leaderboard_code: _.in(codeCandidates),
+        is_active: true,
+      })
+      .orderBy('sort_order', 'asc')
+      .limit(1000)
+      .get();
+
+    return ok(items);
+  } catch (error) {
+    return fail('获取标准项失败', error);
+  }
+};
+
+/**
+ * 获取用户打卡记录
+ */
+const getUserCheckins = async (data = {}) => {
+  const { userId, code } = data;
+  const normalizedCode = normalizeLeaderboardCode(code);
+  const codeCandidates = getLeaderboardCodeCandidates(normalizedCode);
+  if (!userId || !normalizedCode) return fail('缺少参数');
+
+  try {
+    const { data: checkins } = await checkinsCollection
+      .where({
+        user_id: userId,
+        leaderboard_code: _.in(codeCandidates),
+        is_active: true,
+      })
+      .orderBy('checked_in_at', 'desc')
+      .limit(1000)
+      .get();
+
+    return ok(checkins);
+  } catch (error) {
+    return fail('获取用户打卡记录失败', error);
+  }
+};
+
+const getItemCheckinEntries = async (data = {}) => {
+  const { userId, code, itemId, viewerUserId = '' } = data;
+  const normalizedCode = normalizeLeaderboardCode(code);
+  const codeCandidates = getLeaderboardCodeCandidates(normalizedCode);
+  if (!userId || !normalizedCode || !itemId) return fail('缺少参数');
+
+  try {
+    const { data: checkins } = await checkinsCollection
+      .where({
+        user_id: userId,
+        leaderboard_code: _.in(codeCandidates),
+        item_id: itemId,
+        is_active: true,
+      })
+      .orderBy('checked_in_at', 'desc')
+      .limit(1000)
+      .get();
+
+    const entries = (checkins || [])
+      .flatMap((checkin) => getCheckinEntries(checkin).map((entry) => buildEntryView(checkin, entry, viewerUserId)))
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+    return ok(entries);
+  } catch (error) {
+    return fail('获取标准项录入记录失败', error);
+  }
+};
+
+
+/**
+ * 切换打卡状态
+ */
+const toggleCheckin = async (data = {}) => {
+  const { userId, item, itemId, code, isChecked } = data;
+  if (!userId || isChecked === undefined || (!item && !itemId)) {
+    return fail('缺少参数');
+  }
+
+  try {
+    const standardItem = item || (await getStandardItemById(itemId));
+    if (!standardItem) {
+      return fail('标准项不存在');
+    }
+
+    const leaderboardCode = normalizeLeaderboardCode(standardItem.leaderboard_code || code);
+    const currentItemId = standardItem._id || itemId;
+    const existingCheckin = await findCheckin(userId, leaderboardCode, currentItemId);
+
+    if (isChecked) {
+      const nextPayload = {
+        user_id: userId,
+        leaderboard_code: leaderboardCode,
+        item_id: currentItemId,
+        item_type: standardItem.item_type || standardItem.type || '',
+        is_active: true,
+        source_type: 'realtime_add',
+        checked_in_at: db.serverDate(),
+        interaction: existingCheckin?.interaction || {
+          likes_count: 0,
+          comments_count: 0,
+          favorites_count: 0,
+        },
+        updated_at: db.serverDate(),
+      };
+
+      if (existingCheckin?._id) {
+        await checkinsCollection.doc(existingCheckin._id).update(nextPayload);
+      } else {
+        await checkinsCollection.add({
+          ...nextPayload,
+          created_at: db.serverDate(),
+        });
+      }
+    } else {
+      if (existingCheckin?._id) {
+        await checkinsCollection.doc(existingCheckin._id).remove();
+      }
+    }
+
+    await refreshLeaderboardSnapshots(leaderboardCode);
+
+    return ok(true);
+
+  } catch (error) {
+    return fail('切换打卡状态失败', error);
+  }
+};
+
+/**
+ * 批量打卡
+ */
+const batchCheckin = async (data = {}) => {
+  const { userId, code, itemIds } = data;
+  const normalizedCode = normalizeLeaderboardCode(code);
+  if (!userId || !normalizedCode || !itemIds || !Array.isArray(itemIds)) {
+    return fail('缺少参数');
+  }
+
+  try {
+    const timestamp = db.serverDate();
+    for (const itemId of itemIds) {
+      const standardItem = await getStandardItemById(itemId);
+      const existingCheckin = await findCheckin(userId, normalizedCode, itemId);
+      const nextPayload = {
+        user_id: userId,
+        leaderboard_code: normalizedCode,
+        item_id: itemId,
+        item_type: standardItem ? standardItem.item_type || standardItem.type || '' : '',
+        is_active: true,
+        source_type: 'history_backfill',
+        checked_in_at: timestamp,
+        interaction: existingCheckin?.interaction || {
+          likes_count: 0,
+          comments_count: 0,
+          favorites_count: 0,
+        },
+        updated_at: timestamp,
+      };
+
+      if (existingCheckin?._id) {
+        await checkinsCollection.doc(existingCheckin._id).update(nextPayload);
+      } else {
+        await checkinsCollection.add({
+          ...nextPayload,
+          created_at: timestamp,
+        });
+      }
+    }
+
+    await refreshLeaderboardSnapshots(normalizedCode);
+
+    return ok(true);
+  } catch (error) {
+    return fail('批量打卡失败', error);
+  }
+};
+
+const saveCheckinEntry = async (data = {}) => {
+  const { userId, item, itemId, code, entryId, content = {} } = data;
+  if (!userId || (!item && !itemId)) {
+    return fail('缺少参数');
+  }
+
+  try {
+    const standardItem = item || (await getStandardItemById(itemId));
+    if (!standardItem) {
+      return fail('标准项不存在');
+    }
+
+    const leaderboardCode = normalizeLeaderboardCode(standardItem.leaderboard_code || code);
+    const currentItemId = standardItem._id || itemId;
+    const anchorCheckin = await findCheckin(userId, leaderboardCode, currentItemId);
+    const existingEntries = getCheckinEntries(anchorCheckin);
+    const existingEntry = entryId
+      ? existingEntries.find((currentEntry) => currentEntry.entry_id === entryId) || null
+      : null;
+    const nextEntry = buildEntryRecord(
+      content,
+      standardItem,
+      existingEntry,
+      existingEntry?.interaction || (existingEntries.length <= 1 ? anchorCheckin?.interaction || null : null)
+    );
+    const nextEntries = existingEntry
+      ? existingEntries.map((currentEntry) =>
+          currentEntry.entry_id === nextEntry.entry_id ? { ...currentEntry, ...nextEntry } : currentEntry
+        )
+      : [nextEntry, ...existingEntries];
+    const nextInteraction = summarizeCheckinInteraction(nextEntries, anchorCheckin?.interaction);
+    const nextPayload = {
+      user_id: userId,
+      leaderboard_code: leaderboardCode,
+      item_id: currentItemId,
+      item_type: standardItem.item_type || standardItem.type || '',
+      is_active: true,
+      source_type: anchorCheckin?.source_type || 'realtime',
+      checked_in_at: anchorCheckin?.checked_in_at || db.serverDate(),
+      contents: nextEntries,
+      interaction: nextInteraction,
+      updated_at: db.serverDate(),
+    };
+
+    let savedCheckinId = anchorCheckin?._id;
+
+    if (anchorCheckin?._id) {
+      await checkinsCollection.doc(anchorCheckin._id).update(nextPayload);
+      savedCheckinId = anchorCheckin._id;
+    } else {
+      const createResult = await checkinsCollection.add({
+        ...nextPayload,
+        created_at: db.serverDate(),
+      });
+      savedCheckinId = createResult.id || createResult._id;
+    }
+
+    await refreshLeaderboardSnapshots(leaderboardCode);
+
+    const savedCheckin = await findCheckinEntryById(savedCheckinId);
+    const savedEntries = getCheckinEntries(savedCheckin);
+    const savedEntry = savedEntries.find((currentEntry) => currentEntry.entry_id === nextEntry.entry_id) || nextEntry;
+    return ok(buildEntryView(savedCheckin, savedEntry, userId));
+  } catch (error) {
+    return fail('保存录入记录失败', error);
+  }
+};
+
+/**
  * 获取我的榜单位置
  */
 const getMyRank = async (data = {}) => {
@@ -595,9 +1010,71 @@ const getLeaderboardRankings = async (data = {}) => {
   }
 };
 
+const getUploadCredentials = async () => {
+  try {
+    const secretId = getEnvValue(['COS_SECRET_ID', 'TCB_SECRET_ID', 'CLOUDBASE_SECRET_ID']);
+    const secretKey = getEnvValue(['COS_SECRET_KEY', 'TCB_SECRET_KEY', 'CLOUDBASE_SECRET_KEY']);
+
+    if (!secretId || !secretKey) {
+      return fail('COS 密钥未配置，请先在云函数环境变量中配置 COS_SECRET_ID 和 COS_SECRET_KEY');
+    }
+
+    const bucket = getEnvValue(['COS_BUCKET'], DEFAULT_COS_BUCKET);
+    const region = getEnvValue(['COS_REGION'], DEFAULT_COS_REGION);
+    const publicDomain = getEnvValue(['COS_PUBLIC_DOMAIN'], DEFAULT_COS_PUBLIC_DOMAIN);
+    const allowPrefixes = ['checkins/*', 'avatars/*'];
+    const allowActions = [
+      'name/cos:PutObject',
+      'name/cos:PostObject',
+      'name/cos:InitiateMultipartUpload',
+      'name/cos:ListMultipartUploads',
+      'name/cos:ListParts',
+      'name/cos:UploadPart',
+      'name/cos:CompleteMultipartUpload',
+      'name/cos:AbortMultipartUpload',
+    ];
+
+    const policy = STS.getPolicy(
+      allowPrefixes.flatMap((prefix) =>
+        allowActions.map((action) => ({
+          action,
+          bucket,
+          region,
+          prefix,
+        }))
+      )
+    );
+
+    const result = await STS.getCredential({
+      secretId,
+      secretKey,
+      durationSeconds: 1800,
+      policy,
+    });
+
+    return ok({
+      tmpSecretId: result.credentials.tmpSecretId,
+      tmpSecretKey: result.credentials.tmpSecretKey,
+      sessionToken: result.credentials.sessionToken,
+      expiredTime: result.expiredTime,
+      startTime: result.startTime,
+      bucket,
+      region,
+      publicDomain,
+    });
+  } catch (error) {
+    return fail('获取上传凭证失败', error);
+  }
+};
+
 const actionMap = {
-  getMyRank,
-  getLeaderboardRankings,
+  getStandardItems,
+  getUserCheckins,
+  getItemCheckinEntries,
+  toggleCheckin,
+  batchCheckin,
+  saveCheckinEntry,
+  getUploadCredentials,
 };
 
 function normalizeEventPayload(event = {}) {
