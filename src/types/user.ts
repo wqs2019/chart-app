@@ -14,6 +14,8 @@ export type User = {
     avatar_file_id?: string;
     bio?: string;
     primary_tag?: string;
+    gender?: 'male' | 'female' | 'other' | 'unspecified';
+    age?: number | null;
   };
   createdAt?: string | number;
   updatedAt?: string | number;

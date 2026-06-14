@@ -9,8 +9,6 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { useAppStore } from '../../store/appStore';
 
-const appConfig = require('../../../app.json');
-
 const MeScreen: React.FC = () => {
   const navigation = useNavigation();
   const { colors, isDark } = useAppTheme();
@@ -22,7 +20,15 @@ const MeScreen: React.FC = () => {
   const avatarUrl = currentUser?.profile?.avatar_url || '';
   const bio = currentUser?.profile?.bio || '还没有填写个人简介，去补充一句你的旅行宣言吧。';
   const avatarFallback = displayName.trim().charAt(0).toUpperCase() || '我';
-  const appVersion = appConfig?.expo?.version || '1.0.0';
+  const gender = currentUser?.profile?.gender || 'unspecified';
+  const genderMeta =
+    gender === 'male'
+      ? { icon: 'male' as const, backgroundColor: '#60A5FA' }
+      : gender === 'female'
+        ? { icon: 'female' as const, backgroundColor: '#F472B6' }
+        : gender === 'other'
+          ? { icon: 'transgender-outline' as const, backgroundColor: '#A78BFA' }
+          : null;
 
   const primaryMenuItems: Array<{
     title: string;
@@ -94,36 +100,36 @@ const MeScreen: React.FC = () => {
               ) : (
                 <Text style={[styles.avatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
               )}
+              {genderMeta ? (
+                <View
+                  style={[
+                    styles.genderBadge,
+                    {
+                      backgroundColor: genderMeta.backgroundColor,
+                      borderColor: colors.surface,
+                    },
+                  ]}
+                >
+                  <Ionicons name={genderMeta.icon} size={12} color="#FFFFFF" />
+                </View>
+              ) : null}
             </View>
 
             <View style={styles.heroTextWrap}>
-              <Text style={[styles.title, { color: colors.text }]}>{displayName}</Text>
+              <View style={styles.nameRow}>
+                <Text style={[styles.title, { color: colors.text }]}>{displayName}</Text>
+                <Pressable
+                  onPress={handleOpenEditProfile}
+                  hitSlop={10}
+                  style={[
+                    styles.nameEditButton,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF7F1' },
+                  ]}
+                >
+                  <Ionicons name="create-outline" size={15} color={colors.primary} />
+                </Pressable>
+              </View>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{bio}</Text>
-            </View>
-          </View>
-
-          <View style={styles.heroActions}>
-            <Pressable
-              onPress={handleOpenEditProfile}
-              style={[
-                styles.primaryAction,
-                { backgroundColor: colors.primary },
-              ]}
-            >
-              <Ionicons name="create-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.primaryActionText}>编辑资料</Text>
-            </Pressable>
-            <View
-              style={[
-                styles.secondaryChip,
-                {
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FBFF',
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
-              <Text style={[styles.secondaryChipText, { color: colors.textSecondary }]}>{`v${appVersion}`}</Text>
             </View>
           </View>
         </View>
@@ -209,11 +215,12 @@ const styles = StyleSheet.create({
   avatarWrap: {
     width: 84,
     height: 84,
-    borderRadius: 28,
+    borderRadius: 12,
     borderWidth: 1,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   avatar: {
     width: '100%',
@@ -223,49 +230,42 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '900',
   },
+  genderBadge: {
+    position: 'absolute',
+    right: 2,
+    bottom: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   heroTextWrap: {
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 28,
     fontWeight: '900',
+    flexShrink: 1,
+  },
+  nameEditButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   subtitle: {
     marginTop: 10,
     fontSize: 14,
     lineHeight: 21,
-  },
-  heroActions: {
-    marginTop: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  primaryAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  primaryActionText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  secondaryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 0,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  secondaryChipText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
   menuCard: {
     borderRadius: 22,

@@ -26,6 +26,16 @@ import { AuthUser, User } from '../../types/user';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 
+const genderOptions: Array<{
+  label: string;
+  value: NonNullable<User['profile']>['gender'];
+}> = [
+  { label: '保密', value: 'unspecified' },
+  { label: '男', value: 'male' },
+  { label: '女', value: 'female' },
+  { label: '其他', value: 'other' },
+];
+
 const getFileExtension = (fileNameOrUri: string) => {
   const matched = fileNameOrUri.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
   return matched?.[1]?.toLowerCase() || 'jpg';
@@ -48,6 +58,12 @@ const EditProfileScreen: React.FC = () => {
 
   const [displayName, setDisplayName] = React.useState(currentUser?.fullName || currentUser?.profile?.nickname || '');
   const [bio, setBio] = React.useState(currentUser?.profile?.bio || '');
+  const [gender, setGender] = React.useState<NonNullable<User['profile']>['gender']>(
+    currentUser?.profile?.gender || 'unspecified'
+  );
+  const [age, setAge] = React.useState(
+    currentUser?.profile?.age ? String(currentUser.profile.age) : ''
+  );
   const [avatarUrl, setAvatarUrl] = React.useState(currentUser?.profile?.avatar_url || '');
   const [avatarFileId, setAvatarFileId] = React.useState(currentUser?.profile?.avatar_file_id || '');
   const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
@@ -118,10 +134,20 @@ const EditProfileScreen: React.FC = () => {
 
     const trimmedDisplayName = displayName.trim();
     const trimmedBio = bio.trim();
+    const trimmedAge = age.trim();
+    const parsedAge = trimmedAge ? Number(trimmedAge) : null;
 
     if (!trimmedDisplayName) {
       Alert.alert('请填写用户昵称', '用户昵称会用于个人主页和排行榜展示。');
       return;
+    }
+
+    if (trimmedAge) {
+      const ageValue = Number(trimmedAge);
+      if (!Number.isInteger(ageValue) || ageValue < 1 || ageValue > 120) {
+        Alert.alert('年龄格式不正确', '请输入 1 到 120 之间的整数年龄。');
+        return;
+      }
     }
 
     try {
@@ -132,6 +158,8 @@ const EditProfileScreen: React.FC = () => {
         profile: {
           nickname: trimmedDisplayName,
           bio: trimmedBio,
+          gender,
+          age: parsedAge,
           avatar_url: avatarUrl,
           avatar_file_id: avatarFileId,
         },
@@ -145,7 +173,7 @@ const EditProfileScreen: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [avatarFileId, avatarUrl, bio, currentUser, displayName, navigation, updateCurrentUser]);
+  }, [age, avatarFileId, avatarUrl, bio, currentUser, displayName, gender, navigation, updateCurrentUser]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -158,7 +186,7 @@ const EditProfileScreen: React.FC = () => {
             <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>PROFILE EDITOR</Text>
             <Text style={[styles.title, { color: colors.text }]}>编辑个人资料</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              更新你的用户昵称、头像和简介，这些信息会同步到个人主页和榜单展示。
+              更新你的用户昵称、头像、性别、年龄和简介，这些信息会同步到个人主页和榜单展示。
             </Text>
 
             <View style={styles.avatarSection}>
@@ -232,18 +260,61 @@ const EditProfileScreen: React.FC = () => {
               <Text style={[styles.counter, { color: colors.textSecondary }]}>{bio.length}/120</Text>
             </View>
 
-            <View
-              style={[
-                styles.readonlyCard,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FBFF',
-                },
-              ]}
-            >
-              <Text style={[styles.readonlyLabel, { color: colors.textSecondary }]}>当前邮箱</Text>
-              <Text style={[styles.readonlyValue, { color: colors.text }]}>{currentUser?.email || '未公开'}</Text>
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>性别</Text>
+              <View style={styles.genderRow}>
+                {genderOptions.map((option) => {
+                  const active = gender === option.value;
+
+                  return (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => setGender(option.value)}
+                      style={[
+                        styles.genderChip,
+                        {
+                          backgroundColor: active
+                            ? colors.primary
+                            : isDark
+                              ? 'rgba(255,255,255,0.03)'
+                              : '#F8FBFF',
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.genderChipText,
+                          { color: active ? '#FFFFFF' : colors.textSecondary },
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>年龄</Text>
+              <TextInput
+                value={age}
+                onChangeText={(value) => setAge(value.replace(/[^\d]/g, '').slice(0, 3))}
+                keyboardType="number-pad"
+                placeholder="例如：28"
+                placeholderTextColor={colors.textSecondary}
+                style={[
+                  styles.input,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FBFF',
+                  },
+                ]}
+              />
+            </View>
+
           </View>
 
           <View style={styles.footer}>
@@ -343,6 +414,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  genderRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  genderChip: {
+    minWidth: 62,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  genderChipText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
   input: {
     borderWidth: 1,
     borderRadius: 16,
@@ -356,20 +445,6 @@ const styles = StyleSheet.create({
   counter: {
     alignSelf: 'flex-end',
     fontSize: 12,
-  },
-  readonlyCard: {
-    borderWidth: 0,
-    borderRadius: 16,
-    padding: 14,
-  },
-  readonlyLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  readonlyValue: {
-    marginTop: 6,
-    fontSize: 15,
-    fontWeight: '700',
   },
   footer: {
     paddingTop: 8,

@@ -9,7 +9,6 @@ const appConfig = require('../../../app.json');
 const packageJson = require('../../../package.json');
 
 const appVersion = appConfig?.expo?.version || packageJson?.version || '1.0.0';
-const bundleId = appConfig?.expo?.ios?.bundleIdentifier || appConfig?.expo?.android?.package || 'com.traval.chartapp';
 
 const features = [
   '排行榜驱动的旅行与玩乐记录',
@@ -50,16 +49,6 @@ const AboutAppScreen: React.FC = () => {
           <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>当前版本</Text>
             <Text style={[styles.infoValue, { color: colors.text }]}>{appVersion}</Text>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>应用标识</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>{bundleId}</Text>
-          </View>
-          <View style={[styles.infoRow, styles.infoRowLast]}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>主题风格</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>
-              {isDark ? '深色模式视觉已启用' : '浅色模式视觉已启用'}
-            </Text>
           </View>
         </View>
 
