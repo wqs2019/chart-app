@@ -363,7 +363,7 @@ const RankScreen: React.FC = () => {
                     >
                       <View
                         style={[
-                          styles.rankBadge,
+                          styles.rankCornerBadge,
                           {
                             backgroundColor: isMine
                               ? colors.primary
@@ -373,70 +373,77 @@ const RankScreen: React.FC = () => {
                           },
                         ]}
                       >
-                        <Text style={{ color: isMine ? '#FFFFFF' : colors.text, fontWeight: '800' }}>
-                          {displayRank}
+                        <Text style={[styles.rankCornerText, { color: isMine ? '#FFFFFF' : colors.text }]}>
+                          #{displayRank}
                         </Text>
                       </View>
-                      <View
-                        style={[
-                          styles.avatarWrap,
-                          {
-                            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#EEF3F9',
-                            borderColor: isMine ? colors.primary : colors.border,
-                          },
-                        ]}
-                      >
-                        {avatarUri ? (
-                          <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                        ) : (
-                          <Text style={[styles.avatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
-                        )}
-                      </View>
-                      <View style={styles.rankMain}>
-                        <View style={styles.rankNameRow}>
-                          <Text style={[styles.rankName, { color: colors.text }]}>{displayName}</Text>
-                          {isMine ? (
-                            <View
-                              style={[
-                                styles.mineTag,
-                                {
-                                  backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)',
-                                },
-                              ]}
-                            >
-                              <Text style={[styles.mineTagText, { color: colors.primary }]}>我</Text>
-                            </View>
-                          ) : null}
+                      <View style={styles.rankBody}>
+                        <View
+                          style={[
+                            styles.avatarWrap,
+                            {
+                              backgroundColor: avatarUri
+                                ? 'transparent'
+                                : isDark
+                                  ? 'rgba(255,255,255,0.05)'
+                                  : '#EEF3F9',
+                              borderWidth: avatarUri ? 0 : 1,
+                              borderColor: avatarUri ? 'transparent' : isMine ? colors.primary : colors.border,
+                            },
+                          ]}
+                        >
+                          {avatarUri ? (
+                            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                          ) : (
+                            <Text style={[styles.avatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
+                          )}
                         </View>
-                        <Text style={[styles.rankMeta, { color: colors.textSecondary }]}>
-                          已录入 {row.raw_count ?? 0}{currentConfig.unit} · {formatPercentile(row.percentile)}
-                        </Text>
-                        {!!row.tags?.length && (
-                          <View style={styles.tagsRow}>
-                            {row.tags.slice(0, 3).map((tag) => (
+                        <View style={styles.rankMain}>
+                          <View style={styles.rankNameRow}>
+                            <Text style={[styles.rankName, { color: colors.text }]}>{displayName}</Text>
+                            {isMine ? (
                               <View
-                                key={tag}
                                 style={[
-                                  styles.tag,
+                                  styles.mineTag,
                                   {
-                                    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F7FAFC',
-                                    borderColor: colors.border,
+                                    backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)',
                                   },
                                 ]}
                               >
-                                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{tag}</Text>
+                                <Text style={[styles.mineTagText, { color: colors.primary }]}>我</Text>
                               </View>
-                            ))}
+                            ) : null}
                           </View>
-                        )}
-                      </View>
-                      <View style={styles.rankScoreWrap}>
-                        <Text style={[styles.rankScore, { color: colors.text }]}>
-                          {formatScore(row.final_score)}
-                        </Text>
-                        <Text style={[styles.rankScoreLabel, { color: colors.textSecondary }]}>
-                          {selectedCode === 'overall' ? '综合成绩' : '查看列表'}
-                        </Text>
+                          <Text style={[styles.rankMeta, { color: colors.textSecondary }]}>
+                            已录入 {row.raw_count ?? 0}{currentConfig.unit} · {formatPercentile(row.percentile)}
+                          </Text>
+                          {!!row.tags?.length && (
+                            <View style={styles.tagsRow}>
+                              {row.tags.slice(0, 3).map((tag) => (
+                                <View
+                                  key={tag}
+                                  style={[
+                                    styles.tag,
+                                    {
+                                      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F7FAFC',
+                                      borderColor: colors.border,
+                                    },
+                                  ]}
+                                >
+                                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{tag}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.rankScoreWrap}>
+                          <Text style={[styles.rankScore, { color: colors.text }]}>
+                            {formatScore(row.final_score)}
+                          </Text>
+                          <Text style={[styles.rankScoreLabel, { color: colors.textSecondary }]}>
+                            {selectedCode === 'overall' ? '综合成绩' : '查看列表'}
+                          </Text>
+                        </View>
                       </View>
                     </Pressable>
                   );
@@ -674,36 +681,50 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     borderRadius: 20,
     padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    position: 'relative',
   },
-  rankBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  rankCornerBadge: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    minWidth: 44,
+    height: 26,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 14,
+    borderBottomLeftRadius: 0,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+  },
+  rankCornerText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  rankBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 22,
   },
   rankMain: {
     flex: 1,
   },
   avatarWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 64,
+    height: 64,
+    borderRadius: 24,
     borderWidth: 1,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   avatar: {
     width: '100%',
     height: '100%',
   },
   avatarFallback: {
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: '800',
   },
   rankNameRow: {
