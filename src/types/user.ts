@@ -11,6 +11,7 @@ export type User = {
   profile?: {
     nickname?: string;
     avatar_url?: string;
+    avatar_file_id?: string;
     bio?: string;
     primary_tag?: string;
   };

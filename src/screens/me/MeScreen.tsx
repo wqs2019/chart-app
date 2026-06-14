@@ -2,78 +2,76 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import Button from '../../components/common/Button';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { useAppStore } from '../../store/appStore';
 
-const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
-
-const formatDebugTime = (value: number | null) => {
-  if (!value || Number.isNaN(value)) {
-    return '暂无';
-  }
-
-  return new Date(value).toLocaleString('zh-CN', { hour12: false });
-};
+const appConfig = require('../../../app.json');
 
 const MeScreen: React.FC = () => {
   const navigation = useNavigation();
   const { colors, isDark } = useAppTheme();
   const currentUser = useAppStore((state) => state.currentUser);
-  const currentSession = useAppStore((state) => state.currentSession);
-  const signOut = useAppStore((state) => state.signOut);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
-
-  const tokenExpireAt = React.useMemo(() => {
-    const token = currentSession?.token;
-    if (!token) {
-      return null;
-    }
-
-    const tokenParts = token.split('.');
-    if (tokenParts.length !== 3) {
-      return null;
-    }
-
-    const issuedAt = Number(tokenParts[1]);
-    if (Number.isNaN(issuedAt)) {
-      return null;
-    }
-
-    return issuedAt + SESSION_TTL_MS;
-  }, [currentSession?.token]);
 
   const displayName =
     currentUser?.fullName || currentUser?.profile?.nickname || currentUser?.username || '旅行玩家';
   const avatarUrl = currentUser?.profile?.avatar_url || '';
   const bio = currentUser?.profile?.bio || '还没有填写个人简介，去补充一句你的旅行宣言吧。';
   const avatarFallback = displayName.trim().charAt(0).toUpperCase() || '我';
+  const appVersion = appConfig?.expo?.version || '1.0.0';
 
-  const handleSignOut = () => {
-    Alert.alert('退出登录', '确认退出当前账号吗？', [
-      { text: '取消', style: 'cancel' },
-      {
-        text: '退出登录',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setIsSubmitting(true);
-            await signOut();
-          } finally {
-            setIsSubmitting(false);
-          }
-        },
-      },
-    ]);
-  };
+  const primaryMenuItems: Array<{
+    title: string;
+    subtitle: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    route: 'AccountSecurity' | 'AppSettings';
+  }> = [
+    {
+      title: '账户与安全',
+      subtitle: '查看 Apple 登录身份、邮箱、会话状态和安全信息',
+      icon: 'shield-checkmark-outline',
+      route: 'AccountSecurity',
+    },
+    {
+      title: '应用设置',
+      subtitle: '切换主题模式、清除缓存，统一管理体验偏好',
+      icon: 'options-outline',
+      route: 'AppSettings',
+    },
+  ];
+
+  const supportMenuItems: Array<{
+    title: string;
+    subtitle: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    route: 'AboutApp' | 'HelpFeedback';
+  }> = [
+    {
+      title: '关于 App',
+      subtitle: '查看产品定位、版本信息和当前版本亮点',
+      icon: 'information-circle-outline',
+      route: 'AboutApp',
+    },
+    {
+      title: '帮助与反馈',
+      subtitle: '查看常见问题，并发送问题反馈或功能建议',
+      icon: 'help-circle-outline',
+      route: 'HelpFeedback',
+    },
+  ];
 
   const handleOpenEditProfile = () => {
     rootNavigation?.navigate('EditProfile');
+  };
+
+  const handleOpenRoute = (
+    route: 'AccountSecurity' | 'AppSettings' | 'AboutApp' | 'HelpFeedback'
+  ) => {
+    rootNavigation?.navigate(route);
   };
 
   return (
@@ -125,40 +123,59 @@ const MeScreen: React.FC = () => {
               ]}
             >
               <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
-              <Text style={[styles.secondaryChipText, { color: colors.textSecondary }]}>展示页已就绪</Text>
+              <Text style={[styles.secondaryChipText, { color: colors.textSecondary }]}>{`v${appVersion}`}</Text>
             </View>
           </View>
         </View>
 
-        <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>账号信息</Text>
-
-          <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>邮箱</Text>
-            <Text style={[styles.value, { color: colors.text }]}>{currentUser?.email || '未公开'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Apple 用户标识</Text>
-            <Text numberOfLines={1} style={[styles.value, { color: colors.text }]}>
-              {currentUser?.appleUserId || '暂无'}
-            </Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Token 过期时间（Dev）</Text>
-            <Text style={[styles.value, { color: colors.text }]}>{formatDebugTime(tokenExpireAt)}</Text>
-          </View>
+        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>常用设置</Text>
+          {primaryMenuItems.map((item, index) => (
+            <Pressable
+              key={item.title}
+              onPress={() => handleOpenRoute(item.route)}
+              style={[
+                styles.menuRow,
+                index === primaryMenuItems.length - 1 ? styles.menuRowLast : null,
+                { borderBottomColor: colors.border },
+              ]}
+            >
+              <View style={[styles.menuIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.10)' }]}>
+                <Ionicons name={item.icon} size={18} color={colors.primary} />
+              </View>
+              <View style={styles.menuTextWrap}>
+                <Text style={[styles.menuTitle, { color: colors.text }]}>{item.title}</Text>
+                <Text style={[styles.menuSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </Pressable>
+          ))}
         </View>
 
-        <View style={styles.footer}>
-          <Button
-            title="退出登录"
-            variant="danger"
-            loading={isSubmitting}
-            onPress={handleSignOut}
-          />
+        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>帮助与说明</Text>
+          {supportMenuItems.map((item, index) => (
+            <Pressable
+              key={item.title}
+              onPress={() => handleOpenRoute(item.route)}
+              style={[
+                styles.menuRow,
+                index === supportMenuItems.length - 1 ? styles.menuRowLast : null,
+                { borderBottomColor: colors.border },
+              ]}
+            >
+              <View style={[styles.menuIconWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFF7F1' }]}>
+                <Ionicons name={item.icon} size={18} color={colors.primary} />
+              </View>
+              <View style={styles.menuTextWrap}>
+                <Text style={[styles.menuTitle, { color: colors.text }]}>{item.title}</Text>
+                <Text style={[styles.menuSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </Pressable>
+          ))}
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -250,8 +267,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  infoCard: {
-    borderWidth: 0,
+  menuCard: {
     borderRadius: 22,
     padding: 18,
   },
@@ -260,23 +276,35 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 12,
   },
-  infoRow: {
-    paddingVertical: 10,
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(148,163,184,0.3)',
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
+  menuRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
   },
-  value: {
+  menuIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuTextWrap: {
+    flex: 1,
+  },
+  menuTitle: {
     fontSize: 15,
-    lineHeight: 22,
-    marginTop: 6,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  footer: {
-    marginTop: 'auto',
+  menuSubtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 19,
   },
 });
 

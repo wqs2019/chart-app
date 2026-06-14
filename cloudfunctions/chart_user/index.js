@@ -118,6 +118,7 @@ function buildUserPayload(data = {}) {
     profile: {
       nickname: data.nickname || '新用户',
       avatar_url: data.avatar_url || '',
+      avatar_file_id: data.avatar_file_id || '',
       bio: data.bio || '',
       primary_tag: data.primary_tag || '成就起步者',
     },
@@ -142,6 +143,7 @@ function buildAppleUserPayload(data = {}) {
     profile: {
       nickname,
       avatar_url: '',
+      avatar_file_id: '',
       bio: '',
       primary_tag: '成就起步者',
     },

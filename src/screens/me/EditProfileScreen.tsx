@@ -20,6 +20,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import authService from '../../services/authService';
 import imageService from '../../services/imageService';
+import CloudService from '../../services/tcb';
 import { useAppStore } from '../../store/appStore';
 import { AuthUser, User } from '../../types/user';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -48,6 +49,7 @@ const EditProfileScreen: React.FC = () => {
   const [displayName, setDisplayName] = React.useState(currentUser?.fullName || currentUser?.profile?.nickname || '');
   const [bio, setBio] = React.useState(currentUser?.profile?.bio || '');
   const [avatarUrl, setAvatarUrl] = React.useState(currentUser?.profile?.avatar_url || '');
+  const [avatarFileId, setAvatarFileId] = React.useState(currentUser?.profile?.avatar_file_id || '');
   const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
@@ -89,11 +91,19 @@ const EditProfileScreen: React.FC = () => {
         asset.mimeType || 'image/jpeg'
       );
 
-      if (!uploadResult.success || !uploadResult.data?.url) {
+      if (!uploadResult.success || !uploadResult.data?.fileId) {
         throw new Error(uploadResult.message || '头像上传失败');
       }
 
-      setAvatarUrl(uploadResult.data.url);
+      const tempUrlMap = await CloudService.getTempFileURLs([uploadResult.data.fileId]);
+      const resolvedAvatarUrl = tempUrlMap[uploadResult.data.fileId] || uploadResult.data.url || '';
+
+      if (!resolvedAvatarUrl) {
+        throw new Error('头像上传成功，但暂时无法获取可访问地址');
+      }
+
+      setAvatarFileId(uploadResult.data.fileId);
+      setAvatarUrl(resolvedAvatarUrl);
     } catch (error) {
       Alert.alert('上传失败', error instanceof Error ? error.message : '头像上传失败，请稍后重试。');
     } finally {
@@ -123,6 +133,7 @@ const EditProfileScreen: React.FC = () => {
           nickname: trimmedDisplayName,
           bio: trimmedBio,
           avatar_url: avatarUrl,
+          avatar_file_id: avatarFileId,
         },
       });
 
@@ -134,7 +145,7 @@ const EditProfileScreen: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [avatarUrl, bio, currentUser, displayName, navigation, updateCurrentUser]);
+  }, [avatarFileId, avatarUrl, bio, currentUser, displayName, navigation, updateCurrentUser]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>

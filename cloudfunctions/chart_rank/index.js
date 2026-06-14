@@ -920,7 +920,7 @@ const getUploadCredentials = async () => {
     const bucket = getEnvValue(['COS_BUCKET'], DEFAULT_COS_BUCKET);
     const region = getEnvValue(['COS_REGION'], DEFAULT_COS_REGION);
     const publicDomain = getEnvValue(['COS_PUBLIC_DOMAIN'], DEFAULT_COS_PUBLIC_DOMAIN);
-    const allowPrefix = 'checkins/*';
+    const allowPrefixes = ['checkins/*', 'avatars/*'];
     const allowActions = [
       'name/cos:PutObject',
       'name/cos:PostObject',
@@ -933,12 +933,14 @@ const getUploadCredentials = async () => {
     ];
 
     const policy = STS.getPolicy(
-      allowActions.map((action) => ({
-        action,
-        bucket,
-        region,
-        prefix: allowPrefix,
-      }))
+      allowPrefixes.flatMap((prefix) =>
+        allowActions.map((action) => ({
+          action,
+          bucket,
+          region,
+          prefix,
+        }))
+      )
     );
 
     const result = await STS.getCredential({

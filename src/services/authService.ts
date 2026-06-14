@@ -15,6 +15,29 @@ const unwrap = <T>(response: { code: number; message: string; data: CloudResult<
   return response.data.data;
 };
 
+const resolveUserAvatarUrl = async <T extends { profile?: User['profile'] }>(user: T): Promise<T> => {
+  const avatarFileId = user.profile?.avatar_file_id;
+  if (!avatarFileId) {
+    return user;
+  }
+
+  try {
+    const tempUrlMap = await CloudService.getTempFileURLs([avatarFileId]);
+    const resolvedAvatarUrl = tempUrlMap[avatarFileId] || user.profile?.avatar_url || '';
+
+    return {
+      ...user,
+      profile: {
+        ...(user.profile || {}),
+        avatar_url: resolvedAvatarUrl,
+      },
+    };
+  } catch (error) {
+    console.warn('[Auth] resolve avatar url failed:', error);
+    return user;
+  }
+};
+
 class AuthService {
   async appleLogin(payload: AppleLoginPayload): Promise<AuthSession> {
     const response = await CloudService.callFunction<CloudResult<AuthSession>>('chart_user', {
@@ -22,7 +45,11 @@ class AuthService {
       data: payload,
     });
 
-    return unwrap(response);
+    const session = unwrap(response);
+    return {
+      ...session,
+      user: await resolveUserAvatarUrl(session.user),
+    };
   }
 
   async validateSession(token: string): Promise<AuthSession> {
@@ -31,7 +58,11 @@ class AuthService {
       data: { token },
     });
 
-    return unwrap(response);
+    const session = unwrap(response);
+    return {
+      ...session,
+      user: await resolveUserAvatarUrl(session.user),
+    };
   }
 
   async getUser(userId: string): Promise<User> {
@@ -40,7 +71,8 @@ class AuthService {
       data: { _id: userId },
     });
 
-    return unwrap(response);
+    const user = unwrap(response);
+    return resolveUserAvatarUrl(user);
   }
 
   async updateUser(payload: UpdateUserPayload): Promise<boolean> {
