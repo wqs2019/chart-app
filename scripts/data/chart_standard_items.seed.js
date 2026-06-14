@@ -1,3 +1,5 @@
+const { STANDARD_ITEM_ICON_MAP, STANDARD_ITEM_ORIGINAL_ICON_MAP } = require('./standard_item_icons.seed');
+
 const WORLD_COUNTRY_ROWS = [
   ['country_china', '中国', 'China', 'asia', 'A'],
   ['country_japan', '日本', 'Japan', 'asia', 'A'],
@@ -218,7 +220,8 @@ function buildItems(rows, config) {
       name_en: row[2],
       category,
       category_label_zh: categoryLabelZh,
-      icon: '',
+      icon: STANDARD_ITEM_ICON_MAP[row[0]] || '',
+      icon_original: STANDARD_ITEM_ORIGINAL_ICON_MAP[row[0]] || '',
       is_active: true,
       sort_order: index + 1,
     };

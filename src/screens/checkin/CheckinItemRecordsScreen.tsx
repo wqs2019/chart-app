@@ -5,10 +5,12 @@ import React from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MediaPreviewer } from '../../components/common/MediaPreviewer';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
+import { MediaResource } from '../../types/media';
 import { UserCheckin } from '../../types/rank';
 
 type ScreenRouteProp = RouteProp<RootStackParamList, 'CheckinItemRecords'>;
@@ -59,6 +61,7 @@ const CheckinItemRecordsScreen: React.FC = () => {
   const ownerLabel = viewedUserName || (isViewerMode ? '该用户' : '我');
 
   const [entries, setEntries] = React.useState<UserCheckin[]>([]);
+  const [heroPreviewVisible, setHeroPreviewVisible] = React.useState(false);
 
   const horizontalPadding = 32;
   const columnGap = 12;
@@ -112,22 +115,64 @@ const CheckinItemRecordsScreen: React.FC = () => {
     return [left, right];
   }, [cardWidth, entries, item._id]);
 
+  const heroPreviewMedia = React.useMemo<MediaResource[]>(
+    () =>
+      item.icon_original
+        ? [
+            {
+              id: item._id,
+              uri: item.icon_original,
+              thumbnail: item.icon || item.icon_original,
+              type: 'image',
+              name: item.name_zh,
+            },
+          ]
+        : [],
+    [item._id, item.icon, item.icon_original, item.name_zh]
+  );
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ITEM DIARIES</Text>
-          <Text style={[styles.title, { color: colors.text }]}>{item.name_zh}</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {item.name_en || '暂无英文名'} · {item.category_label_zh || item.category}
-          </Text>
-          <View style={styles.heroMetaRow}>
-            <View style={[styles.heroMetaChip, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)' }]}>
-              <Text style={[styles.heroMetaText, { color: colors.primary }]}>{entries.length} 篇记录</Text>
+          <View style={styles.heroCardRow}>
+            <View style={styles.heroContent}>
+              <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ITEM DIARIES</Text>
+              <Text style={[styles.title, { color: colors.text }]}>{item.name_zh}</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                {item.name_en || '暂无英文名'} · {item.category_label_zh || item.category}
+              </Text>
+              <View style={styles.heroMetaRow}>
+                <View style={[styles.heroMetaChip, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)' }]}>
+                  <Text style={[styles.heroMetaText, { color: colors.primary }]}>{entries.length} 篇记录</Text>
+                </View>
+                <View style={[styles.heroMetaChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8EDE4' }]}>
+                  <Text style={[styles.heroMetaText, { color: colors.textSecondary }]}>{ownerLabel}</Text>
+                </View>
+              </View>
             </View>
-            <View style={[styles.heroMetaChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8EDE4' }]}>
-              <Text style={[styles.heroMetaText, { color: colors.textSecondary }]}>{ownerLabel}</Text>
-            </View>
+
+            <Pressable
+              disabled={!item.icon}
+              onPress={() => setHeroPreviewVisible(true)}
+              style={[
+                styles.heroImageWrap,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF6F0' },
+              ]}
+            >
+              {item.icon ? (
+                <>
+                  <Image source={{ uri: item.icon }} style={styles.heroImage} resizeMode="cover" />
+                  <View style={styles.heroImageHint}>
+                    <Ionicons name="expand-outline" size={14} color="#FFFFFF" />
+                  </View>
+                </>
+              ) : (
+                <View style={styles.heroImagePlaceholder}>
+                  <Ionicons name="image-outline" size={22} color={colors.textSecondary} />
+                </View>
+              )}
+            </Pressable>
           </View>
         </View>
 
@@ -263,6 +308,13 @@ const CheckinItemRecordsScreen: React.FC = () => {
             )}
           </View>
         )}
+
+        <MediaPreviewer
+          visible={heroPreviewVisible}
+          media={heroPreviewMedia}
+          initialIndex={0}
+          onClose={() => setHeroPreviewVisible(false)}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -279,6 +331,14 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     borderRadius: 24,
     padding: 18,
+  },
+  heroCardRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  heroContent: {
+    flex: 1,
   },
   eyebrow: {
     fontSize: 12,
@@ -309,6 +369,33 @@ const styles = StyleSheet.create({
   heroMetaText: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  heroImageWrap: {
+    width: 132,
+    height: 88,
+    borderRadius: 18,
+    overflow: 'hidden',
+    flexShrink: 0,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroImagePlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroImageHint: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(15,23,42,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerRow: {
     flexDirection: 'row',

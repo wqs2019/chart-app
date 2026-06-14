@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -337,6 +338,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
       renderItem={({ item }) => {
         const isChecked = checkedIds.has(item._id);
         const entryCount = entryCountMap[item._id] || 0;
+        const itemCoverUri = item.icon?.trim();
         const cardHighlightColor = isDark ? 'rgba(255,155,122,0.18)' : 'rgba(255,122,89,0.08)';
         const cardBaseColor = isDark ? 'rgba(255,255,255,0.02)' : '#FFF8F3';
         const markerColor = isDark ? 'rgba(255,155,122,0.9)' : colors.primary;
@@ -382,9 +384,13 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
                 },
               ]}
             >
-              <Text style={[styles.itemIndexText, { color: isChecked ? '#FFFFFF' : colors.textSecondary }]}>
-                {String(filteredItems.findIndex((entry) => entry._id === item._id) + 1).padStart(2, '0')}
-              </Text>
+              {itemCoverUri ? (
+                <Image source={{ uri: itemCoverUri }} style={styles.itemCoverImage} resizeMode="cover" />
+              ) : (
+                <Text style={[styles.itemIndexText, { color: isChecked ? '#FFFFFF' : colors.textSecondary }]}>
+                  {String(filteredItems.findIndex((entry) => entry._id === item._id) + 1).padStart(2, '0')}
+                </Text>
+              )}
             </View>
             <View style={styles.itemMain}>
               <View style={styles.itemTitleRow}>
@@ -613,10 +619,15 @@ const styles = StyleSheet.create({
   itemIndexBadge: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    overflow: 'hidden',
+  },
+  itemCoverImage: {
+    width: '100%',
+    height: '100%',
   },
   itemIndexText: {
     fontSize: 12,

@@ -19,6 +19,7 @@ export interface StandardItem {
   activity_group?: string;
   tier?: string;     // A, B, C (仅限世界榜)
   icon?: string;
+  icon_original?: string;
   is_active: boolean;
   sort_order: number;
 }
