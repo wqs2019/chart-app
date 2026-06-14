@@ -79,6 +79,32 @@ const HomeScreen: React.FC<Props> = () => {
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>回顾与分享</Text>
+          <View style={styles.rankGrid}>
+            <TouchableOpacity
+              style={[styles.rankCard, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={() => navigation.navigate('YearReview')}
+            >
+              <Text style={styles.rankIcon}>✨</Text>
+              <Text style={[styles.rankTitle, { color: colors.text }]}>年度回顾</Text>
+              <Text style={[styles.rankDesc, { color: colors.textSecondary }]}>
+                查看今年新增记录、当前最强榜单和下一阶段建议。
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.rankCard, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={() => navigation.navigate('AchievementPoster')}
+            >
+              <Text style={styles.rankIcon}>🖼️</Text>
+              <Text style={[styles.rankTitle, { color: colors.text }]}>成就海报</Text>
+              <Text style={[styles.rankDesc, { color: colors.textSecondary }]}>
+                生成你的成绩预览卡，并通过系统分享快速发出去。
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>主题切换</Text>
           <View style={styles.row}>
             {themeOptions.map((item) => {

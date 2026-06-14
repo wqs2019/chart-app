@@ -138,6 +138,51 @@ function roundScore(value) {
   return Number(Number(value || 0).toFixed(2));
 }
 
+function getDateValue(dateLike) {
+  const timestamp = new Date(dateLike || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function resolveScoreUpdatedAt(existingSnapshot, nextFinalScore) {
+  if (
+    existingSnapshot &&
+    Number(existingSnapshot.final_score || 0) === Number(nextFinalScore || 0)
+  ) {
+    return (
+      existingSnapshot.score_updated_at ||
+      existingSnapshot.updated_at ||
+      existingSnapshot.created_at ||
+      new Date().toISOString()
+    );
+  }
+
+  return new Date().toISOString();
+}
+
+function compareSnapshotScoreReachedAt(a, b) {
+  return getDateValue(a.score_updated_at) - getDateValue(b.score_updated_at);
+}
+
+function compareLeaderboardRows(a, b) {
+  if (b.final_score !== a.final_score) {
+    return b.final_score - a.final_score;
+  }
+
+  return compareSnapshotScoreReachedAt(a, b);
+}
+
+function compareOverallRows(a, b) {
+  if (b.final_score !== a.final_score) {
+    return b.final_score - a.final_score;
+  }
+
+  if ((b.world_raw_count || 0) !== (a.world_raw_count || 0)) {
+    return (b.world_raw_count || 0) - (a.world_raw_count || 0);
+  }
+
+  return compareSnapshotScoreReachedAt(a, b);
+}
+
 function createEntryId() {
   return `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -218,6 +263,7 @@ async function enrichSnapshotsWithUserProfile(rows = []) {
       {
         full_name: user.full_name || '',
         username: user.username || '',
+        avatar_url: user.profile?.avatar_url || '',
       },
     ])
   );
@@ -228,6 +274,7 @@ async function enrichSnapshotsWithUserProfile(rows = []) {
       ...row,
       full_name: userProfile.full_name || row.full_name || '',
       username: userProfile.username || row.username || '',
+      avatar_url: userProfile.avatar_url || row.avatar_url || '',
     };
   });
 }
@@ -321,6 +368,7 @@ async function refreshOverallSnapshots() {
       user_id: userId,
       raw_count: 0,
       world_final_score: 0,
+      world_raw_count: 0,
       china_final_score: 0,
       activity_final_score: 0,
     };
@@ -329,6 +377,7 @@ async function refreshOverallSnapshots() {
 
     if (snapshot.leaderboard_code === 'world_travel') {
       current.world_final_score = snapshot.final_score || 0;
+      current.world_raw_count = snapshot.raw_count || 0;
     }
 
     if (snapshot.leaderboard_code === 'china_travel') {
@@ -342,28 +391,34 @@ async function refreshOverallSnapshots() {
     aggregateMap.set(userId, current);
   }
 
+  const { data: existingSnapshots } = await snapshotsCollection
+    .where({
+      leaderboard_code: _.in(getLeaderboardCodeCandidates('overall')),
+    })
+    .limit(5000)
+    .get();
+
+  const existingMap = new Map((existingSnapshots || []).map((item) => [`${item.user_id}_${item.leaderboard_code}`, item]));
+  const nextKeySet = new Set();
   const rows = Array.from(aggregateMap.values())
     .map((entry) => {
       const finalScore = roundScore(
         entry.world_final_score * 0.7 + entry.china_final_score * 0.2 + entry.activity_final_score * 0.1
       );
+      const existingSnapshot = existingMap.get(`${entry.user_id}_overall`);
 
       return {
         user_id: entry.user_id,
         leaderboard_code: 'overall',
         raw_count: entry.raw_count,
+        world_raw_count: entry.world_raw_count,
         achievement_score: finalScore,
         influence_score: 0,
         final_score: finalScore,
+        score_updated_at: resolveScoreUpdatedAt(existingSnapshot, finalScore),
       };
     })
-    .sort((a, b) => {
-      if (b.final_score !== a.final_score) {
-        return b.final_score - a.final_score;
-      }
-
-      return b.raw_count - a.raw_count;
-    })
+    .sort(compareOverallRows)
     .map((entry, index, array) => ({
       ...entry,
       rank: index + 1,
@@ -374,16 +429,6 @@ async function refreshOverallSnapshots() {
       tags: buildSnapshotTags('overall', entry.raw_count),
       updated_at: db.serverDate(),
     }));
-
-  const { data: existingSnapshots } = await snapshotsCollection
-    .where({
-      leaderboard_code: _.in(getLeaderboardCodeCandidates('overall')),
-    })
-    .limit(5000)
-    .get();
-
-  const existingMap = new Map((existingSnapshots || []).map((item) => [`${item.user_id}_${item.leaderboard_code}`, item]));
-  const nextKeySet = new Set();
 
   for (const row of rows) {
     const snapshotKey = `${row.user_id}_${row.leaderboard_code}`;
@@ -396,9 +441,11 @@ async function refreshOverallSnapshots() {
         achievement_score: row.achievement_score,
         influence_score: row.influence_score,
         final_score: row.final_score,
+        world_raw_count: row.world_raw_count,
         rank: row.rank,
         percentile: row.percentile,
         tags: row.tags,
+        score_updated_at: row.score_updated_at,
         updated_at: db.serverDate(),
       });
     } else {
@@ -488,19 +535,28 @@ async function refreshLeaderboardSnapshots(code) {
     aggregateMap.set(userId, current);
   }
 
-  const rows = Array.from(aggregateMap.values())
-    .map((entry) => ({
-      user_id: entry.user_id,
-      leaderboard_code: normalizedCode,
-      ...buildSnapshotMetrics(normalizedCode, entry),
-    }))
-    .sort((a, b) => {
-      if (b.final_score !== a.final_score) {
-        return b.final_score - a.final_score;
-      }
-
-      return b.raw_count - a.raw_count;
+  const { data: existingSnapshots } = await snapshotsCollection
+    .where({
+      leaderboard_code: _.in(codeCandidates),
     })
+    .limit(5000)
+    .get();
+
+  const existingMap = new Map((existingSnapshots || []).map((item) => [`${item.user_id}_${item.leaderboard_code}`, item]));
+  const nextKeySet = new Set();
+  const rows = Array.from(aggregateMap.values())
+    .map((entry) => {
+      const metrics = buildSnapshotMetrics(normalizedCode, entry);
+      const existingSnapshot = existingMap.get(`${entry.user_id}_${normalizedCode}`);
+
+      return {
+        user_id: entry.user_id,
+        leaderboard_code: normalizedCode,
+        ...metrics,
+        score_updated_at: resolveScoreUpdatedAt(existingSnapshot, metrics.final_score),
+      };
+    })
+    .sort(compareLeaderboardRows)
     .map((entry, index, array) => ({
       ...entry,
       rank: index + 1,
@@ -511,16 +567,6 @@ async function refreshLeaderboardSnapshots(code) {
       tags: buildSnapshotTags(normalizedCode, entry.raw_count),
       updated_at: db.serverDate(),
     }));
-
-  const { data: existingSnapshots } = await snapshotsCollection
-    .where({
-      leaderboard_code: _.in(codeCandidates),
-    })
-    .limit(5000)
-    .get();
-
-  const existingMap = new Map((existingSnapshots || []).map((item) => [`${item.user_id}_${item.leaderboard_code}`, item]));
-  const nextKeySet = new Set();
 
   for (const row of rows) {
     const snapshotKey = `${row.user_id}_${row.leaderboard_code}`;
@@ -536,6 +582,7 @@ async function refreshLeaderboardSnapshots(code) {
         rank: row.rank,
         percentile: row.percentile,
         tags: row.tags,
+        score_updated_at: row.score_updated_at,
         updated_at: db.serverDate(),
       });
     } else {
@@ -888,10 +935,7 @@ const getLeaderboardRankings = async (data = {}) => {
         .where({
           leaderboard_code: _.in(codeCandidates),
         })
-        .orderBy('final_score', 'desc')
-        .orderBy('updated_at', 'asc')
-        .skip(skip)
-        .limit(size)
+        .limit(5000)
         .get();
 
     let { data: rows } = await queryRankings();
@@ -901,7 +945,11 @@ const getLeaderboardRankings = async (data = {}) => {
       ({ data: rows } = await queryRankings());
     }
 
-    const enrichedRows = await enrichSnapshotsWithUserProfile(rows || []);
+    const sortedRows = (rows || [])
+      .slice()
+      .sort(normalizedCode === 'overall' ? compareOverallRows : compareLeaderboardRows)
+      .slice(skip, skip + size);
+    const enrichedRows = await enrichSnapshotsWithUserProfile(sortedRows);
     return ok(enrichedRows);
   } catch (error) {
     return fail('获取榜单排名失败', error);

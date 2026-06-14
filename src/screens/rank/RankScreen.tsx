@@ -3,6 +3,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,9 +19,9 @@ import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import {
-  CONTENT_LEADERBOARD_CODES,
   LeaderboardCode,
   LEADERBOARD_CONFIGS,
+  RANK_LEADERBOARD_CODES,
   UserScoreSnapshot,
 } from '../../types/rank';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -40,6 +41,11 @@ const formatScore = (value?: number | null) => {
 
   return Number(value).toFixed(2);
 };
+
+const getAvatarUri = (row: UserScoreSnapshot, currentAvatarUrl?: string) =>
+  row.avatar_url || currentAvatarUrl || '';
+
+const getAvatarFallback = (name: string) => name.trim().charAt(0).toUpperCase() || '游';
 
 const getScoreRuleLines = (code: LeaderboardCode) => {
   if (code === 'world_travel') {
@@ -98,7 +104,7 @@ const RankScreen: React.FC = () => {
   const currentUser = useAppStore((state) => state.currentUser);
   const userId = currentUser?._id;
 
-  const [selectedCode, setSelectedCode] = React.useState<LeaderboardCode>('world_travel');
+  const [selectedCode, setSelectedCode] = React.useState<LeaderboardCode>('overall');
   const [dataByCode, setDataByCode] = React.useState<Partial<Record<LeaderboardCode, RankScreenData>>>({});
   const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
   const [showScoreGuide, setShowScoreGuide] = React.useState(false);
@@ -203,7 +209,7 @@ const RankScreen: React.FC = () => {
         </View>
 
         <LeaderboardSwitcher
-          codes={CONTENT_LEADERBOARD_CODES}
+          codes={RANK_LEADERBOARD_CODES}
           selectedCode={selectedCode}
           onChange={setSelectedCode}
         />
@@ -255,9 +261,9 @@ const RankScreen: React.FC = () => {
           ) : (
             <>
               <Pressable
-                disabled={!myRank}
+                disabled={!myRank || selectedCode === 'overall'}
                 onPress={() => {
-                  if (myRank && userId) {
+                  if (myRank && userId && selectedCode !== 'overall') {
                     openCheckinScreen({
                       code: selectedCode,
                       viewedUserId: userId,
@@ -323,17 +329,23 @@ const RankScreen: React.FC = () => {
                     (isMine ? currentUser?.fullName : row.full_name) ||
                     row.username ||
                     `用户 ${String(row.user_id).slice(-6)}`;
+                  const avatarUri = getAvatarUri(row, isMine ? currentUser?.profile?.avatar_url || '' : '');
+                  const avatarFallback = getAvatarFallback(displayName);
 
                   return (
                     <Pressable
-                      onPress={() =>
+                      onPress={() => {
+                        if (selectedCode === 'overall') {
+                          return;
+                        }
+
                         openCheckinScreen({
                           code: selectedCode,
                           viewedUserId: row.user_id,
                           viewedUserName: displayName,
                           readOnly: true,
-                        })
-                      }
+                        });
+                      }}
                       key={`${row.user_id}-${displayRank}`}
                       style={[
                         styles.rankRow,
@@ -364,6 +376,21 @@ const RankScreen: React.FC = () => {
                         <Text style={{ color: isMine ? '#FFFFFF' : colors.text, fontWeight: '800' }}>
                           {displayRank}
                         </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.avatarWrap,
+                          {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#EEF3F9',
+                            borderColor: isMine ? colors.primary : colors.border,
+                          },
+                        ]}
+                      >
+                        {avatarUri ? (
+                          <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                        ) : (
+                          <Text style={[styles.avatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
+                        )}
                       </View>
                       <View style={styles.rankMain}>
                         <View style={styles.rankNameRow}>
@@ -408,7 +435,7 @@ const RankScreen: React.FC = () => {
                           {formatScore(row.final_score)}
                         </Text>
                         <Text style={[styles.rankScoreLabel, { color: colors.textSecondary }]}>
-                          查看列表
+                          {selectedCode === 'overall' ? '综合成绩' : '查看列表'}
                         </Text>
                       </View>
                     </Pressable>
@@ -660,6 +687,24 @@ const styles = StyleSheet.create({
   },
   rankMain: {
     flex: 1,
+  },
+  avatarWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  avatar: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarFallback: {
+    fontSize: 16,
+    fontWeight: '800',
   },
   rankNameRow: {
     flexDirection: 'row',

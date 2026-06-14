@@ -10,6 +10,8 @@ import AccountSecurityScreen from '../screens/me/AccountSecurityScreen';
 import AppSettingsScreen from '../screens/me/AppSettingsScreen';
 import EditProfileScreen from '../screens/me/EditProfileScreen';
 import HelpFeedbackScreen from '../screens/me/HelpFeedbackScreen';
+import YearReviewScreen from '../screens/me/YearReviewScreen';
+import AchievementPosterScreen from '../screens/me/AchievementPosterScreen';
 import MainTabsScreen from '../screens/tabs/MainTabsScreen';
 import { useAppStore } from '../store/appStore';
 import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
@@ -22,6 +24,8 @@ export type RootStackParamList = {
   AppSettings: undefined;
   AboutApp: undefined;
   HelpFeedback: undefined;
+  YearReview: undefined;
+  AchievementPoster: undefined;
   Checkin: {
     code: LeaderboardCode;
     viewedUserId?: string;
@@ -61,6 +65,12 @@ export const RootNavigator = () => {
           <Stack.Screen name="AppSettings" component={AppSettingsScreen} options={{ title: '应用设置' }} />
           <Stack.Screen name="AboutApp" component={AboutAppScreen} options={{ title: '关于 App' }} />
           <Stack.Screen name="HelpFeedback" component={HelpFeedbackScreen} options={{ title: '帮助与反馈' }} />
+          <Stack.Screen name="YearReview" component={YearReviewScreen} options={{ title: '年度回顾' }} />
+          <Stack.Screen
+            name="AchievementPoster"
+            component={AchievementPosterScreen}
+            options={{ title: '成就海报' }}
+          />
           <Stack.Screen name="Checkin" component={CheckinScreen} />
           <Stack.Screen name="CheckinItemRecords" component={CheckinItemRecordsScreen} />
           <Stack.Screen name="CheckinEntryDetail" component={CheckinEntryDetailScreen} />

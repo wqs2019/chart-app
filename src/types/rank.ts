@@ -6,6 +6,11 @@ export const CONTENT_LEADERBOARD_CODES: LeaderboardCode[] = [
   'activity',
 ];
 
+export const RANK_LEADERBOARD_CODES: LeaderboardCode[] = [
+  'overall',
+  ...CONTENT_LEADERBOARD_CODES,
+];
+
 export interface StandardItem {
   _id: string;
   type: 'world_travel' | 'china_travel' | 'activity';
@@ -75,6 +80,7 @@ export interface UserScoreSnapshot {
   user_id: string;
   full_name?: string;
   username?: string;
+  avatar_url?: string;
   leaderboard_code: LeaderboardCode;
   raw_count: number;
   achievement_score: number;
@@ -83,6 +89,8 @@ export interface UserScoreSnapshot {
   rank: number;
   percentile: number;
   tags: string[];
+  score_updated_at?: Date | string;
+  world_raw_count?: number;
   updated_at: Date | string;
 }
 
