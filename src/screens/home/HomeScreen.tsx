@@ -1,127 +1,295 @@
-import { NavigationProp, useNavigation } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { NavigationProp, useFocusEffect, useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
-
-import { LEADERBOARD_CONFIGS, LeaderboardCode } from '../../types/rank';
-
-const themeOptions: Array<{ label: string; value: 'light' | 'dark' | 'system' }> = [
-  { label: '浅色', value: 'light' },
-  { label: '深色', value: 'dark' },
-  { label: '跟随系统', value: 'system' },
-];
+import { LEADERBOARD_CONFIGS, LeaderboardCode, UserScoreSnapshot } from '../../types/rank';
 
 const rankOptions: LeaderboardCode[] = ['world_travel', 'china_travel', 'activity'];
+const summaryCodes: LeaderboardCode[] = ['overall', ...rankOptions];
+
+type SummaryMap = Partial<Record<LeaderboardCode, UserScoreSnapshot | null>>;
+type HomeTabParamList = {
+  Home: undefined;
+  Rank: undefined;
+  Checkin: { code?: LeaderboardCode } | undefined;
+  Me: undefined;
+};
 
 type Props = object;
 
-const HomeScreen: React.FC<Props> = () => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { colors } = useAppTheme();
-  const theme = useAppStore((state) => state.theme);
-  const setTheme = useAppStore((state) => state.setTheme);
-  const signOut = useAppStore((state) => state.signOut);
-  const [toolboxVisible, setToolboxVisible] = React.useState(false);
+const formatScore = (value?: number | null) => Number(value || 0).toFixed(2);
 
-  const handleClearCache = () => {
-    Alert.alert(
-      '清除登录缓存',
-      '确定要清除本地登录缓存吗？下次打开 App 将返回登录页。',
-      [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定', style: 'destructive', onPress: async () => {
-            try {
-              await signOut();
-            } catch (err) {
-              console.error('[Clear Cache] error:', err);
-            } finally {
-              setToolboxVisible(false);
-            }
-          },
-        },
-      ],
-    );
-  };
+const formatRank = (value?: number | null) => (value ? `#${value}` : '未上榜');
+
+const getLeaderboardIcon = (code: LeaderboardCode): keyof typeof Ionicons.glyphMap => {
+  if (code === 'world_travel') {
+    return 'earth-outline';
+  }
+
+  if (code === 'china_travel') {
+    return 'map-outline';
+  }
+
+  if (code === 'activity') {
+    return 'flash-outline';
+  }
+
+  return 'trophy-outline';
+};
+
+const getRecommendedCode = (summaryByCode: SummaryMap): LeaderboardCode => {
+  const missingCode = rankOptions.find((code) => !summaryByCode[code]?.raw_count);
+  if (missingCode) {
+    return missingCode;
+  }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text }]}>成就排行榜</Text>
-          <Text style={[styles.desc, { color: colors.textSecondary }]}>
-            记录你的精彩经历，在不同榜单中获得排名和成就感。
-          </Text>
+    rankOptions
+      .slice()
+      .sort((a, b) => (summaryByCode[a]?.raw_count || 0) - (summaryByCode[b]?.raw_count || 0))[0] || 'world_travel'
+  );
+};
+
+const HomeScreen: React.FC<Props> = () => {
+  const tabNavigation = useNavigation<NavigationProp<HomeTabParamList>>();
+  const navigation = tabNavigation.getParent<NavigationProp<RootStackParamList>>();
+  const { colors, isDark } = useAppTheme();
+  const currentUser = useAppStore((state) => state.currentUser);
+  const [summaryByCode, setSummaryByCode] = React.useState<SummaryMap>({});
+  const [loadingSummary, setLoadingSummary] = React.useState(false);
+
+  const displayName =
+    currentUser?.fullName || currentUser?.profile?.nickname || currentUser?.username || '旅行玩家';
+  const avatarUrl = currentUser?.profile?.avatar_url || '';
+  const avatarFallback = displayName.trim().charAt(0).toUpperCase() || '旅';
+
+  const fetchSummary = React.useCallback(async () => {
+    if (!currentUser?._id) {
+      setSummaryByCode({});
+      return;
+    }
+
+    try {
+      setLoadingSummary(true);
+      const rows = await Promise.all(
+        summaryCodes.map(async (code) => [code, await rankService.getMyRank(currentUser._id, code)] as const)
+      );
+      setSummaryByCode(Object.fromEntries(rows));
+    } finally {
+      setLoadingSummary(false);
+    }
+  }, [currentUser?._id]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      void fetchSummary();
+    }, [fetchSummary])
+  );
+
+  const overallSnapshot = summaryByCode.overall;
+  const recommendedCode = React.useMemo(() => getRecommendedCode(summaryByCode), [summaryByCode]);
+  const recommendedConfig = LEADERBOARD_CONFIGS[recommendedCode];
+  const totalCheckins = rankOptions.reduce((sum, code) => sum + (summaryByCode[code]?.raw_count || 0), 0);
+
+  const openCheckin = React.useCallback(
+    (code: LeaderboardCode) => {
+      navigation?.navigate('Checkin', { code });
+    },
+    [navigation]
+  );
+
+  const openRankTab = React.useCallback(() => {
+    tabNavigation.navigate('Rank');
+  }, [tabNavigation]);
+
+  return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: isDark ? 'rgba(255,155,122,0.12)' : '#FFF4EC',
+            },
+          ]}
+        >
+          <View style={styles.heroTopRow}>
+            <View style={styles.heroCopyWrap}>
+              <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ACHIEVEMENT HOME</Text>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {displayName}，继续刷新你的成就排行榜
+              </Text>
+              <Text style={[styles.desc, { color: colors.textSecondary }]}>
+                首页先告诉你现在到了哪一步，再把你送到最值得继续行动的地方。
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.heroAvatarWrap,
+                {
+                  backgroundColor: avatarUrl ? 'transparent' : isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                },
+              ]}
+            >
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.heroAvatar} />
+              ) : (
+                <Text style={[styles.heroAvatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.heroStatsRow}>
+            <View style={[styles.heroStatCard, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.heroStatLabel, { color: colors.textSecondary }]}>综合总分</Text>
+              <Text style={[styles.heroStatValue, { color: colors.text }]}>
+                {loadingSummary ? '--.--' : formatScore(overallSnapshot?.final_score)}
+              </Text>
+            </View>
+            <View style={[styles.heroStatCard, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.heroStatLabel, { color: colors.textSecondary }]}>当前排名</Text>
+              <Text style={[styles.heroStatValue, { color: colors.text }]}>
+                {loadingSummary ? '--' : formatRank(overallSnapshot?.rank)}
+              </Text>
+            </View>
+            <View style={[styles.heroStatCard, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.heroStatLabel, { color: colors.textSecondary }]}>累计录入</Text>
+              <Text style={[styles.heroStatValue, { color: colors.text }]}>{totalCheckins}</Text>
+            </View>
+          </View>
+
+          <View style={styles.heroActionRow}>
+            <Pressable
+              onPress={() => openCheckin(recommendedCode)}
+              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+            >
+              <Text style={styles.primaryButtonText}>继续补录 {recommendedConfig.title}</Text>
+              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+            </Pressable>
+            <Pressable
+              onPress={openRankTab}
+              style={[styles.secondaryButton, { backgroundColor: colors.surface }]}
+            >
+              <Ionicons name="trophy-outline" size={16} color={colors.primary} />
+              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>查看榜单</Text>
+            </Pressable>
+          </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>成就录入</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionHeaderText}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>核心入口</Text>
+              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+                首页负责分发最重要的榜单、回顾和分享入口。
+              </Text>
+            </View>
+            {loadingSummary ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+          </View>
+
+          <Pressable
+            onPress={openRankTab}
+            style={[
+              styles.primaryFeatureCard,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF',
+              },
+            ]}
+          >
+            <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' }]}>
+              <Ionicons name="trophy-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.featureTextWrap}>
+              <Text style={[styles.featureTitle, { color: colors.text }]}>综合榜单与三大子榜</Text>
+              <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>
+                查看综合总榜、世界旅游榜、中国旅游榜和玩乐项目榜的当前表现。
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          </Pressable>
+
+          <View style={styles.secondaryFeatureGrid}>
+            <Pressable
+              onPress={() => navigation.navigate('YearReview')}
+              style={[
+                styles.secondaryFeatureCard,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
+              ]}
+            >
+              <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(99,102,241,0.22)' : '#EEF2FF' }]}>
+                <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[styles.featureTitle, { color: colors.text }]}>年度回顾</Text>
+              <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>回顾今年新增与成长轨迹。</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => navigation.navigate('AchievementPoster')}
+              style={[
+                styles.secondaryFeatureCard,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
+              ]}
+            >
+              <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.18)' : '#FFF1E8' }]}>
+                <Ionicons name="image-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[styles.featureTitle, { color: colors.text }]}>成就海报</Text>
+              <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>把当前成绩快速分享出去。</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>继续录入</Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+            推荐优先补录 {recommendedConfig.title}，它最有机会继续抬高你的综合成绩。
+          </Text>
           <View style={styles.rankGrid}>
             {rankOptions.map((code) => {
               const config = LEADERBOARD_CONFIGS[code];
-              return (
-                <TouchableOpacity
-                  key={code}
-                  style={[styles.rankCard, { backgroundColor: colors.background, borderColor: colors.border }]}
-                  onPress={() => navigation.navigate('Checkin', { code })}
-                >
-                  <Text style={styles.rankIcon}>{config.icon === 'earth' ? '🌍' : config.icon === 'map' ? '🗺️' : '⚡'}</Text>
-                  <Text style={[styles.rankTitle, { color: colors.text }]}>{config.title}</Text>
-                  <Text style={[styles.rankDesc, { color: colors.textSecondary }]}>{config.description}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+              const snapshot = summaryByCode[code];
+              const isRecommended = code === recommendedCode;
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>回顾与分享</Text>
-          <View style={styles.rankGrid}>
-            <TouchableOpacity
-              style={[styles.rankCard, { backgroundColor: colors.background, borderColor: colors.border }]}
-              onPress={() => navigation.navigate('YearReview')}
-            >
-              <Text style={styles.rankIcon}>✨</Text>
-              <Text style={[styles.rankTitle, { color: colors.text }]}>年度回顾</Text>
-              <Text style={[styles.rankDesc, { color: colors.textSecondary }]}>
-                查看今年新增记录、当前最强榜单和下一阶段建议。
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.rankCard, { backgroundColor: colors.background, borderColor: colors.border }]}
-              onPress={() => navigation.navigate('AchievementPoster')}
-            >
-              <Text style={styles.rankIcon}>🖼️</Text>
-              <Text style={[styles.rankTitle, { color: colors.text }]}>成就海报</Text>
-              <Text style={[styles.rankDesc, { color: colors.textSecondary }]}>
-                生成你的成绩预览卡，并通过系统分享快速发出去。
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>主题切换</Text>
-          <View style={styles.row}>
-            {themeOptions.map((item) => {
-              const active = theme === item.value;
               return (
                 <Pressable
-                  key={item.value}
+                  key={code}
                   style={[
-                    styles.themeButton,
+                    styles.rankCard,
                     {
-                      backgroundColor: active ? colors.primary : colors.background,
-                      borderColor: active ? colors.primary : colors.border,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF',
+                      borderColor: isRecommended ? colors.primary : 'transparent',
                     },
                   ]}
-                  onPress={() => setTheme(item.value)}
+                  onPress={() => openCheckin(code)}
                 >
-                  <Text style={{ color: active ? '#FFFFFF' : colors.text }}>{item.label}</Text>
+                  <View style={styles.rankCardTopRow}>
+                    <View style={[styles.rankIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' }]}>
+                      <Ionicons name={getLeaderboardIcon(code)} size={18} color={colors.primary} />
+                    </View>
+                    {isRecommended ? (
+                      <View style={[styles.recommendBadge, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' }]}>
+                        <Text style={[styles.recommendBadgeText, { color: colors.primary }]}>推荐</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={[styles.rankTitle, { color: colors.text }]}>{config.title}</Text>
+                  <Text style={[styles.rankDesc, { color: colors.textSecondary }]}>{config.description}</Text>
+                  <View style={styles.rankMetricsRow}>
+                    <View style={styles.rankMetricItem}>
+                      <Text style={[styles.rankMetricValue, { color: colors.text }]}>{snapshot?.raw_count ?? 0}</Text>
+                      <Text style={[styles.rankMetricLabel, { color: colors.textSecondary }]}>已录入</Text>
+                    </View>
+                    <View style={styles.rankMetricItem}>
+                      <Text style={[styles.rankMetricValue, { color: colors.text }]}>{formatRank(snapshot?.rank)}</Text>
+                      <Text style={[styles.rankMetricLabel, { color: colors.textSecondary }]}>当前排名</Text>
+                    </View>
+                  </View>
                 </Pressable>
               );
             })}
@@ -129,140 +297,233 @@ const HomeScreen: React.FC<Props> = () => {
         </View>
 
       </ScrollView>
-
-      <TouchableOpacity
-        style={[styles.floatingButton, { backgroundColor: colors.primary }]}
-        onPress={() => setToolboxVisible(!toolboxVisible)}
-      >
-        <Text style={styles.floatingButtonIcon}>⚙️</Text>
-      </TouchableOpacity>
-
-      {toolboxVisible && (
-        <>
-          <Pressable
-            style={styles.overlay}
-            onPress={() => setToolboxVisible(false)}
-          />
-          <View style={[styles.toolboxMenu, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <TouchableOpacity
-              style={styles.toolboxItem}
-              onPress={handleClearCache}
-            >
-              <Text style={styles.toolboxIcon}>🧹</Text>
-              <Text style={[styles.toolboxLabel, { color: colors.text }]}>清除登录缓存</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  content: { padding: 16, gap: 16 },
-  card: {
-    borderWidth: 1,
-    borderRadius: 16,
+  safeArea: {
+    flex: 1,
+  },
+  content: {
     padding: 16,
+    paddingBottom: 120,
+    gap: 16,
+  },
+  card: {
+    borderRadius: 24,
+    padding: 18,
+  },
+  heroCard: {
+    borderRadius: 28,
+    padding: 20,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  heroCopyWrap: {
+    flex: 1,
+  },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
+    marginTop: 8,
+    fontSize: 28,
+    fontWeight: '900',
   },
   desc: {
+    marginTop: 10,
     fontSize: 14,
-    lineHeight: 22,
-    marginTop: 8,
+    lineHeight: 21,
   },
-  rankGrid: {
-    gap: 12,
+  heroAvatarWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 24,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  rankCard: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+  heroAvatar: {
+    width: '100%',
+    height: '100%',
   },
-  rankIcon: {
+  heroAvatarFallback: {
     fontSize: 24,
-    marginBottom: 8,
+    fontWeight: '900',
   },
-  rankTitle: {
-    fontSize: 16,
+  heroStatsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  heroStatCard: {
+    flex: 1,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+  },
+  heroStatLabel: {
+    fontSize: 12,
     fontWeight: '600',
   },
-  rankDesc: {
-    fontSize: 12,
-    marginTop: 4,
+  heroStatValue: {
+    marginTop: 6,
+    fontSize: 18,
+    fontWeight: '900',
   },
-  row: {
+  heroActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  primaryButton: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 14,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  secondaryButton: {
+    minHeight: 46,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
   },
-  themeButton: {
-    flex: 1,
-    height: 40,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
-  floatingButton: {
-    position: 'absolute',
-    right: 16,
-    top: 40,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  floatingButtonIcon: {
-    fontSize: 24,
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  toolboxMenu: {
-    position: 'absolute',
-    right: 16,
-    top: 96,
-    minWidth: 180,
-    borderRadius: 12,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  toolboxItem: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sectionHeaderText: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  sectionSubtitle: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  primaryFeatureCard: {
+    marginTop: 12,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
-  toolboxIcon: {
-    fontSize: 18,
+  secondaryFeatureGrid: {
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 10,
   },
-  toolboxLabel: {
-    fontSize: 16,
-    fontWeight: '500',
+  secondaryFeatureCard: {
+    flex: 1,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  featureIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureTextWrap: {
+    flex: 1,
+  },
+  featureTitle: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  featureDesc: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  rankGrid: {
+    gap: 10,
+    marginTop: 12,
+  },
+  rankCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  rankCardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rankIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recommendBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  recommendBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  rankTitle: {
+    marginTop: 10,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  rankDesc: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  rankMetricsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  rankMetricItem: {
+    flex: 1,
+  },
+  rankMetricValue: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  rankMetricLabel: {
+    marginTop: 2,
+    fontSize: 10,
   },
 });
 
