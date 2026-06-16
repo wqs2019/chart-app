@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Audio, ResizeMode, Video } from 'expo-av';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   FlatList,
@@ -52,6 +53,9 @@ const MediaItem = ({
   onZoomStateChange?: (isZoomed: boolean) => void;
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMediaLoading, setIsMediaLoading] = useState(
+    item.type === 'image' || item.type === 'livePhoto' || item.type === 'video'
+  );
   const videoRef = useRef<Video>(null);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -59,6 +63,10 @@ const MediaItem = ({
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
+
+  useEffect(() => {
+    setIsMediaLoading(item.type === 'image' || item.type === 'livePhoto' || item.type === 'video');
+  }, [item.type, item.uri]);
 
   useEffect(() => {
     if (!isFocused && isPlaying) {
@@ -221,6 +229,9 @@ const MediaItem = ({
               useNativeControls
               shouldPlay={isFocused}
               isLooping
+              onLoadStart={() => setIsMediaLoading(true)}
+              onReadyForDisplay={() => setIsMediaLoading(false)}
+              onError={() => setIsMediaLoading(false)}
             />
           ) : (
             <Reanimated.View style={[styles.zoomableContent, animatedImageStyle]}>
@@ -228,6 +239,9 @@ const MediaItem = ({
                 source={{ uri: item.uri }}
                 style={[styles.fullScreen, { opacity: isPlaying ? 0 : 1 }]}
                 resizeMode="contain"
+                onLoadStart={() => setIsMediaLoading(true)}
+                onLoadEnd={() => setIsMediaLoading(false)}
+                onError={() => setIsMediaLoading(false)}
               />
 
               {item.type === 'livePhoto' && item.livePhotoVideoUri ? (
@@ -244,15 +258,16 @@ const MediaItem = ({
             </Reanimated.View>
           )}
 
+          {isMediaLoading ? (
+            <View style={styles.loadingOverlay} pointerEvents="none">
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            </View>
+          ) : null}
+
           {item.type === 'livePhoto' ? (
             <View style={styles.liveIndicator}>
               <Ionicons name="aperture" size={16} color="#FFF" />
               <Text style={styles.liveText}>实况</Text>
-            </View>
-          ) : null}
-          {item.type === 'image' || item.type === 'livePhoto' ? (
-            <View style={styles.zoomHint}>
-              <Text style={styles.zoomHintText}>双指缩放，双击还原</Text>
             </View>
           ) : null}
         </View>
@@ -291,6 +306,11 @@ export const MediaPreviewer: React.FC<MediaPreviewerProps> = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) =>
+        gestureState.numberActiveTouches === 1 &&
+        !isZoomedRef.current &&
+        gestureState.dy > 5 &&
+        Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+      onMoveShouldSetPanResponderCapture: (_, gestureState) =>
         gestureState.numberActiveTouches === 1 &&
         !isZoomedRef.current &&
         gestureState.dy > 5 &&
@@ -361,6 +381,9 @@ export const MediaPreviewer: React.FC<MediaPreviewerProps> = ({
     itemVisiblePercentThreshold: 50,
   }).current;
 
+  const currentItem = media[currentIndex];
+  const showZoomHint = currentItem?.type === 'image' || currentItem?.type === 'livePhoto';
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Animated.View style={[styles.container, { opacity: bgOpacity }]}>
@@ -402,6 +425,12 @@ export const MediaPreviewer: React.FC<MediaPreviewerProps> = ({
             initialScrollIndex={initialIndex >= 0 && initialIndex < media.length ? initialIndex : 0}
           />
         </Animated.View>
+
+        {showZoomHint ? (
+          <View style={styles.zoomHint} pointerEvents="none">
+            <Text style={styles.zoomHintText}>双指缩放，双击还原</Text>
+          </View>
+        ) : null}
       </Animated.View>
     </Modal>
   );
@@ -471,17 +500,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   zoomHint: {
     position: 'absolute',
     bottom: 36,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   zoomHintText: {
     color: '#FFF',
     fontSize: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
 });
