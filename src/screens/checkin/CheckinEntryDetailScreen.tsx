@@ -3,6 +3,7 @@ import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
 import {
+  Animated,
   Alert,
   Image,
   Keyboard,
@@ -96,6 +97,14 @@ const getCommentDisplayName = (comment: CheckinComment) =>
 
 const getCommentAvatarFallback = (comment: CheckinComment) => getAvatarFallback(getCommentDisplayName(comment));
 
+const getDefaultInteraction = () => ({
+  likes_count: 0,
+  comments_count: 0,
+  favorites_count: 0,
+  viewer_has_liked: false,
+  viewer_has_favorited: false,
+});
+
 const REPORT_REASON_OPTIONS: Array<{ value: ReportReason; label: string }> = [
   { value: 'spam', label: '垃圾广告' },
   { value: 'abuse', label: '辱骂攻击' },
@@ -133,16 +142,13 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const [reportDescription, setReportDescription] = React.useState('');
   const [reportSubmitting, setReportSubmitting] = React.useState(false);
   const commentInputRef = React.useRef<TextInput>(null);
+  const likeButtonScale = React.useRef(new Animated.Value(1)).current;
+  const commentButtonScale = React.useRef(new Animated.Value(1)).current;
+  const favoriteButtonScale = React.useRef(new Animated.Value(1)).current;
 
   const attachments = currentEntry.content?.attachments || [];
   const noteMedia = React.useMemo(() => mapAttachmentsToMedia(attachments), [attachments]);
-  const interaction = currentEntry.interaction || {
-    likes_count: 0,
-    comments_count: 0,
-    favorites_count: 0,
-    viewer_has_liked: false,
-    viewer_has_favorited: false,
-  };
+  const interaction = currentEntry.interaction || getDefaultInteraction();
   const comments = currentEntry.comments || currentEntry.content?.comments || [];
   const authorUser: DisplayUser = isViewerMode ? authorProfile : currentUser;
   const displayName = isViewerMode && viewedUserName ? viewedUserName : getDisplayName(authorUser);
@@ -250,16 +256,74 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const bottomBarPaddingBottom = Math.max(insets.bottom, 10);
   const composerOffsetBottom = keyboardHeight;
 
+  const playButtonFeedback = React.useCallback((scaleValue: Animated.Value) => {
+    Animated.sequence([
+      Animated.timing(scaleValue, {
+        toValue: 0.9,
+        duration: 70,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleValue, {
+        toValue: 1,
+        friction: 5,
+        tension: 220,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const applyOptimisticInteraction = React.useCallback(
+    (type: 'like' | 'favorite') => {
+      setCurrentEntry((prev) => {
+        const previousInteraction = prev.interaction || prev.content?.interaction || getDefaultInteraction();
+        const nextInteraction =
+          type === 'like'
+            ? {
+                ...previousInteraction,
+                viewer_has_liked: !previousInteraction.viewer_has_liked,
+                likes_count: Math.max(
+                  0,
+                  previousInteraction.likes_count + (previousInteraction.viewer_has_liked ? -1 : 1)
+                ),
+              }
+            : {
+                ...previousInteraction,
+                viewer_has_favorited: !previousInteraction.viewer_has_favorited,
+                favorites_count: Math.max(
+                  0,
+                  previousInteraction.favorites_count + (previousInteraction.viewer_has_favorited ? -1 : 1)
+                ),
+              };
+
+        return {
+          ...prev,
+          interaction: nextInteraction,
+          content: prev.content
+            ? {
+                ...prev.content,
+                interaction: nextInteraction,
+              }
+            : prev.content,
+        };
+      });
+    },
+    [setCurrentEntry]
+  );
+
   const handleToggleLike = async () => {
     if (!userId || !targetUserId) {
       return;
     }
 
+    const previousEntry = currentEntry;
     try {
       setInteractionSubmitting('like');
+      playButtonFeedback(likeButtonScale);
+      applyOptimisticInteraction('like');
       const nextEntry = await checkinInteractionService.toggleLike(interactionPayload);
       setCurrentEntry(nextEntry);
     } catch (error) {
+      setCurrentEntry(previousEntry);
       Alert.alert('操作失败', '点赞暂时不可用，请稍后重试。');
     } finally {
       setInteractionSubmitting(null);
@@ -271,11 +335,15 @@ const CheckinEntryDetailScreen: React.FC = () => {
       return;
     }
 
+    const previousEntry = currentEntry;
     try {
       setInteractionSubmitting('favorite');
+      playButtonFeedback(favoriteButtonScale);
+      applyOptimisticInteraction('favorite');
       const nextEntry = await checkinInteractionService.toggleFavorite(interactionPayload);
       setCurrentEntry(nextEntry);
     } catch (error) {
+      setCurrentEntry(previousEntry);
       Alert.alert('操作失败', '收藏暂时不可用，请稍后重试。');
     } finally {
       setInteractionSubmitting(null);
@@ -689,50 +757,64 @@ const CheckinEntryDetailScreen: React.FC = () => {
             </View>
 
             <View style={styles.bottomStats}>
-              <Pressable
-                onPress={handleToggleLike}
-                style={styles.bottomStatItem}
-                disabled={interactionSubmitting !== null}
-              >
-                <Ionicons
-                  name={interaction.viewer_has_liked ? 'heart' : 'heart-outline'}
-                  size={22}
-                  color={interaction.viewer_has_liked ? colors.primary : colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.bottomStatText,
-                    { color: interaction.viewer_has_liked ? colors.primary : colors.textSecondary },
-                  ]}
+              <Animated.View style={{ transform: [{ scale: likeButtonScale }] }}>
+                <Pressable
+                  onPress={handleToggleLike}
+                  style={styles.bottomStatItem}
+                  disabled={interactionSubmitting === 'like'}
                 >
-                  {interaction.likes_count || 0}
-                </Text>
-              </Pressable>
+                  <Ionicons
+                    name={interaction.viewer_has_liked ? 'heart' : 'heart-outline'}
+                    size={22}
+                    color={interaction.viewer_has_liked ? colors.primary : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.bottomStatText,
+                      { color: interaction.viewer_has_liked ? colors.primary : colors.textSecondary },
+                    ]}
+                  >
+                    {interaction.likes_count || 0}
+                  </Text>
+                </Pressable>
+              </Animated.View>
 
-              <Pressable onPress={openComposer} style={styles.bottomStatItem}>
-                <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.textSecondary} />
-                <Text style={[styles.bottomStatText, { color: colors.textSecondary }]}>{interaction.comments_count || 0}</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={handleToggleFavorite}
-                style={styles.bottomStatItem}
-                disabled={interactionSubmitting !== null}
-              >
-                <Ionicons
-                  name={interaction.viewer_has_favorited ? 'star' : 'star-outline'}
-                  size={22}
-                  color={interaction.viewer_has_favorited ? colors.primary : colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.bottomStatText,
-                    { color: interaction.viewer_has_favorited ? colors.primary : colors.textSecondary },
-                  ]}
+              <Animated.View style={{ transform: [{ scale: commentButtonScale }] }}>
+                <Pressable
+                  onPress={() => {
+                    playButtonFeedback(commentButtonScale);
+                    openComposer();
+                  }}
+                  style={styles.bottomStatItem}
                 >
-                  {interaction.favorites_count || 0}
-                </Text>
-              </Pressable>
+                  <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.textSecondary} />
+                  <Text style={[styles.bottomStatText, { color: colors.textSecondary }]}>
+                    {interaction.comments_count || 0}
+                  </Text>
+                </Pressable>
+              </Animated.View>
+
+              <Animated.View style={{ transform: [{ scale: favoriteButtonScale }] }}>
+                <Pressable
+                  onPress={handleToggleFavorite}
+                  style={styles.bottomStatItem}
+                  disabled={interactionSubmitting === 'favorite'}
+                >
+                  <Ionicons
+                    name={interaction.viewer_has_favorited ? 'star' : 'star-outline'}
+                    size={22}
+                    color={interaction.viewer_has_favorited ? colors.primary : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.bottomStatText,
+                      { color: interaction.viewer_has_favorited ? colors.primary : colors.textSecondary },
+                    ]}
+                  >
+                    {interaction.favorites_count || 0}
+                  </Text>
+                </Pressable>
+              </Animated.View>
             </View>
           </View>
         </View>
