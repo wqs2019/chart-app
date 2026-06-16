@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ToastProvider } from './src/components/common/Toast';
 import { useNotificationBootstrap } from './src/hooks/useNotificationBootstrap';
 import { useAppTheme } from './src/hooks/useAppTheme';
 import { Navigation } from './src/navigation';
@@ -47,8 +48,10 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <Bootstrap />
+        <ToastProvider>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+          <Bootstrap />
+        </ToastProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -19,7 +19,8 @@
           "cameraPermission": "允许使用相机，用于给榜单记录拍摄图片和视频附件。",
           "microphonePermission": "允许使用麦克风，用于录制带声音的视频附件。"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "ios": {
       "supportsTablet": true,

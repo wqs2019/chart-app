@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import MediaSelector from '../../components/common/MediaSelector';
+import DateFieldPicker from '../../components/common/DateFieldPicker';
+import { useToast } from '../../components/common/Toast';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { checkinService } from '../../services/checkinService';
@@ -31,6 +33,7 @@ const CheckinEntryEditorScreen: React.FC = () => {
   const route = useRoute<ScreenRouteProp>();
   const navigation = useNavigation<ScreenNavigationProp>();
   const { colors, isDark } = useAppTheme();
+  const toast = useToast();
   const currentUser = useAppStore((state) => state.currentUser);
   const { item, entry } = route.params;
   const userId = currentUser?._id;
@@ -71,12 +74,8 @@ const CheckinEntryEditorScreen: React.FC = () => {
         mood,
       });
 
-      Alert.alert('保存成功', '录入记录已保存。', [
-        {
-          text: '好的',
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+      toast.success('录入记录已保存');
+      navigation.goBack();
     } catch (error) {
       Alert.alert('保存失败', '当前记录保存失败，请稍后再试。');
     } finally {
@@ -134,14 +133,7 @@ const CheckinEntryEditorScreen: React.FC = () => {
           </View>
 
           <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.label, { color: colors.text }]}>时间</Text>
-            <TextInput
-              value={visitTime}
-              onChangeText={setVisitTime}
-              placeholder="例如 2026-06-13"
-              placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' }]}
-            />
+            <DateFieldPicker label="时间" value={visitTime} onChange={setVisitTime} />
 
             <Text style={[styles.label, { color: colors.text }]}>地点</Text>
             <View style={[styles.readonlyBox, { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' }]}>
