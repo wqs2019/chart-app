@@ -1,5 +1,5 @@
 import CloudService from './tcb';
-import { FeedbackRecord, SubmitFeedbackPayload } from '../types/feedback';
+import { FeedbackRecord, ReportReason, SubmitFeedbackPayload } from '../types/feedback';
 
 type CloudResult<T> = {
   success: boolean;
@@ -23,6 +23,24 @@ class FeedbackService {
     });
 
     return unwrap(response);
+  }
+
+  async submitEntryReport(payload: {
+    user_id: string;
+    target_user_id: string;
+    target_entry_id: string;
+    target_item_id: string;
+    report_reason: ReportReason;
+    content: string;
+    source?: string;
+    user_snapshot?: SubmitFeedbackPayload['user_snapshot'];
+    target_user_snapshot?: SubmitFeedbackPayload['target_user_snapshot'];
+    target_entry_snapshot?: SubmitFeedbackPayload['target_entry_snapshot'];
+  }): Promise<FeedbackRecord> {
+    return this.submitFeedback({
+      ...payload,
+      type: 'report_entry',
+    });
   }
 }
 

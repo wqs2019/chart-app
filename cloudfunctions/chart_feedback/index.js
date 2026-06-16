@@ -68,20 +68,72 @@ function sanitizeMedia(media = []) {
     }));
 }
 
+function sanitizeTargetUserSnapshot(snapshot = {}) {
+  if (!snapshot || typeof snapshot !== 'object') {
+    return {};
+  }
+
+  return {
+    full_name: snapshot.full_name || '',
+    avatar_url: snapshot.avatar_url || '',
+  };
+}
+
+function sanitizeTargetEntrySnapshot(snapshot = {}) {
+  if (!snapshot || typeof snapshot !== 'object') {
+    return {};
+  }
+
+  return {
+    title: snapshot.title || '',
+    description: snapshot.description || '',
+    media_count: Number(snapshot.media_count || 0) || 0,
+    item_name_zh: snapshot.item_name_zh || '',
+  };
+}
+
 async function addFeedback(data = {}) {
   try {
-    const { user_id, type, content, contact = '', media = [], source = 'app', user_snapshot = {} } = data;
+    const {
+      user_id,
+      type,
+      content,
+      contact = '',
+      media = [],
+      source = 'app',
+      user_snapshot = {},
+      report_reason = '',
+      target_user_id = '',
+      target_entry_id = '',
+      target_item_id = '',
+      target_user_snapshot = {},
+      target_entry_snapshot = {},
+    } = data;
 
     if (!user_id) {
       return fail('缺少用户 ID');
     }
 
-    if (!type || !['bug', 'feature', 'other'].includes(type)) {
+    if (!type || !['bug', 'feature', 'other', 'report_entry'].includes(type)) {
       return fail('反馈类型不正确');
     }
 
     if (!content || !String(content).trim()) {
       return fail('反馈内容不能为空');
+    }
+
+    if (type === 'report_entry') {
+      if (!target_user_id || !target_entry_id || !target_item_id) {
+        return fail('举报目标信息不完整');
+      }
+
+      if (user_id === target_user_id) {
+        return fail('不能举报自己的记录');
+      }
+
+      if (!['spam', 'abuse', 'harassment', 'pornography', 'violence', 'fraud', 'other'].includes(report_reason)) {
+        return fail('举报原因不正确');
+      }
     }
 
     const user = await findUserById(user_id);
@@ -97,11 +149,19 @@ async function addFeedback(data = {}) {
       media: sanitizeMedia(media),
       status: 'pending',
       source,
+      report_reason: type === 'report_entry' ? report_reason : '',
+      target_user_id: type === 'report_entry' ? target_user_id : '',
+      target_entry_id: type === 'report_entry' ? target_entry_id : '',
+      target_item_id: type === 'report_entry' ? target_item_id : '',
       user_snapshot: {
         full_name: user_snapshot.full_name || user.full_name || user.profile?.nickname || '',
         email: user_snapshot.email || user.email || '',
         avatar_url: user_snapshot.avatar_url || user.profile?.avatar_url || '',
       },
+      target_user_snapshot:
+        type === 'report_entry' ? sanitizeTargetUserSnapshot(target_user_snapshot) : {},
+      target_entry_snapshot:
+        type === 'report_entry' ? sanitizeTargetEntrySnapshot(target_entry_snapshot) : {},
       created_at: db.serverDate(),
       updated_at: db.serverDate(),
     };

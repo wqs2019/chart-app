@@ -6,6 +6,8 @@ import {
   Alert,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -18,11 +20,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import Loading from '../../components/common/Loading';
 import { NineGridMedia } from '../../components/common/NineGridMedia';
+import { useToast } from '../../components/common/Toast';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import authService from '../../services/authService';
 import checkinInteractionService from '../../services/checkinInteractionService';
+import feedbackService from '../../services/feedbackService';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { useAppStore } from '../../store/appStore';
+import { ReportReason } from '../../types/feedback';
 import { MediaResource } from '../../types/media';
 import { CheckinAttachment, CheckinComment, UserCheckin } from '../../types/rank';
 import { User } from '../../types/user';
@@ -91,11 +96,22 @@ const getCommentDisplayName = (comment: CheckinComment) =>
 
 const getCommentAvatarFallback = (comment: CheckinComment) => getAvatarFallback(getCommentDisplayName(comment));
 
+const REPORT_REASON_OPTIONS: Array<{ value: ReportReason; label: string }> = [
+  { value: 'spam', label: '垃圾广告' },
+  { value: 'abuse', label: '辱骂攻击' },
+  { value: 'harassment', label: '骚扰恶意' },
+  { value: 'pornography', label: '低俗色情' },
+  { value: 'violence', label: '暴力血腥' },
+  { value: 'fraud', label: '诈骗欺诈' },
+  { value: 'other', label: '其他原因' },
+];
+
 const CheckinEntryDetailScreen: React.FC = () => {
   const route = useRoute<ScreenRouteProp>();
   const navigation = useNavigation<ScreenNavigationProp>();
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const toast = useToast();
   const currentUser = useAppStore((state) => state.currentUser);
   const { code, item, entry, viewedUserId, viewedUserName, readOnly } = route.params;
   const userId = currentUser?._id;
@@ -111,6 +127,11 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const [replyTarget, setReplyTarget] = React.useState<CheckinComment | null>(null);
   const [composerExpanded, setComposerExpanded] = React.useState(false);
   const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+  const [moreActionsVisible, setMoreActionsVisible] = React.useState(false);
+  const [reportModalVisible, setReportModalVisible] = React.useState(false);
+  const [selectedReportReason, setSelectedReportReason] = React.useState<ReportReason>('spam');
+  const [reportDescription, setReportDescription] = React.useState('');
+  const [reportSubmitting, setReportSubmitting] = React.useState(false);
   const commentInputRef = React.useRef<TextInput>(null);
 
   const attachments = currentEntry.content?.attachments || [];
@@ -127,6 +148,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const displayName = isViewerMode && viewedUserName ? viewedUserName : getDisplayName(authorUser);
   const avatarUri = getAvatarUri(authorUser);
   const locationText = currentEntry.content?.location_name || currentEntry.content?.city_name || item.name_zh;
+  const canReportEntry = Boolean(userId && targetUserId && userId !== targetUserId);
 
   const fetchEntryDetail = React.useCallback(async () => {
     if (!targetUserId) {
@@ -172,6 +194,22 @@ const CheckinEntryDetailScreen: React.FC = () => {
     navigation.setOptions({ title: currentEntry.content?.title || item.name_zh });
   }, [currentEntry.content?.title, item.name_zh, navigation]);
 
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: canReportEntry
+        ? () => (
+            <Pressable
+              onPress={() => setMoreActionsVisible(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.headerMoreButton}
+            >
+              <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+            </Pressable>
+          )
+        : undefined,
+    });
+  }, [canReportEntry, colors.text, navigation]);
+
   useFocusEffect(
     React.useCallback(() => {
       fetchEntryDetail();
@@ -211,10 +249,6 @@ const CheckinEntryDetailScreen: React.FC = () => {
 
   const bottomBarPaddingBottom = Math.max(insets.bottom, 10);
   const composerOffsetBottom = keyboardHeight;
-
-  if (loading) {
-    return <Loading message="正在加载记录详情..." />;
-  }
 
   const handleToggleLike = async () => {
     if (!userId || !targetUserId) {
@@ -276,6 +310,91 @@ const CheckinEntryDetailScreen: React.FC = () => {
       setSubmittingComment(false);
     }
   };
+
+  const handleOpenReportModal = React.useCallback(() => {
+    if (!canReportEntry) {
+      return;
+    }
+
+    setMoreActionsVisible(false);
+    setSelectedReportReason('spam');
+    setReportDescription('');
+    setTimeout(() => {
+      setReportModalVisible(true);
+    }, 160);
+  }, [canReportEntry]);
+
+  const handleSubmitReport = React.useCallback(async () => {
+    if (!userId || !targetUserId) {
+      Alert.alert('提示', '请先登录后再举报。');
+      return;
+    }
+
+    const trimmedDescription = reportDescription.trim();
+    if (!trimmedDescription) {
+      Alert.alert('提示', '请补充举报说明。');
+      return;
+    }
+
+    try {
+      setReportSubmitting(true);
+      await feedbackService.submitEntryReport({
+        user_id: userId,
+        target_user_id: targetUserId,
+        target_entry_id: currentEntry._id || entry._id || '',
+        target_item_id: item._id,
+        report_reason: selectedReportReason,
+        content: trimmedDescription,
+        source: 'app_checkin_entry_report',
+        user_snapshot: {
+          full_name: currentUser?.fullName || '',
+          email: currentUser?.email || '',
+          avatar_url: currentUser?.profile?.avatar_url || '',
+        },
+        target_user_snapshot: {
+          full_name: displayName,
+          avatar_url: avatarUri || '',
+        },
+        target_entry_snapshot: {
+          title: currentEntry.content?.title || `${item.name_zh} 游玩记录`,
+          description: currentEntry.content?.description || '',
+          media_count: attachments.length,
+          item_name_zh: item.name_zh,
+        },
+      });
+
+      setReportModalVisible(false);
+      setReportDescription('');
+      setSelectedReportReason('spam');
+      toast.success('举报已提交，我们会尽快处理');
+    } catch (error) {
+      Alert.alert('提交失败', error instanceof Error ? error.message : '举报提交失败，请稍后再试。');
+    } finally {
+      setReportSubmitting(false);
+    }
+  }, [
+    attachments.length,
+    avatarUri,
+    currentEntry._id,
+    currentEntry.content?.description,
+    currentEntry.content?.title,
+    currentUser?.email,
+    currentUser?.fullName,
+    currentUser?.profile?.avatar_url,
+    displayName,
+    entry._id,
+    item._id,
+    item.name_zh,
+    reportDescription,
+    selectedReportReason,
+    targetUserId,
+    toast,
+    userId,
+  ]);
+
+  if (loading) {
+    return <Loading message="正在加载记录详情..." />;
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -617,6 +736,137 @@ const CheckinEntryDetailScreen: React.FC = () => {
             </View>
           </View>
         </View>
+
+        <Modal
+          visible={moreActionsVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setMoreActionsVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable style={styles.modalBackdrop} onPress={() => setMoreActionsVisible(false)} />
+            <View
+              style={[
+                styles.popupCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.popupTitle, { color: colors.text }]}>更多操作</Text>
+              <Pressable style={styles.popupAction} onPress={handleOpenReportModal}>
+                <Ionicons name="flag-outline" size={18} color="#F59E0B" />
+                <Text style={[styles.popupActionText, { color: colors.text }]}>举报日记</Text>
+              </Pressable>
+              <Pressable style={styles.popupCancel} onPress={() => setMoreActionsVisible(false)}>
+                <Text style={[styles.popupCancelText, { color: colors.textSecondary }]}>取消</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={reportModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setReportModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
+          >
+            <Pressable style={styles.modalBackdrop} onPress={() => setReportModalVisible(false)} />
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.reportModalContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View
+                style={[
+                  styles.reportCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.popupTitle, { color: colors.text }]}>举报日记</Text>
+                <Text style={[styles.reportHint, { color: colors.textSecondary }]}>
+                  请选择举报原因，并补充说明，帮助我们更快判断是否需要处理这篇记录。
+                </Text>
+                <View style={styles.reasonList}>
+                  {REPORT_REASON_OPTIONS.map((option) => {
+                    const active = selectedReportReason === option.value;
+
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => setSelectedReportReason(option.value)}
+                        style={[
+                          styles.reasonChip,
+                          {
+                            backgroundColor: active ? colors.primary : isDark ? 'rgba(255,255,255,0.04)' : '#F9FAFB',
+                            borderColor: active ? colors.primary : colors.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.reasonChipText,
+                            { color: active ? '#FFFFFF' : colors.text },
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <TextInput
+                  value={reportDescription}
+                  onChangeText={setReportDescription}
+                  placeholder="请补充违规内容描述，便于我们核查"
+                  placeholderTextColor={colors.textSecondary}
+                  multiline
+                  maxLength={200}
+                  textAlignVertical="top"
+                  style={[
+                    styles.reportInput,
+                    {
+                      color: colors.text,
+                      borderColor: colors.border,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF',
+                    },
+                  ]}
+                />
+                <Text style={[styles.reportCounter, { color: colors.textSecondary }]}>
+                  {reportDescription.length}/200
+                </Text>
+                <View style={styles.reportActions}>
+                  <Pressable
+                    onPress={() => setReportModalVisible(false)}
+                    disabled={reportSubmitting}
+                    style={[styles.reportSecondaryButton, { borderColor: colors.border }]}
+                  >
+                    <Text style={[styles.reportSecondaryText, { color: colors.textSecondary }]}>取消</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleSubmitReport}
+                    disabled={reportSubmitting}
+                    style={[
+                      styles.reportPrimaryButton,
+                      { backgroundColor: colors.primary, opacity: reportSubmitting ? 0.7 : 1 },
+                    ]}
+                  >
+                    <Text style={styles.reportPrimaryText}>{reportSubmitting ? '提交中...' : '提交举报'}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -638,6 +888,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  headerMoreButton: {
+    padding: 4,
   },
   authorLeft: {
     flex: 1,
@@ -932,6 +1185,127 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(15,23,42,0.28)',
+  },
+  modalBackdrop: {
+    flex: 1,
+  },
+  reportModalContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+  },
+  popupCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 24,
+    gap: 12,
+  },
+  popupTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  popupAction: {
+    minHeight: 48,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(245,158,11,0.10)',
+  },
+  popupActionText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  popupCancel: {
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  popupCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  reportCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 24,
+  },
+  reportHint: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  reasonList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 16,
+  },
+  reasonChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  reasonChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  reportInput: {
+    minHeight: 120,
+    borderWidth: 1,
+    borderRadius: 18,
+    marginTop: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  reportCounter: {
+    marginTop: 8,
+    textAlign: 'right',
+    fontSize: 12,
+  },
+  reportActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  reportSecondaryButton: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportPrimaryButton: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportSecondaryText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  reportPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
 
