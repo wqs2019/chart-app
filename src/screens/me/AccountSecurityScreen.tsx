@@ -7,48 +7,18 @@ import Button from '../../components/common/Button';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useAppStore } from '../../store/appStore';
 
-const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
-
-const formatDebugTime = (value: number | null) => {
-  if (!value || Number.isNaN(value)) {
-    return '暂无';
-  }
-
-  return new Date(value).toLocaleString('zh-CN', { hour12: false });
-};
-
 const AccountSecurityScreen: React.FC = () => {
   const { colors, isDark } = useAppTheme();
   const currentUser = useAppStore((state) => state.currentUser);
-  const currentSession = useAppStore((state) => state.currentSession);
   const signOut = useAppStore((state) => state.signOut);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const tokenExpireAt = React.useMemo(() => {
-    const token = currentSession?.token;
-    if (!token) {
-      return null;
-    }
-
-    const tokenParts = token.split('.');
-    if (tokenParts.length !== 3) {
-      return null;
-    }
-
-    const issuedAt = Number(tokenParts[1]);
-    if (Number.isNaN(issuedAt)) {
-      return null;
-    }
-
-    return issuedAt + SESSION_TTL_MS;
-  }, [currentSession?.token]);
+  const accountName =
+    currentUser?.fullName || currentUser?.profile?.nickname || currentUser?.username || '未提供';
 
   const infoRows = [
     { label: '登录方式', value: 'Apple 登录' },
-    { label: '邮箱', value: currentUser?.email || '未公开' },
-    { label: 'Apple 用户标识', value: currentUser?.appleUserId || '暂无' },
-    { label: '当前会话状态', value: currentSession?.token ? '已登录' : '未登录' },
-    { label: 'Token 过期时间（Dev）', value: formatDebugTime(tokenExpireAt) },
+    { label: '账户名称', value: accountName },
   ];
 
   const handleSignOut = () => {
@@ -76,16 +46,13 @@ const AccountSecurityScreen: React.FC = () => {
           <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ACCOUNT & SECURITY</Text>
           <Text style={[styles.title, { color: colors.text }]}>账号安全中心</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            管理当前登录身份、会话信息与基础安全状态，后续更换登录方式或扩展多端设备时也会统一放在这里。
+            查看当前 Apple 登录身份和会话状态，后续如支持更多登录方式，也会统一在这里管理。
           </Text>
 
           <View style={styles.statusRow}>
             <View style={[styles.statusChip, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.10)' }]}>
               <Ionicons name="shield-checkmark-outline" size={14} color={colors.primary} />
-              <Text style={[styles.statusText, { color: colors.primary }]}>Apple 身份已绑定</Text>
-            </View>
-            <View style={[styles.statusChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8EDE4' }]}>
-              <Text style={[styles.statusText, { color: colors.textSecondary }]}>当前单账号会话</Text>
+              <Text style={[styles.statusText, { color: colors.primary }]}>Apple 登录已启用</Text>
             </View>
           </View>
         </View>
@@ -102,12 +69,7 @@ const AccountSecurityScreen: React.FC = () => {
               ]}
             >
               <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{row.label}</Text>
-              <Text
-                numberOfLines={row.label.includes('标识') ? 1 : undefined}
-                style={[styles.infoValue, { color: colors.text }]}
-              >
-                {row.value}
-              </Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>{row.value}</Text>
             </View>
           ))}
         </View>

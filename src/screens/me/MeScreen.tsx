@@ -16,7 +16,6 @@ const MeScreen: React.FC = () => {
   const { colors, isDark } = useAppTheme();
   const currentUser = useAppStore((state) => state.currentUser);
   const unreadFollowerCount = useAppStore((state) => state.unreadFollowerCount);
-  const unreadNotificationCount = useAppStore((state) => state.unreadNotificationCount);
   const unreadLikeFavoriteCount = useAppStore((state) => state.unreadLikeFavoriteCount);
   const unreadCommentCount = useAppStore((state) => state.unreadCommentCount);
   const setUnreadFollowerCount = useAppStore((state) => state.setUnreadFollowerCount);
@@ -81,14 +80,8 @@ const MeScreen: React.FC = () => {
     title: string;
     subtitle: string;
     icon: keyof typeof Ionicons.glyphMap;
-    route: 'NotificationCenter' | 'AboutApp' | 'HelpFeedback';
+    route: 'AboutApp' | 'HelpFeedback';
   }> = [
-    {
-      title: '消息通知',
-      subtitle: '查看谁关注了你，以及后续点赞评论等互动提醒',
-      icon: 'notifications-outline',
-      route: 'NotificationCenter',
-    },
     {
       title: '关于 App',
       subtitle: '查看产品定位、版本信息和当前版本亮点',
@@ -166,7 +159,6 @@ const MeScreen: React.FC = () => {
     route:
       | 'AccountSecurity'
       | 'AppSettings'
-      | 'NotificationCenter'
       | 'AboutApp'
       | 'HelpFeedback'
   ) => {
@@ -347,11 +339,6 @@ const MeScreen: React.FC = () => {
                 <Text style={[styles.menuTitle, { color: colors.text }]}>{item.title}</Text>
                 <Text style={[styles.menuSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
               </View>
-              {item.route === 'NotificationCenter' && unreadNotificationCount > 0 ? (
-                <View style={styles.menuBadge}>
-                  <Text style={styles.menuBadgeText}>{Math.min(unreadNotificationCount, 99)}</Text>
-                </View>
-              ) : null}
               <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </Pressable>
           ))}

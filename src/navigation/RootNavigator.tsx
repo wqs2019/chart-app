@@ -1,3 +1,4 @@
+import { getFocusedRouteNameFromRoute, type RouteProp } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import AppleLoginScreen from '../screens/auth/AppleLoginScreen';
@@ -71,6 +72,18 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const TAB_TITLE_MAP: Record<string, string> = {
+  Home: '首页',
+  Rank: '榜单',
+  Checkin: '录入',
+  Me: '我的',
+};
+
+const getMainTabsTitle = (route: RouteProp<RootStackParamList, 'MainTabs'>) => {
+  const routeName = getFocusedRouteNameFromRoute(route) ?? 'Home';
+  return TAB_TITLE_MAP[routeName] || '首页';
+};
+
 export const RootNavigator = () => {
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
 
@@ -78,7 +91,14 @@ export const RootNavigator = () => {
     <Stack.Navigator screenOptions={{ headerShadowVisible: false }}>
       {isAuthenticated ? (
         <>
-          <Stack.Screen name="MainTabs" component={MainTabsScreen} options={{ headerShown: false }} />
+          <Stack.Screen
+            name="MainTabs"
+            component={MainTabsScreen}
+            options={({ route }) => ({
+              headerShown: false,
+              title: getMainTabsTitle(route),
+            })}
+          />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: '编辑资料' }} />
           <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} options={{ title: '账户与安全' }} />
           <Stack.Screen name="AppSettings" component={AppSettingsScreen} options={{ title: '应用设置' }} />
