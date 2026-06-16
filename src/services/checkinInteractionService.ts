@@ -25,7 +25,11 @@ const resolveEntryAttachmentUrls = async (entry: UserCheckin): Promise<UserCheck
   const fileIDs = Array.from(
     new Set(
       attachments
-        .flatMap((attachment) => [attachment.file_id, attachment.thumbnail_file_id])
+        .flatMap((attachment) => [
+          attachment.file_id,
+          attachment.thumbnail_file_id,
+          attachment.live_photo_video_file_id,
+        ])
         .filter((fileId): fileId is string => Boolean(fileId))
     )
   );
@@ -47,6 +51,9 @@ const resolveEntryAttachmentUrls = async (entry: UserCheckin): Promise<UserCheck
             thumbnail_temp_url:
               (attachment.thumbnail_file_id && tempUrlMap[attachment.thumbnail_file_id]) ||
               attachment.thumbnail_temp_url,
+            live_photo_video_temp_url:
+              (attachment.live_photo_video_file_id && tempUrlMap[attachment.live_photo_video_file_id]) ||
+              attachment.live_photo_video_temp_url,
           })),
         }
       : entry.content,

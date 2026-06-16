@@ -26,20 +26,22 @@ type MediaSelectorProps = {
   disabled?: boolean;
 };
 
+type SelectorMediaType = 'image' | 'video' | 'livePhoto';
+
 type UploadingMedia = {
   id: string;
-  media_type: 'image' | 'video';
+  media_type: SelectorMediaType;
   preview_uri: string;
   name?: string;
 };
 
-const getFileExtension = (fileNameOrUri: string, mediaType: 'image' | 'video') => {
+const getFileExtension = (fileNameOrUri: string, mediaType: SelectorMediaType) => {
   const matched = fileNameOrUri.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
   if (matched?.[1]) {
     return matched[1].toLowerCase();
   }
 
-  return mediaType === 'video' ? 'mp4' : 'jpg';
+  return mediaType === 'video' ? 'mp4' : mediaType === 'livePhoto' ? 'heic' : 'jpg';
 };
 
 const formatDuration = (durationMs?: number) => {
@@ -62,10 +64,16 @@ const mapAttachmentsToMedia = (attachments: CheckinAttachment[]): MediaResource[
       thumbnail:
         attachment.media_type === 'video'
           ? attachment.thumbnail_temp_url || attachment.temp_url
-          : attachment.temp_url,
-      type: attachment.media_type === 'video' ? 'video' : 'image',
+          : attachment.thumbnail_temp_url || attachment.temp_url,
+      type:
+        attachment.media_type === 'video'
+          ? 'video'
+          : attachment.media_type === 'livePhoto'
+            ? 'livePhoto'
+            : 'image',
       name: attachment.name,
       durationMs: attachment.duration_ms,
+      livePhotoVideoUri: attachment.live_photo_video_temp_url,
     }));
 
 const MediaSelector: React.FC<MediaSelectorProps> = ({
@@ -99,7 +107,7 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: mode === 'video' ? ['videos'] : ['images'],
+        mediaTypes: mode === 'video' ? ['videos'] : ['images', 'livePhotos'],
         allowsMultipleSelection: mode === 'image',
         selectionLimit: Math.max(1, maxCount - value.length - uploading.length),
         quality: 0.85,
@@ -122,7 +130,7 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
         const uploadedItems: CheckinAttachment[] = [];
         for (let index = 0; index < result.assets.length; index += 1) {
           const asset = result.assets[index];
-          const mediaType = mode === 'video' ? 'video' : 'image';
+          const mediaType = mode === 'video' ? 'video' : asset.pairedVideoAsset?.uri ? 'livePhoto' : 'image';
           const extension = getFileExtension(asset.fileName || asset.uri, mediaType);
           const { data: pathData } = await imageService.generateCloudPath(extension, `checkins/${itemId}`);
           const uploadResult = await imageService.uploadAsset(
@@ -137,6 +145,8 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
 
           let thumbnailFileId: string | undefined;
           let thumbnailTempUrl: string | undefined;
+          let livePhotoVideoFileId: string | undefined;
+          let livePhotoVideoTempUrl: string | undefined;
 
           if (mediaType === 'video') {
             try {
@@ -159,6 +169,35 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
             }
           }
 
+          if (mediaType === 'livePhoto') {
+            const pairedVideoAsset = asset.pairedVideoAsset;
+            if (!pairedVideoAsset?.uri) {
+              throw new Error('所选实况缺少动态视频片段，请重新选择。');
+            }
+
+            const pairedVideoExtension = getFileExtension(
+              pairedVideoAsset.fileName || pairedVideoAsset.uri,
+              'video'
+            );
+            const { data: liveVideoPathData } = await imageService.generateCloudPath(
+              pairedVideoExtension,
+              `checkins/${itemId}`
+            );
+            const liveVideoUploadResult = await imageService.uploadAsset(
+              pairedVideoAsset.uri,
+              liveVideoPathData.cloudPath,
+              pairedVideoAsset.mimeType || 'video/quicktime'
+            );
+
+            if (!liveVideoUploadResult.success || !liveVideoUploadResult.data?.fileId) {
+              throw new Error(liveVideoUploadResult.message || '实况动态片段上传失败');
+            }
+
+            livePhotoVideoFileId = liveVideoUploadResult.data.fileId;
+            livePhotoVideoTempUrl = liveVideoUploadResult.data.url || pairedVideoAsset.uri;
+            thumbnailTempUrl = uploadResult.data.url || asset.uri;
+          }
+
           uploadedItems.push({
             file_id: uploadResult.data.fileId,
             media_type: mediaType,
@@ -166,7 +205,12 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
             temp_url: uploadResult.data.url || asset.uri,
             thumbnail_file_id: thumbnailFileId,
             thumbnail_temp_url: thumbnailTempUrl,
-            duration_ms: asset.duration ?? undefined,
+            duration_ms:
+              mediaType === 'livePhoto'
+                ? asset.pairedVideoAsset?.duration ?? undefined
+                : asset.duration ?? undefined,
+            live_photo_video_file_id: livePhotoVideoFileId,
+            live_photo_video_temp_url: livePhotoVideoTempUrl,
           });
         }
 
@@ -198,7 +242,7 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
       },
       {
         text: '取消',
-        style: 'cancel',
+        style: 'cancel' as const,
       },
     ]);
   }, [handlePickMedia]);
@@ -256,7 +300,13 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
                   ]}
                 >
                   <Ionicons
-                    name={attachment.media_type === 'video' ? 'videocam' : 'image'}
+                    name={
+                      attachment.media_type === 'video'
+                        ? 'videocam'
+                        : attachment.media_type === 'livePhoto'
+                          ? 'aperture'
+                          : 'image'
+                    }
                     size={20}
                     color={colors.primary}
                   />
@@ -272,6 +322,13 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
                     <Text style={styles.durationText}>{formatDuration(attachment.duration_ms)}</Text>
                   </View>
                 </>
+              ) : null}
+
+              {attachment.media_type === 'livePhoto' ? (
+                <View style={styles.liveBadge}>
+                  <Ionicons name="aperture" size={12} color="#FFF" />
+                  <Text style={styles.liveBadgeText}>实况</Text>
+                </View>
               ) : null}
 
               <Pressable onPress={() => removeAttachment(attachment)} style={styles.removeButton}>
@@ -398,6 +455,23 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  liveBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    gap: 4,
+  },
+  liveBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
   durationBadge: {
     position: 'absolute',

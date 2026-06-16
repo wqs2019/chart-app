@@ -31,12 +31,14 @@ export interface StandardItem {
 
 export interface CheckinAttachment {
   file_id: string;
-  media_type: 'image' | 'video';
+  media_type: 'image' | 'video' | 'livePhoto';
   name?: string;
   temp_url?: string;
   thumbnail_file_id?: string;
   thumbnail_temp_url?: string;
   duration_ms?: number;
+  live_photo_video_file_id?: string;
+  live_photo_video_temp_url?: string;
 }
 
 export interface CheckinInteraction {

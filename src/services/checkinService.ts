@@ -35,7 +35,11 @@ const resolveCheckinAttachmentUrls = async (checkins: UserCheckin[]): Promise<Us
     new Set(
       checkins.flatMap((checkin) =>
         getEntryAttachments(checkin)
-          .flatMap((attachment) => [attachment.file_id, attachment.thumbnail_file_id])
+          .flatMap((attachment) => [
+            attachment.file_id,
+            attachment.thumbnail_file_id,
+            attachment.live_photo_video_file_id,
+          ])
           .filter((fileId): fileId is string => Boolean(fileId))
       )
     )
@@ -58,6 +62,9 @@ const resolveCheckinAttachmentUrls = async (checkins: UserCheckin[]): Promise<Us
             thumbnail_temp_url:
               (attachment.thumbnail_file_id && tempUrlMap[attachment.thumbnail_file_id]) ||
               attachment.thumbnail_temp_url,
+            live_photo_video_temp_url:
+              (attachment.live_photo_video_file_id && tempUrlMap[attachment.live_photo_video_file_id]) ||
+              attachment.live_photo_video_temp_url,
           })),
         }
       : checkin.content,
@@ -69,6 +76,9 @@ const resolveCheckinAttachmentUrls = async (checkins: UserCheckin[]): Promise<Us
         thumbnail_temp_url:
           (attachment.thumbnail_file_id && tempUrlMap[attachment.thumbnail_file_id]) ||
           attachment.thumbnail_temp_url,
+        live_photo_video_temp_url:
+          (attachment.live_photo_video_file_id && tempUrlMap[attachment.live_photo_video_file_id]) ||
+          attachment.live_photo_video_temp_url,
       })),
     })),
   }));
@@ -120,6 +130,7 @@ export const checkinService = {
           name: attachment.name,
           thumbnail_file_id: attachment.thumbnail_file_id,
           duration_ms: attachment.duration_ms,
+          live_photo_video_file_id: attachment.live_photo_video_file_id,
         })),
         visit_time: payload.visit_time,
         city_name: payload.location_name,

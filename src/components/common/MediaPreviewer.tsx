@@ -236,7 +236,7 @@ const MediaItem = ({
           ) : (
             <Reanimated.View style={[styles.zoomableContent, animatedImageStyle]}>
               <Image
-                source={{ uri: item.uri }}
+                source={{ uri: item.thumbnail || item.uri }}
                 style={[styles.fullScreen, { opacity: isPlaying ? 0 : 1 }]}
                 resizeMode="contain"
                 onLoadStart={() => setIsMediaLoading(true)}
@@ -253,6 +253,9 @@ const MediaItem = ({
                   shouldPlay={isPlaying}
                   isLooping={false}
                   isMuted={false}
+                  onLoadStart={() => setIsMediaLoading(true)}
+                  onReadyForDisplay={() => setIsMediaLoading(false)}
+                  onError={() => setIsMediaLoading(false)}
                 />
               ) : null}
             </Reanimated.View>

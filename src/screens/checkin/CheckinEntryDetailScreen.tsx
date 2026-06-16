@@ -41,10 +41,16 @@ const mapAttachmentsToMedia = (attachments: CheckinAttachment[]): MediaResource[
       thumbnail:
         attachment.media_type === 'video'
           ? attachment.thumbnail_temp_url || attachment.temp_url
-          : attachment.temp_url,
-      type: attachment.media_type === 'video' ? 'video' : 'image',
+          : attachment.thumbnail_temp_url || attachment.temp_url,
+      type:
+        attachment.media_type === 'video'
+          ? 'video'
+          : attachment.media_type === 'livePhoto'
+            ? 'livePhoto'
+            : 'image',
       name: attachment.name,
       durationMs: attachment.duration_ms,
+      livePhotoVideoUri: attachment.live_photo_video_temp_url,
     }));
 
 type DisplayUser = {
@@ -900,7 +906,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   floatingComposerInput: {
-    minHeight: 96,
+    minHeight: 40,
     fontSize: 14,
     lineHeight: 20,
   },

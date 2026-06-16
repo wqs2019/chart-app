@@ -47,6 +47,8 @@ export const NineGridMedia: React.FC<NineGridMediaProps> = ({
       {safeMedia.map((mediaItem, index) => {
         const isLastInRow = (index + 1) % columns === 0;
         const isLastRow = Math.floor(index / columns) === Math.floor((mediaCount - 1) / columns);
+        const showVideoOverlay = mediaItem.type === 'video';
+        const showLiveBadge = mediaItem.type === 'livePhoto';
 
         return (
           <Pressable
@@ -77,13 +79,13 @@ export const NineGridMedia: React.FC<NineGridMediaProps> = ({
               </View>
             )}
 
-            {mediaItem.type === 'video' ? (
+            {showVideoOverlay ? (
               <View style={styles.playOverlay}>
                 <Ionicons name="play" size={Math.max(18, itemWidth * 0.22)} color="#FFF" />
               </View>
             ) : null}
 
-            {mediaItem.type === 'livePhoto' ? (
+            {showLiveBadge ? (
               <View style={styles.liveBadge}>
                 <Ionicons name="aperture" size={12} color="#FFF" />
                 <Text style={styles.liveText}>实况</Text>
