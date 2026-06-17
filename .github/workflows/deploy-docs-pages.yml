@@ -41,7 +41,7 @@ jobs:
           cp src/docs/*.html _site/
           cp src/docs/*.md _site/
           cp assets/logo.png _site/assets/logo.png
-          echo "maoqiu.site" > _site/CNAME
+          echo "earth.maoqiu.site" > _site/CNAME
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3

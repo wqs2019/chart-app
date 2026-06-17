@@ -20,8 +20,8 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import authService from '../../services/authService';
 import { useAppStore } from '../../store/appStore';
 
-const TERMS_URL = 'https://maoqiu.site/terms.html';
-const PRIVACY_URL = 'https://maoqiu.site/privacy.html';
+const TERMS_URL = 'https://earth.maoqiu.site/terms.html';
+const PRIVACY_URL = 'https://earth.maoqiu.site/privacy.html';
 
 const hexToRgba = (hex: string, alpha: number) => {
   const normalized = hex.replace('#', '');
