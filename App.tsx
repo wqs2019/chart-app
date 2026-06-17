@@ -1,9 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import StartupScreen from './src/components/common/StartupScreen';
 import { ToastProvider } from './src/components/common/Toast';
 import { useNotificationBootstrap } from './src/hooks/useNotificationBootstrap';
 import { useAppTheme } from './src/hooks/useAppTheme';
@@ -15,7 +15,6 @@ const Bootstrap = () => {
   const initAuth = useAppStore((state) => state.initAuth);
   const initialized = useAppStore((state) => state.initialized);
   const authInitialized = useAppStore((state) => state.authInitialized);
-  const { isDark } = useAppTheme();
 
   useNotificationBootstrap();
 
@@ -25,18 +24,7 @@ const Bootstrap = () => {
   }, [initAuth, initTheme]);
 
   if (!initialized || !authInitialized) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: isDark ? '#111827' : '#FFF8FB',
-        }}
-      >
-        <ActivityIndicator size="large" color="#EC4899" />
-      </View>
-    );
+    return <StartupScreen />;
   }
 
   return <Navigation />;
