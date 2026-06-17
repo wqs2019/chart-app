@@ -204,6 +204,10 @@ const AppleLoginScreen: React.FC = () => {
   };
 
   const handleAppleLogin = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
     if (Platform.OS !== 'ios') {
       Alert.alert('当前不可用', 'Apple 登录仅支持 iOS 设备。');
       return;
@@ -391,17 +395,22 @@ const AppleLoginScreen: React.FC = () => {
                 <ActivityIndicator color={isDark ? colors.background : '#FFFFFF'} />
               </View>
             ) : isAppleAvailable ? (
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonStyle={
-                  isDark
-                    ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-                    : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-                }
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                cornerRadius={18}
-                onPress={handleAppleLogin}
-                style={styles.appleButton}
-              />
+              <View
+                pointerEvents={isSubmitting ? 'none' : 'auto'}
+                style={[styles.appleButtonWrapper, isSubmitting ? styles.appleButtonDisabled : null]}
+              >
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonStyle={
+                    isDark
+                      ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                      : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                  }
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  cornerRadius={18}
+                  onPress={handleAppleLogin}
+                  style={styles.appleButton}
+                />
+              </View>
             ) : (
               <Pressable
                 disabled
@@ -601,6 +610,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
     width: '100%',
     height: 56,
+  },
+  appleButtonWrapper: {
+    marginTop: 12,
+    borderRadius: 18,
+  },
+  appleButtonDisabled: {
+    opacity: 0.58,
   },
   loadingButton: {
     marginTop: 12,

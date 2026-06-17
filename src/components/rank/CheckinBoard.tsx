@@ -285,7 +285,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
                 style={[
                   styles.searchWrap,
                   {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF6F0',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fbece2ff',
                   },
                 ]}
               >
@@ -480,6 +480,7 @@ const styles = StyleSheet.create({
   },
   inlineLoadingCard: {
     marginTop: 16,
+    marginBottom: 16,
     borderWidth: 0,
     borderRadius: 24,
     paddingHorizontal: 16,

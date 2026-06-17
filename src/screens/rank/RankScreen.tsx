@@ -594,6 +594,7 @@ const styles = StyleSheet.create({
   },
   inlineLoadingCard: {
     marginTop: 14,
+    marginBottom: 14,
     borderWidth: 0,
     borderRadius: 18,
     paddingHorizontal: 14,
