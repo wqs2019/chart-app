@@ -5,6 +5,7 @@ import React from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import authService from '../../services/authService';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { notificationService } from '../../services/notificationService';
@@ -23,6 +24,7 @@ const MeScreen: React.FC = () => {
   const setUnreadLikeFavoriteCount = useAppStore((state) => state.setUnreadLikeFavoriteCount);
   const setUnreadCommentCount = useAppStore((state) => state.setUnreadCommentCount);
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+  const [isAdmin, setIsAdmin] = React.useState(false);
 
   const displayName =
     currentUser?.fullName || currentUser?.profile?.nickname || currentUser?.username || '旅行玩家';
@@ -147,17 +149,36 @@ const MeScreen: React.FC = () => {
     }
   }, [currentUser?._id, setUnreadCommentCount, setUnreadLikeFavoriteCount]);
 
+  const fetchAdminStatus = React.useCallback(async () => {
+    const appleUserId = currentUser?.appleUserId || '';
+
+    if (!appleUserId) {
+      setIsAdmin(false);
+      return;
+    }
+
+    try {
+      const nextIsAdmin = await authService.getAdminStatus(appleUserId);
+      setIsAdmin(nextIsAdmin);
+    } catch (error) {
+      console.warn('[Me] load admin status failed:', error);
+      setIsAdmin(false);
+    }
+  }, [currentUser?.appleUserId]);
+
   useFocusEffect(
     React.useCallback(() => {
       void fetchSocialSummary();
       void fetchUnreadNotificationCount();
       void fetchUnreadInteractionCounts();
-    }, [fetchSocialSummary, fetchUnreadInteractionCounts, fetchUnreadNotificationCount])
+      void fetchAdminStatus();
+    }, [fetchAdminStatus, fetchSocialSummary, fetchUnreadInteractionCounts, fetchUnreadNotificationCount])
   );
 
   const handleOpenRoute = (
     route:
       | 'AccountSecurity'
+      | 'AdminCenter'
       | 'AppSettings'
       | 'AboutApp'
       | 'HelpFeedback'
@@ -343,6 +364,32 @@ const MeScreen: React.FC = () => {
             </Pressable>
           ))}
         </View>
+
+        {isAdmin ? (
+          <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>管理员中心</Text>
+            <Pressable
+              onPress={() => handleOpenRoute('AdminCenter')}
+              style={[styles.menuRow, styles.menuRowLast, { borderBottomColor: colors.border }]}
+            >
+              <View
+                style={[
+                  styles.menuIconWrap,
+                  { backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.10)' },
+                ]}
+              >
+                <Ionicons name="shield-outline" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.menuTextWrap}>
+                <Text style={[styles.menuTitle, { color: colors.text }]}>管理员入口</Text>
+                <Text style={[styles.menuSubtitle, { color: colors.textSecondary }]}>
+                  进入管理员工具入口，后续统一承接用户、反馈与运营管理能力
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

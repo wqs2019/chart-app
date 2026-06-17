@@ -83,6 +83,15 @@ class AuthService {
 
     return unwrap(response);
   }
+
+  async getAdminStatus(appleUserId: string): Promise<boolean> {
+    const response = await CloudService.callFunction<CloudResult<{ isAdmin: boolean }>>('chart_user', {
+      action: 'getAdminStatus',
+      data: { appleUserId },
+    });
+
+    return unwrap(response).isAdmin;
+  }
 }
 
 export default new AuthService();

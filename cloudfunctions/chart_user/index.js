@@ -7,6 +7,7 @@ const app = cloud.init({
 
 const db = app.database();
 const usersCollection = db.collection('chart_users');
+const adminCollection = db.collection('admin_list');
 const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 
 function ok(data) {
@@ -369,6 +370,27 @@ async function validateSession(data = {}) {
   }
 }
 
+async function getAdminStatus(data = {}) {
+  try {
+    const appleUserId = String(data.appleUserId || '').trim();
+
+    if (!appleUserId) {
+      return ok({ isAdmin: false });
+    }
+
+    const result = await adminCollection.where({ apple_id: appleUserId }).limit(1).get();
+    const adminUser = getDocData(result);
+
+    return ok({
+      isAdmin: Boolean(adminUser),
+      adminRecordId: adminUser?._id || '',
+    });
+  } catch (error) {
+    console.error('chart_user.getAdminStatus error:', error);
+    return fail('获取管理员状态失败', error);
+  }
+}
+
 const actionMap = {
   add: addUser,
   get: getUser,
@@ -377,6 +399,7 @@ const actionMap = {
   delete: deleteUser,
   appleLogin,
   validateSession,
+  getAdminStatus,
 };
 
 function normalizeEventPayload(event = {}) {
