@@ -1,5 +1,5 @@
 import CloudService from './tcb';
-import { FeedbackRecord, ReportReason, SubmitFeedbackPayload } from '../types/feedback';
+import { FeedbackRecord, FeedbackStatus, FeedbackType, ReportReason, SubmitFeedbackPayload } from '../types/feedback';
 
 type CloudResult<T> = {
   success: boolean;
@@ -41,6 +41,33 @@ class FeedbackService {
       ...payload,
       type: 'report_entry',
     });
+  }
+
+  async getAdminFeedbacks(params: {
+    appleUserId: string;
+    type?: FeedbackType | 'all';
+    status?: FeedbackStatus | 'all';
+    limit?: number;
+  }): Promise<FeedbackRecord[]> {
+    const response = await CloudService.callFunction<CloudResult<FeedbackRecord[]>>('chart_feedback', {
+      action: 'list',
+      data: params,
+    });
+
+    return unwrap(response);
+  }
+
+  async updateAdminFeedbackStatus(params: {
+    appleUserId: string;
+    feedbackId: string;
+    status: FeedbackStatus;
+  }): Promise<FeedbackRecord> {
+    const response = await CloudService.callFunction<CloudResult<FeedbackRecord>>('chart_feedback', {
+      action: 'updateStatus',
+      data: params,
+    });
+
+    return unwrap(response);
   }
 }
 

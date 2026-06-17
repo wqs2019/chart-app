@@ -7,6 +7,7 @@ const app = cloud.init({
 const db = app.database();
 const feedbacksCollection = db.collection('chart_feedbacks');
 const usersCollection = db.collection('chart_users');
+const adminCollection = db.collection('admin_list');
 
 function ok(data) {
   return {
@@ -90,6 +91,23 @@ function sanitizeTargetEntrySnapshot(snapshot = {}) {
     media_count: Number(snapshot.media_count || 0) || 0,
     item_name_zh: snapshot.item_name_zh || '',
   };
+}
+
+async function ensureAdminByAppleId(appleUserId) {
+  const normalizedAppleId = String(appleUserId || '').trim();
+
+  if (!normalizedAppleId) {
+    throw new Error('缺少管理员身份');
+  }
+
+  const result = await adminCollection.where({ apple_id: normalizedAppleId }).limit(1).get();
+  const adminUser = getDocData(result);
+
+  if (!adminUser) {
+    throw new Error('当前账号不是管理员');
+  }
+
+  return adminUser;
 }
 
 async function addFeedback(data = {}) {
@@ -178,8 +196,64 @@ async function addFeedback(data = {}) {
   }
 }
 
+async function listFeedbacks(data = {}) {
+  try {
+    await ensureAdminByAppleId(data.appleUserId);
+
+    const type = String(data.type || 'all');
+    const status = String(data.status || 'all');
+    const limit = Math.min(Math.max(Number(data.limit) || 50, 1), 100);
+
+    const wherePayload = {};
+    if (type !== 'all') {
+      wherePayload.type = type;
+    }
+    if (status !== 'all') {
+      wherePayload.status = status;
+    }
+
+    const query = Object.keys(wherePayload).length > 0 ? feedbacksCollection.where(wherePayload) : feedbacksCollection;
+    const result = await query.orderBy('created_at', 'desc').limit(limit).get();
+
+    return ok(result.data || []);
+  } catch (error) {
+    console.error('chart_feedback.listFeedbacks error:', error);
+    return fail('获取反馈列表失败', error);
+  }
+}
+
+async function updateFeedbackStatus(data = {}) {
+  try {
+    await ensureAdminByAppleId(data.appleUserId);
+
+    const feedbackId = String(data.feedbackId || '').trim();
+    const status = String(data.status || '').trim();
+
+    if (!feedbackId) {
+      return fail('缺少反馈记录 ID');
+    }
+
+    if (!['pending', 'processing', 'resolved', 'rejected'].includes(status)) {
+      return fail('反馈状态不正确');
+    }
+
+    await feedbacksCollection.doc(feedbackId).update({
+      status,
+      updated_at: db.serverDate(),
+    });
+
+    const result = await feedbacksCollection.doc(feedbackId).get();
+    return ok(getDocData(result));
+  } catch (error) {
+    console.error('chart_feedback.updateFeedbackStatus error:', error);
+    return fail('更新反馈状态失败', error);
+  }
+}
+
 const actionMap = {
   add: addFeedback,
+  list: listFeedbacks,
+  updateStatus: updateFeedbackStatus,
 };
 
 function normalizeEventPayload(event = {}) {

@@ -1,30 +1,37 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { RootStackParamList } from '../../navigation/RootNavigator';
 
 const adminModules = [
   {
     title: '用户管理',
     description: '后续可在这里查看重点用户信息、登录状态与账户处理入口。',
     icon: 'people-outline' as const,
+    route: undefined,
   },
   {
     title: '反馈与举报',
-    description: '后续可在这里集中处理问题反馈、功能建议和内容举报记录。',
+    description: '查看用户反馈、功能建议和内容举报记录，并更新处理状态。',
     icon: 'alert-circle-outline' as const,
+    route: 'AdminFeedbackReports' as const,
   },
   {
     title: '运营工具',
     description: '后续可扩展榜单配置、公告管理、内容治理和数据辅助工具。',
     icon: 'construct-outline' as const,
+    route: undefined,
   },
 ];
 
 const AdminCenterScreen: React.FC = () => {
   const { colors, isDark } = useAppTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -52,12 +59,21 @@ const AdminCenterScreen: React.FC = () => {
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>功能预留</Text>
           {adminModules.map((item, index) => (
-            <View
+            <Pressable
               key={item.title}
+              disabled={!item.route}
+              onPress={() => {
+                if (item.route) {
+                  navigation.navigate(item.route);
+                }
+              }}
               style={[
                 styles.moduleRow,
                 index === adminModules.length - 1 ? styles.moduleRowLast : null,
-                { borderBottomColor: colors.border },
+                {
+                  borderBottomColor: colors.border,
+                  opacity: item.route ? 1 : 0.72,
+                },
               ]}
             >
               <View
@@ -72,7 +88,8 @@ const AdminCenterScreen: React.FC = () => {
                 <Text style={[styles.moduleTitle, { color: colors.text }]}>{item.title}</Text>
                 <Text style={[styles.moduleDescription, { color: colors.textSecondary }]}>{item.description}</Text>
               </View>
-            </View>
+              {item.route ? <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} /> : null}
+            </Pressable>
           ))}
         </View>
       </ScrollView>

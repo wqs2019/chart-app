@@ -10,6 +10,7 @@ import OverallDiaryFeedScreen from '../screens/rank/OverallDiaryFeedScreen';
 import AboutAppScreen from '../screens/me/AboutAppScreen';
 import AccountSecurityScreen from '../screens/me/AccountSecurityScreen';
 import AdminCenterScreen from '../screens/me/AdminCenterScreen';
+import AdminFeedbackReportsScreen from '../screens/me/AdminFeedbackReportsScreen';
 import AppSettingsScreen from '../screens/me/AppSettingsScreen';
 import EditProfileScreen from '../screens/me/EditProfileScreen';
 import HelpFeedbackScreen from '../screens/me/HelpFeedbackScreen';
@@ -28,6 +29,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   AccountSecurity: undefined;
   AdminCenter: undefined;
+  AdminFeedbackReports: undefined;
   AppSettings: undefined;
   AboutApp: undefined;
   HelpFeedback: undefined;
@@ -104,6 +106,11 @@ export const RootNavigator = () => {
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: '编辑资料' }} />
           <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} options={{ title: '账户与安全' }} />
           <Stack.Screen name="AdminCenter" component={AdminCenterScreen} options={{ title: '管理员中心' }} />
+          <Stack.Screen
+            name="AdminFeedbackReports"
+            component={AdminFeedbackReportsScreen}
+            options={{ title: '反馈与举报' }}
+          />
           <Stack.Screen name="AppSettings" component={AppSettingsScreen} options={{ title: '应用设置' }} />
           <Stack.Screen name="AboutApp" component={AboutAppScreen} options={{ title: '关于 App' }} />
           <Stack.Screen name="HelpFeedback" component={HelpFeedbackScreen} options={{ title: '帮助与反馈' }} />
