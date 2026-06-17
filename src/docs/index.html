@@ -3,30 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>地球玩家 | 文档中心</title>
+    <title>地球玩家 | 把真实经历沉淀成可展示的个人成就</title>
     <meta
       name="description"
-      content="地球玩家文档中心，集中提供用户协议、隐私政策、产品 PRD 与演示页面入口。"
+      content="地球玩家是一款以榜单、足迹、记录、年度回顾为核心的成就型旅行与玩乐记录 App，把去过哪里、玩过什么，沉淀成可展示的个人资产。"
     />
+    <meta name="theme-color" content="#0f172a" />
+    <meta property="og:title" content="地球玩家 | 把真实经历沉淀成可展示的个人成就" />
+    <meta
+      property="og:description"
+      content="以榜单、足迹、记录、年度回顾为核心的成就型 App，把零散经历整理成可展示的个人资产。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="./assets/logo.png" />
+    <meta property="og:locale" content="zh_CN" />
     <meta name="document-release" content="2026-06-16-github-pages" />
     <style>
       :root {
-        --bg: #fff8f4;
-        --surface: rgba(255, 255, 255, 0.88);
-        --surface-strong: #ffffff;
-        --line: rgba(255, 122, 89, 0.14);
-        --text: #18212f;
-        --text-soft: #786860;
-        --primary: #ff7a59;
-        --primary-deep: #d95f41;
-        --secondary: #6c7cff;
-        --green: #1ea672;
-        --shadow-lg: 0 32px 80px rgba(255, 122, 89, 0.13);
-        --shadow-md: 0 18px 42px rgba(255, 122, 89, 0.1);
-        --radius-xl: 32px;
-        --radius-lg: 24px;
-        --radius-md: 18px;
-        --max-width: 1120px;
+        --bg: #f6f9fc;
+        --bg-deep: #0f172a;
+        --surface: rgba(255, 255, 255, 0.8);
+        --surface-strong: rgba(255, 255, 255, 0.94);
+        --surface-dark: rgba(15, 23, 42, 0.8);
+        --line: rgba(148, 163, 184, 0.18);
+        --line-strong: rgba(255, 255, 255, 0.16);
+        --text: #0f172a;
+        --text-soft: #475569;
+        --text-invert: #e2e8f0;
+        --text-invert-soft: #94a3b8;
+        --primary: #f97316;
+        --primary-deep: #ea580c;
+        --accent: #0ea5e9;
+        --accent-soft: #38bdf8;
+        --success: #10b981;
+        --shadow-xl: 0 32px 90px rgba(15, 23, 42, 0.14);
+        --shadow-lg: 0 22px 56px rgba(15, 23, 42, 0.1);
+        --radius-xl: 36px;
+        --radius-lg: 28px;
+        --radius-md: 20px;
+        --max-width: 1180px;
       }
 
       * {
@@ -41,39 +56,38 @@
         margin: 0;
         color: var(--text);
         font-family:
-          -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC',
+          Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC',
           'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
         overflow-x: hidden;
         background:
-          radial-gradient(circle at 0% 0%, rgba(255, 122, 89, 0.16), transparent 26%),
-          radial-gradient(circle at 100% 10%, rgba(108, 124, 255, 0.14), transparent 20%),
-          radial-gradient(circle at 80% 80%, rgba(255, 216, 204, 0.24), transparent 22%),
-          linear-gradient(180deg, #fff8f4 0%, #fffefe 45%, #fff9f6 100%);
+          radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 26%),
+          radial-gradient(circle at top right, rgba(249, 115, 22, 0.12), transparent 24%),
+          linear-gradient(180deg, #f8fbff 0%, #f4f7fb 48%, #ffffff 100%);
       }
 
       body::before,
       body::after {
         content: '';
         position: fixed;
-        width: 320px;
-        height: 320px;
+        width: 360px;
+        height: 360px;
         pointer-events: none;
         z-index: 0;
         border-radius: 999px;
-        filter: blur(70px);
-        opacity: 0.35;
+        filter: blur(80px);
+        opacity: 0.28;
       }
 
       body::before {
-        top: 80px;
-        left: -90px;
-        background: rgba(255, 122, 89, 0.32);
+        top: -60px;
+        left: -100px;
+        background: rgba(14, 165, 233, 0.5);
       }
 
       body::after {
-        right: -80px;
-        bottom: 140px;
-        background: rgba(108, 124, 255, 0.24);
+        right: -120px;
+        bottom: 80px;
+        background: rgba(249, 115, 22, 0.36);
       }
 
       a {
@@ -81,10 +95,11 @@
         text-decoration: none;
       }
 
-      a:focus-visible {
-        outline: 3px solid rgba(255, 122, 89, 0.24);
+      a:focus-visible,
+      button:focus-visible {
+        outline: 3px solid rgba(14, 165, 233, 0.28);
         outline-offset: 4px;
-        border-radius: 24px;
+        border-radius: 999px;
       }
 
       .shell {
@@ -94,124 +109,421 @@
         margin: 0 auto;
       }
 
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        padding-top: 12px;
+      }
+
+      .topbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        min-height: 66px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        background: rgba(255, 255, 255, 0.74);
+        backdrop-filter: blur(24px);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(249, 115, 22, 0.18));
+        border: 1px solid rgba(255, 255, 255, 0.76);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        color: var(--primary-deep);
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+      }
+
+      .brand-meta small {
+        display: block;
+        color: var(--text-soft);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .brand-meta strong {
+        display: block;
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--text);
+      }
+
+      .nav {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.62);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+      }
+
+      .nav a {
+        padding: 9px 14px;
+        border-radius: 999px;
+        color: var(--text-soft);
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition:
+          background-color 0.22s ease,
+          color 0.22s ease,
+          transform 0.22s ease;
+      }
+
+      .nav a:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.88);
+        transform: translateY(-1px);
+      }
+
+      .topbar-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .topbar-cta .button {
+        min-height: 42px;
+        padding: 0 16px;
+      }
+
       main {
-        padding: 30px 0 56px;
+        padding: 22px 0 58px;
       }
 
       .hero {
         display: grid;
-        grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-        gap: 26px;
+        grid-template-columns: minmax(0, 1.12fr) minmax(340px, 0.88fr);
+        gap: 24px;
         align-items: stretch;
       }
 
       .hero-card,
-      .summary-card,
-      .doc-card,
+      .hero-panel,
+      .metric-card,
       .section-card,
+      .showcase-card,
+      .legal-card,
       .footer-card {
-        background: var(--surface);
         backdrop-filter: blur(18px);
-        border: 1px solid rgba(255, 255, 255, 0.8);
-        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(255, 255, 255, 0.76);
+        box-shadow: var(--shadow-lg);
       }
 
       .hero-card {
         position: relative;
-        padding: 42px;
-        border-radius: var(--radius-xl);
         overflow: hidden;
+        padding: 46px;
+        border-radius: var(--radius-xl);
+        background:
+          radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 24%),
+          radial-gradient(circle at bottom left, rgba(249, 115, 22, 0.14), transparent 28%),
+          linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.72));
       }
 
-      .hero-card::before {
+      .hero-card::after {
         content: '';
         position: absolute;
         inset: 0;
         background:
-          radial-gradient(circle at top right, rgba(255, 122, 89, 0.14), transparent 28%),
-          radial-gradient(circle at bottom left, rgba(108, 124, 255, 0.08), transparent 24%);
+          linear-gradient(120deg, rgba(255, 255, 255, 0.28), transparent 30%, transparent 70%, rgba(255, 255, 255, 0.22));
         pointer-events: none;
       }
 
       .eyebrow,
-      .pill,
-      .doc-tag {
+      .badge,
+      .chip {
         display: inline-flex;
         align-items: center;
         gap: 8px;
         padding: 8px 14px;
         border-radius: 999px;
-        border: 1px solid rgba(255, 122, 89, 0.12);
-        background: rgba(255, 255, 255, 0.74);
-        color: var(--primary-deep);
         font-size: 12px;
         font-weight: 800;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.08em;
+      }
+
+      .eyebrow {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(14, 165, 233, 0.14);
+        color: var(--accent);
       }
 
       h1 {
-        margin: 18px 0 16px;
-        font-size: clamp(42px, 6vw, 68px);
-        line-height: 0.98;
-        letter-spacing: -0.05em;
+        margin: 20px 0 18px;
+        max-width: 760px;
+        font-size: clamp(46px, 6vw, 76px);
+        line-height: 0.96;
+        letter-spacing: -0.06em;
       }
 
-      .lead {
+      .hero-lead {
         margin: 0;
-        max-width: 720px;
+        max-width: 680px;
         color: var(--text-soft);
-        font-size: 17px;
+        font-size: 18px;
         line-height: 1.9;
       }
 
-      .hero-pills {
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 18px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+        transition:
+          transform 0.22s ease,
+          box-shadow 0.22s ease,
+          background-color 0.22s ease,
+          color 0.22s ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .button.primary {
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--primary), var(--primary-deep));
+        box-shadow: 0 16px 34px rgba(249, 115, 22, 0.24);
+      }
+
+      .button.secondary {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+      }
+
+      .hero-chips {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
         margin-top: 24px;
       }
 
-      .summary-card {
-        padding: 28px;
-        border-radius: var(--radius-xl);
+      .chip {
+        color: var(--text-soft);
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.82);
       }
 
-      .summary-grid {
+      .hero-panel {
+        display: grid;
+        gap: 16px;
+        padding: 22px;
+        border-radius: var(--radius-xl);
+        background: linear-gradient(180deg, rgba(11, 18, 32, 0.96), rgba(15, 23, 42, 0.88));
+        color: var(--text-invert);
+      }
+
+      .hero-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .hero-panel-head strong {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .badge {
+        color: #dbeafe;
+        background: rgba(14, 165, 233, 0.16);
+        border: 1px solid rgba(56, 189, 248, 0.22);
+      }
+
+      .panel-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric-card {
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .metric-card strong {
+        display: block;
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .metric-card span {
+        display: block;
+        margin-top: 6px;
+        color: var(--text-invert-soft);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .preview-card {
+        padding: 18px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .preview-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .preview-header strong {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .preview-header span {
+        color: var(--text-invert-soft);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .progress-list {
         display: grid;
         gap: 14px;
         margin-top: 16px;
       }
 
-      .summary-item {
+      .progress-item {
+        display: grid;
+        gap: 8px;
+      }
+
+      .progress-item-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+      }
+
+      .progress-item-head small {
+        color: var(--text-invert-soft);
+        font-size: 12px;
+      }
+
+      .track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .bar {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--accent-soft), var(--primary));
+      }
+
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .stats-card {
         padding: 18px;
-        border-radius: var(--radius-md);
-        background: rgba(255, 255, 255, 0.8);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.72);
         border: 1px solid rgba(255, 255, 255, 0.82);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
       }
 
-      .summary-item strong {
+      .stats-card strong {
         display: block;
-        font-size: 28px;
+        font-size: 30px;
+        font-weight: 800;
         line-height: 1;
+        letter-spacing: -0.04em;
       }
 
-      .summary-item span {
+      .stats-card span {
         display: block;
-        margin-top: 6px;
+        margin-top: 8px;
         color: var(--text-soft);
-        font-size: 14px;
+        font-size: 13px;
         line-height: 1.7;
       }
 
       .content {
         display: grid;
-        gap: 20px;
+        gap: 22px;
         margin-top: 24px;
       }
 
+      .audience-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .audience-item {
+        padding: 22px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.84);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.07);
+      }
+
+      .audience-item strong {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 18px;
+        letter-spacing: -0.02em;
+      }
+
+      .audience-item p {
+        margin: 0;
+        color: var(--text-soft);
+        font-size: 15px;
+        line-height: 1.85;
+      }
+
       .section-card {
-        padding: 28px;
+        padding: 30px;
         border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.76);
       }
 
       .section-head {
@@ -219,115 +531,289 @@
         flex-wrap: wrap;
         align-items: end;
         justify-content: space-between;
-        gap: 14px;
-        margin-bottom: 20px;
+        gap: 16px;
+        margin-bottom: 22px;
       }
 
       .section-head h2 {
         margin: 0;
-        font-size: 28px;
-        letter-spacing: -0.03em;
+        font-size: 30px;
+        letter-spacing: -0.04em;
       }
 
       .section-head p {
         margin: 0;
+        max-width: 640px;
         color: var(--text-soft);
         font-size: 15px;
-        line-height: 1.8;
-        max-width: 640px;
+        line-height: 1.85;
       }
 
-      .doc-grid {
+      .features-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 16px;
       }
 
-      .doc-card {
-        position: relative;
-        display: block;
+      .feature-item {
         padding: 22px;
         border-radius: 24px;
-        transition:
-          transform 0.22s ease,
-          box-shadow 0.22s ease,
-          border-color 0.22s ease;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.82);
       }
 
-      .doc-card:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-lg);
-        border-color: rgba(255, 122, 89, 0.18);
+      .feature-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        color: var(--accent);
+        background: rgba(14, 165, 233, 0.12);
+        font-weight: 800;
+        font-size: 15px;
       }
 
-      .doc-card h3 {
-        margin: 14px 0 10px;
-        font-size: 22px;
+      .feature-item h3 {
+        margin: 18px 0 10px;
+        font-size: 20px;
         letter-spacing: -0.02em;
       }
 
-      .doc-card p {
+      .feature-item p {
         margin: 0;
         color: var(--text-soft);
         font-size: 15px;
         line-height: 1.85;
       }
 
-      .doc-meta {
+      .showcase-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .showcase-card {
+        overflow: hidden;
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.74));
+      }
+
+      .showcase-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 22px 22px 14px;
+      }
+
+      .showcase-top strong {
+        font-size: 22px;
+        letter-spacing: -0.03em;
+      }
+
+      .showcase-top span {
+        color: var(--text-soft);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      .showcase-body {
+        padding: 0 22px 22px;
+      }
+
+      .showcase-body p {
+        margin: 0;
+        color: var(--text-soft);
+        font-size: 15px;
+        line-height: 1.85;
+      }
+
+      .showcase-shell {
+        margin-top: 18px;
+        padding: 18px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+      }
+
+      .showcase-shell-head {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .showcase-shell-head span {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.32);
+      }
+
+      .showcase-lines {
+        display: grid;
+        gap: 12px;
+      }
+
+      .showcase-line {
+        display: grid;
+        gap: 8px;
+      }
+
+      .showcase-line-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        color: #e2e8f0;
+        font-size: 13px;
+      }
+
+      .showcase-line-top small {
+        color: #94a3b8;
+        font-size: 12px;
+      }
+
+      .showcase-track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .showcase-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--accent-soft), var(--primary));
+      }
+
+      .legal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .resource-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .resource-card {
+        display: block;
+        padding: 22px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.84);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.07);
+        transition:
+          transform 0.22s ease,
+          box-shadow 0.22s ease,
+          border-color 0.22s ease;
+      }
+
+      .resource-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+        border-color: rgba(14, 165, 233, 0.18);
+      }
+
+      .resource-card strong {
+        display: block;
+        margin: 14px 0 10px;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+
+      .resource-card p {
+        margin: 0;
+        color: var(--text-soft);
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .legal-card {
+        display: block;
+        padding: 22px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.84);
+        transition:
+          transform 0.22s ease,
+          box-shadow 0.22s ease,
+          border-color 0.22s ease;
+      }
+
+      .legal-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-xl);
+        border-color: rgba(14, 165, 233, 0.18);
+      }
+
+      .legal-card h3 {
+        margin: 14px 0 10px;
+        font-size: 22px;
+        letter-spacing: -0.02em;
+      }
+
+      .legal-card p {
+        margin: 0;
+        color: var(--text-soft);
+        font-size: 15px;
+        line-height: 1.85;
+      }
+
+      .legal-meta {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
         margin-top: 16px;
       }
 
-      .doc-chip {
+      .legal-meta span {
         padding: 8px 12px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.84);
-        border: 1px solid rgba(255, 255, 255, 0.84);
+        background: rgba(248, 250, 252, 0.92);
+        border: 1px solid rgba(226, 232, 240, 0.9);
         color: var(--text-soft);
         font-size: 12px;
         font-weight: 700;
       }
 
-      .doc-tag.legal {
-        color: var(--primary-deep);
+      .cta-card {
+        padding: 32px;
+        border-radius: var(--radius-xl);
+        background:
+          radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 24%),
+          radial-gradient(circle at bottom right, rgba(249, 115, 22, 0.18), transparent 26%),
+          linear-gradient(135deg, #0f172a 0%, #111827 100%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: var(--shadow-xl);
       }
 
-      .doc-tag.product {
-        color: var(--secondary);
-        border-color: rgba(108, 124, 255, 0.14);
-      }
-
-      .doc-tag.demo {
-        color: var(--green);
-        border-color: rgba(30, 166, 114, 0.14);
-      }
-
-      .tips {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-      }
-
-      .tip-card {
-        padding: 18px 18px 16px;
-        border-radius: var(--radius-md);
-        background: rgba(255, 255, 255, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.82);
-      }
-
-      .tip-card strong {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 16px;
-      }
-
-      .tip-card p {
+      .cta-card h2 {
         margin: 0;
-        color: var(--text-soft);
-        font-size: 14px;
-        line-height: 1.8;
+        max-width: 720px;
+        color: var(--text-invert);
+        font-size: 34px;
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+      }
+
+      .cta-card p {
+        margin: 14px 0 0;
+        max-width: 720px;
+        color: var(--text-invert-soft);
+        font-size: 16px;
+        line-height: 1.85;
+      }
+
+      .cta-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
       }
 
       .footer-card {
@@ -335,20 +821,22 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
-        padding: 22px 24px;
-        border-radius: 24px;
+        gap: 18px;
+        padding: 24px 26px;
+        margin-top: 20px;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.8);
       }
 
       .footer-card strong {
         display: block;
         margin-bottom: 6px;
-        font-size: 17px;
+        font-size: 18px;
       }
 
       .footer-card div {
         color: var(--text-soft);
-        line-height: 1.7;
+        line-height: 1.75;
       }
 
       .footer-links {
@@ -360,105 +848,398 @@
       .footer-links a {
         padding: 10px 14px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.84);
-        border: 1px solid rgba(255, 255, 255, 0.82);
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(226, 232, 240, 0.92);
         color: var(--text-soft);
         font-size: 14px;
         font-weight: 600;
       }
 
-      @media (max-width: 920px) {
-        .hero,
-        .doc-grid,
-        .tips {
-          grid-template-columns: 1fr;
+      .footer-note {
+        width: 100%;
+        padding-top: 8px;
+        border-top: 1px solid rgba(226, 232, 240, 0.86);
+        color: var(--text-soft);
+        font-size: 13px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        * {
+          transition: none !important;
+          animation: none !important;
         }
       }
 
-      @media (max-width: 520px) {
+      @media (max-width: 1040px) {
+        .hero,
+        .showcase-grid,
+        .features-grid,
+        .legal-grid,
+        .stats-row,
+        .audience-grid,
+        .resource-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .panel-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
         .shell {
           width: min(calc(100% - 20px), var(--max-width));
         }
 
+        .topbar-inner,
+        .nav,
+        .hero-actions,
+        .cta-actions {
+          flex-wrap: wrap;
+        }
+
         .hero-card,
-        .summary-card,
-        .section-card {
+        .hero-panel,
+        .section-card,
+        .cta-card {
           padding: 22px;
         }
 
         h1 {
-          font-size: 38px;
+          font-size: 42px;
         }
 
-        .lead {
-          font-size: 15px;
+        .hero-lead {
+          font-size: 16px;
+        }
+
+        .panel-grid {
+          grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
   <body>
-    <main class="shell">
+    <header class="topbar shell">
+      <div class="topbar-inner">
+        <a class="brand" href="#top">
+          <span class="brand-mark">EP</span>
+          <span class="brand-meta">
+            <small>Earth Player</small>
+            <strong>地球玩家</strong>
+          </span>
+        </a>
+
+        <nav class="nav">
+          <a href="#features">核心能力</a>
+          <a href="#audience">适用场景</a>
+          <a href="#showcase">产品亮点</a>
+          <a href="#legal">法律文档</a>
+        </nav>
+
+        <div class="topbar-cta">
+          <a class="button secondary" href="./investor-demo.html">演示页面</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell" id="top">
       <section class="hero">
         <article class="hero-card">
-          <span class="eyebrow">EARTH PLAYER DOCS</span>
-          <h1>地球玩家文档中心</h1>
-          <p class="lead">
-            这里集中提供地球玩家当前版本的法律文档、产品说明和演示页面入口。适合用于 App
-            内协议跳转、测试验收、对外说明或后续静态托管部署。
+          <span class="eyebrow">TRAVEL ACHIEVEMENT APP</span>
+          <h1>把你的真实经历，沉淀成可展示的个人成就。</h1>
+          <p class="hero-lead">
+            地球玩家是一款以榜单、足迹、记录、年度回顾为核心的成就型 App。它不只是记录你去过哪里、
+            玩过什么，而是把零散经历整理成更有价值的个人资产，让每一次补录、每一次新增、每一次分享都更有成就感。
           </p>
-          <div class="hero-pills">
-            <span class="pill">用户协议</span>
-            <span class="pill">隐私政策</span>
-            <span class="pill">产品 PRD</span>
-            <span class="pill">演示页面</span>
+
+          <div class="hero-actions">
+            <a class="button primary" href="#legal">查看法律文档</a>
+            <a class="button secondary" href="./prd-ranking-app-v1.md">阅读产品 PRD</a>
+          </div>
+
+          <div class="hero-chips">
+            <span class="chip">综合总榜 + 三大子榜</span>
+            <span class="chip">时间 / 地点 / 图文 / 视频 / 实况</span>
+            <span class="chip">年度回顾与成就海报</span>
           </div>
         </article>
 
-        <aside class="summary-card">
-          <span class="eyebrow">DOC SUMMARY</span>
-          <div class="summary-grid">
-            <div class="summary-item">
+        <aside class="hero-panel">
+          <div class="hero-panel-head">
+            <strong>玩家成长视图</strong>
+            <span class="badge">Official Preview</span>
+          </div>
+
+          <div class="panel-grid">
+            <div class="metric-card">
               <strong>4</strong>
-              <span>当前收录的核心文档入口，覆盖法律、产品和演示说明。</span>
+              <span>首页、榜单、录入、我的四个一级视角已经完整打通。</span>
             </div>
-            <div class="summary-item">
-              <strong>v1.0</strong>
-              <span>对应当前 `chart-app` 的 MVP 阶段功能与产品口径。</span>
+            <div class="metric-card">
+              <strong>3</strong>
+              <span>世界旅游、中国旅游、玩乐项目三条成就主轴共同组成综合总榜。</span>
             </div>
-            <div class="summary-item">
-              <strong>2026-06-16</strong>
-              <span>法律文档生成日期，可作为后续对外托管的初始版本。</span>
+            <div class="metric-card">
+              <strong>Live</strong>
+              <span>支持图片、视频、实况内容，记录不只是勾选结果，而是完整内容资产。</span>
+            </div>
+            <div class="metric-card">
+              <strong>Share</strong>
+              <span>年度回顾、成就海报和个人主页共同承担产品的展示与传播能力。</span>
+            </div>
+          </div>
+
+          <div class="preview-card">
+            <div class="preview-header">
+              <strong>综合总榜预览</strong>
+              <span>Achievement Panel</span>
+            </div>
+            <div class="progress-list">
+              <div class="progress-item">
+                <div class="progress-item-head">
+                  <span>综合总榜</span>
+                  <small>143.6</small>
+                </div>
+                <div class="track"><div class="bar" style="width: 86%"></div></div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-item-head">
+                  <span>世界旅游榜</span>
+                  <small>181.6</small>
+                </div>
+                <div class="track"><div class="bar" style="width: 78%"></div></div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-item-head">
+                  <span>中国旅游榜</span>
+                  <small>59.1</small>
+                </div>
+                <div class="track"><div class="bar" style="width: 54%"></div></div>
+              </div>
             </div>
           </div>
         </aside>
       </section>
 
+      <section class="stats-row">
+        <div class="stats-card">
+          <strong>4</strong>
+          <span>一级产品视角：首页、榜单、录入、我的</span>
+        </div>
+        <div class="stats-card">
+          <strong>4</strong>
+          <span>核心榜单结构：综合总榜 + 三大子榜</span>
+        </div>
+        <div class="stats-card">
+          <strong>3+</strong>
+          <span>媒体能力：图片、视频、实况内容一体化承载</span>
+        </div>
+        <div class="stats-card">
+          <strong>2026</strong>
+          <span>支持年度回顾、成就海报与长期沉淀式展示</span>
+        </div>
+      </section>
+
       <section class="content">
-        <section class="section-card">
+        <section class="section-card" id="features">
           <div class="section-head">
             <div>
-              <h2>法律文档</h2>
-              <p>建议优先用于 App 内协议入口、登录页协议勾选、关于页法律说明和上架审核资料。</p>
+              <h2>核心能力</h2>
+              <p>
+                地球玩家的目标不是做一个普通的内容流应用，而是把“去过哪里、玩过什么、积累了多少真实经历”
+                这件事，变成有清晰反馈、有成长感、能长期展示的产品体验。
+              </p>
             </div>
           </div>
-          <div class="doc-grid">
-            <a class="doc-card" href="./terms.html">
-              <span class="doc-tag legal">LEGAL</span>
+
+          <div class="features-grid">
+            <article class="feature-item">
+              <span class="feature-icon">01</span>
+              <h3>榜单成就系统</h3>
+              <p>
+                通过综合总榜、世界旅游榜、中国旅游榜、玩乐项目榜，持续反馈你的覆盖广度、成长阶段和个人标签。
+              </p>
+            </article>
+
+            <article class="feature-item">
+              <span class="feature-icon">02</span>
+              <h3>记录与补录体验</h3>
+              <p>
+                支持快速录入，也支持后续补充时间、地点、城市、一句话描述、图片、视频和实况内容，让记录持续变完整。
+              </p>
+            </article>
+
+            <article class="feature-item">
+              <span class="feature-icon">03</span>
+              <h3>轻互动与展示</h3>
+              <p>
+                点赞、评论、回复、收藏、关注和消息提醒构成轻量互动体系，同时服务于内容展示与影响力反馈。
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-card" id="audience">
+          <div class="section-head">
+            <div>
+              <h2>适用场景</h2>
+              <p>
+                地球玩家适合那些不满足于“发一条内容就结束”的用户。它更适合长期积累、周期回看、愿意展示个人经历密度的人群。
+              </p>
+            </div>
+          </div>
+
+          <div class="audience-grid">
+            <article class="audience-item">
+              <strong>旅行爱好者</strong>
+              <p>把去过的国家、城市和景点整理成持续增长的个人地图，而不是散落在社交平台里的零碎照片。</p>
+            </article>
+
+            <article class="audience-item">
+              <strong>玩乐体验用户</strong>
+              <p>用统一方式记录游乐园、演出、展览、特色项目等经历，让“玩过什么”也能形成可展示的成就体系。</p>
+            </article>
+
+            <article class="audience-item">
+              <strong>内容沉淀型用户</strong>
+              <p>先录入结果，再逐步补足时间、地点、图文、视频和实况，把长期经历真正沉淀成个人内容资产。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-card" id="showcase">
+          <div class="section-head">
+            <div>
+              <h2>产品亮点</h2>
+              <p>
+                这一版官网优先展示产品的结构感与结果感，而不是堆砌功能点。你能一眼看到它是什么、为什么有吸引力，以及它最终想帮助用户沉淀什么。
+              </p>
+            </div>
+          </div>
+
+          <div class="showcase-grid">
+            <article class="showcase-card">
+              <div class="showcase-top">
+                <strong>榜单不是终点，而是成长反馈</strong>
+                <span>RANKING</span>
+              </div>
+              <div class="showcase-body">
+                <p>
+                  用户不是只在这里“记录”，而是在这里持续感知自己变强了多少。综合总榜和三大子榜共同承接成就感、比较感和回访动力。
+                </p>
+                <div class="showcase-shell">
+                  <div class="showcase-shell-head"><span></span><span></span><span></span></div>
+                  <div class="showcase-lines">
+                    <div class="showcase-line">
+                      <div class="showcase-line-top">
+                        <span>综合总榜</span>
+                        <small>TOP 12%</small>
+                      </div>
+                      <div class="showcase-track"><div class="showcase-fill" style="width: 88%"></div></div>
+                    </div>
+                    <div class="showcase-line">
+                      <div class="showcase-line-top">
+                        <span>世界旅游榜</span>
+                        <small>181.6</small>
+                      </div>
+                      <div class="showcase-track"><div class="showcase-fill" style="width: 74%"></div></div>
+                    </div>
+                    <div class="showcase-line">
+                      <div class="showcase-line-top">
+                        <span>中国旅游榜</span>
+                        <small>59.1</small>
+                      </div>
+                      <div class="showcase-track"><div class="showcase-fill" style="width: 56%"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="showcase-card">
+              <div class="showcase-top">
+                <strong>每条经历都可以继续长成内容</strong>
+                <span>CONTENT</span>
+              </div>
+              <div class="showcase-body">
+                <p>
+                  录入只是开始。时间、地点、描述、图片、视频和实况能力让足迹不再停留在“我去过”，而是逐渐成长为更完整、更能代表你的内容资产。
+                </p>
+                <div class="showcase-shell">
+                  <div class="showcase-shell-head"><span></span><span></span><span></span></div>
+                  <div class="showcase-lines">
+                    <div class="showcase-line">
+                      <div class="showcase-line-top">
+                        <span>时间地点</span>
+                        <small>已完善</small>
+                      </div>
+                      <div class="showcase-track"><div class="showcase-fill" style="width: 84%"></div></div>
+                    </div>
+                    <div class="showcase-line">
+                      <div class="showcase-line-top">
+                        <span>图文视频</span>
+                        <small>3 图 + 1 视频</small>
+                      </div>
+                      <div class="showcase-track"><div class="showcase-fill" style="width: 70%"></div></div>
+                    </div>
+                    <div class="showcase-line">
+                      <div class="showcase-line-top">
+                        <span>实况内容</span>
+                        <small>长按播放</small>
+                      </div>
+                      <div class="showcase-track"><div class="showcase-fill" style="width: 58%"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-card" id="legal">
+          <div class="section-head">
+            <div>
+              <h2>法律与产品文档</h2>
+              <p>
+                对外展示时，建议同步提供法律文档、产品说明和演示页面。这些内容既适合 App
+                内跳转，也适合上架审核、产品介绍和外部沟通使用。
+              </p>
+            </div>
+          </div>
+
+          <div class="legal-grid">
+            <a class="legal-card" href="./terms.html">
+              <span class="eyebrow">LEGAL</span>
               <h3>用户协议</h3>
-              <p>说明账号使用、榜单记录、互动行为、举报反馈、服务变更、责任边界和争议处理规则。</p>
-              <div class="doc-meta">
-                <span class="doc-chip">HTML 页面</span>
-                <span class="doc-chip">适合 App 跳转</span>
+              <p>说明账号登录、榜单记录、互动行为、举报反馈、服务变更和责任边界等使用规则。</p>
+              <div class="legal-meta">
+                <span>HTML 页面</span>
+                <span>适合 App 跳转</span>
               </div>
             </a>
 
-            <a class="doc-card" href="./privacy.html">
-              <span class="doc-tag legal">PRIVACY</span>
+            <a class="legal-card" href="./privacy.html">
+              <span class="eyebrow">PRIVACY</span>
               <h3>隐私政策</h3>
-              <p>说明 Apple 登录、记录内容、媒体上传、互动数据、反馈举报、推送通知等信息处理方式。</p>
-              <div class="doc-meta">
-                <span class="doc-chip">HTML 页面</span>
-                <span class="doc-chip">适合上架审核</span>
+              <p>说明 Apple 登录、记录内容、媒体上传、互动数据、推送通知和反馈举报等信息处理方式。</p>
+              <div class="legal-meta">
+                <span>HTML 页面</span>
+                <span>适合上架审核</span>
+              </div>
+            </a>
+
+            <a class="legal-card" href="./prd-ranking-app-v1.md">
+              <span class="eyebrow">PRODUCT</span>
+              <h3>产品 PRD</h3>
+              <p>完整覆盖产品定位、榜单规则、记录结构、年度回顾、海报能力与 IA 规划。</p>
+              <div class="legal-meta">
+                <span>Markdown 文档</span>
+                <span>产品说明基线</span>
               </div>
             </a>
           </div>
@@ -467,53 +1248,49 @@
         <section class="section-card">
           <div class="section-head">
             <div>
-              <h2>产品文档</h2>
-              <p>面向产品、设计、开发和对外说明时使用，帮助快速理解地球玩家当前能力范围。</p>
+              <h2>官方资源</h2>
+              <p>
+                如果你需要更完整地了解产品定位、演示结构和对外说明内容，可以从下面这些官方资源继续查看。
+              </p>
             </div>
           </div>
-          <div class="doc-grid">
-            <a class="doc-card" href="./prd-ranking-app-v1.md">
-              <span class="doc-tag product">PRODUCT</span>
-              <h3>PRD v1</h3>
-              <p>包含产品定位、榜单规则、记录结构、年度回顾、海报、IA 与 MVP 边界等完整说明。</p>
-              <div class="doc-meta">
-                <span class="doc-chip">Markdown</span>
-                <span class="doc-chip">产品基线文档</span>
-              </div>
+
+          <div class="resource-grid">
+            <a class="resource-card" href="./investor-demo.html">
+              <span class="eyebrow">DEMO</span>
+              <strong>演示页面</strong>
+              <p>适合对外介绍产品价值、视觉方向和结构能力，便于路演或合作沟通。</p>
             </a>
 
-            <a class="doc-card" href="./investor-demo.html">
-              <span class="doc-tag demo">DEMO</span>
-              <h3>Investor Demo</h3>
-              <p>适合演示和讲解产品价值、能力结构与视觉方向，可用于对外展示或内部沟通。</p>
-              <div class="doc-meta">
-                <span class="doc-chip">HTML 页面</span>
-                <span class="doc-chip">演示用途</span>
-              </div>
+            <a class="resource-card" href="./prd-ranking-app-v1.md">
+              <span class="eyebrow">PRD</span>
+              <strong>产品说明</strong>
+              <p>查看当前版本的定位、信息架构、榜单规则、年度回顾与 MVP 边界定义。</p>
+            </a>
+
+            <a class="resource-card" href="./terms.html">
+              <span class="eyebrow">LEGAL</span>
+              <strong>用户协议</strong>
+              <p>适合 App 内协议跳转、审核材料整理和公开法律说明页面承接。</p>
+            </a>
+
+            <a class="resource-card" href="./privacy.html">
+              <span class="eyebrow">PRIVACY</span>
+              <strong>隐私政策</strong>
+              <p>说明平台对账号、记录、媒体、互动、通知与反馈数据的处理方式。</p>
             </a>
           </div>
         </section>
 
-        <section class="section-card">
-          <div class="section-head">
-            <div>
-              <h2>使用建议</h2>
-              <p>如果你准备把这些文档接入 App 或对外发布，建议按下面的方式落地。</p>
-            </div>
-          </div>
-          <div class="tips">
-            <div class="tip-card">
-              <strong>用于 App 内跳转</strong>
-              <p>将 `src/docs` 部署到静态站点后，把 `terms.html` 和 `privacy.html` 的线上 URL 接入登录页或关于页。</p>
-            </div>
-            <div class="tip-card">
-              <strong>用于上架审核</strong>
-              <p>优先使用可公开访问的 `https` 链接，并确保协议与隐私政策长期稳定可访问。</p>
-            </div>
-            <div class="tip-card">
-              <strong>用于后续迭代</strong>
-              <p>当产品新增定位、会员、定位权限、分享落地页等能力后，再同步更新法律条款和文档日期。</p>
-            </div>
+        <section class="cta-card">
+          <h2>一套围绕“真实经历”展开的成就型产品，而不是普通记录工具。</h2>
+          <p>
+            地球玩家把榜单、足迹、内容、回顾和传播组织成同一个闭环。用户先看到结果，再持续补录；先建立成就感，再愿意展示与分享。这也是它最适合被对外介绍的核心原因。
+          </p>
+          <div class="cta-actions">
+            <a class="button primary" href="./terms.html">查看用户协议</a>
+            <a class="button secondary" href="./privacy.html">查看隐私政策</a>
+            <a class="button secondary" href="./investor-demo.html">打开演示页面</a>
           </div>
         </section>
       </section>
@@ -523,12 +1300,15 @@
       <div class="footer-card">
         <div>
           <strong>地球玩家</strong>
-          <div>把旅行、足迹和内容沉淀成可展示的个人成就资产。</div>
+          <div>把旅行、足迹和内容，沉淀成可展示、可比较、可分享的个人成就资产。</div>
         </div>
         <div class="footer-links">
           <a href="./terms.html">用户协议</a>
           <a href="./privacy.html">隐私政策</a>
-          <a href="./prd-ranking-app-v1.md">PRD v1</a>
+          <a href="./prd-ranking-app-v1.md">产品 PRD</a>
+        </div>
+        <div class="footer-note">
+          页面版本：2026-06-16。当前页面用于地球玩家对外展示、协议承接和产品介绍，可随产品迭代持续更新。
         </div>
       </div>
     </footer>
