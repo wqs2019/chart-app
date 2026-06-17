@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>地球玩家 | 用户协议</title>
+    <meta
+      name="description"
+      content="地球玩家用户协议，说明账号注册与登录、榜单记录、互动行为、内容发布、举报反馈、服务变更与责任边界等规则。"
+    />
+    <style>
+      :root {
+        --bg: #fff8f4;
+        --surface: rgba(255, 255, 255, 0.92);
+        --surface-strong: #ffffff;
+        --line: rgba(255, 122, 89, 0.14);
+        --text: #18212f;
+        --text-soft: #786860;
+        --primary: #ff7a59;
+        --primary-deep: #d95f41;
+        --secondary: #6c7cff;
+        --shadow: 0 24px 60px rgba(255, 122, 89, 0.12);
+        --radius-xl: 32px;
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --max-width: 1080px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC',
+          'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(255, 122, 89, 0.16), transparent 28%),
+          radial-gradient(circle at top right, rgba(108, 124, 255, 0.12), transparent 22%),
+          linear-gradient(180deg, #fff8f4 0%, #fffdfc 100%);
+      }
+
+      a {
+        color: var(--primary-deep);
+        text-decoration: none;
+      }
+
+      .shell {
+        width: min(calc(100% - 32px), var(--max-width));
+        margin: 0 auto;
+      }
+
+      main {
+        padding: 24px 0 56px;
+      }
+
+      .hero,
+      .card,
+      .contact-card {
+        background: var(--surface);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        padding: 40px;
+        border-radius: var(--radius-xl);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid var(--line);
+        color: var(--primary-deep);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      h1 {
+        margin: 18px 0 14px;
+        font-size: clamp(34px, 6vw, 58px);
+        line-height: 1.04;
+        letter-spacing: -0.04em;
+      }
+
+      .lead {
+        margin: 0;
+        max-width: 800px;
+        color: var(--text-soft);
+        font-size: 17px;
+        line-height: 1.85;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .pill {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        color: var(--text-soft);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .content {
+        display: grid;
+        gap: 18px;
+        margin-top: 24px;
+      }
+
+      .card {
+        padding: 28px;
+        border-radius: var(--radius-lg);
+      }
+
+      .card h2 {
+        margin: 0 0 12px;
+        font-size: 26px;
+        letter-spacing: -0.03em;
+      }
+
+      .card h3 {
+        margin: 20px 0 10px;
+        font-size: 18px;
+      }
+
+      .card p,
+      .card li {
+        color: var(--text-soft);
+        font-size: 15px;
+        line-height: 1.92;
+      }
+
+      .card ul,
+      .card ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      .card li + li {
+        margin-top: 8px;
+      }
+
+      .highlight {
+        padding: 18px 20px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, rgba(255, 243, 239, 0.96), rgba(244, 246, 255, 0.96));
+        border: 1px solid rgba(255, 122, 89, 0.12);
+      }
+
+      .highlight strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 16px;
+        color: var(--text);
+      }
+
+      .contact-card {
+        display: grid;
+        gap: 14px;
+        padding: 26px 28px;
+        margin-top: 24px;
+        border-radius: 28px;
+      }
+
+      .contact-card h2 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .contact-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .contact-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border-radius: 999px;
+        background: var(--surface-strong);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .contact-chip.primary {
+        color: #fff;
+        background: linear-gradient(135deg, var(--primary), var(--primary-deep));
+      }
+
+      footer {
+        padding-bottom: 40px;
+      }
+
+      .footer-card {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 24px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        box-shadow: 0 18px 42px rgba(255, 122, 89, 0.1);
+      }
+
+      .footer-card strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 17px;
+      }
+
+      .footer-card div {
+        color: var(--text-soft);
+        line-height: 1.7;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .footer-links a {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        color: var(--text-soft);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      @media (max-width: 820px) {
+        .hero,
+        .card,
+        .contact-card {
+          padding: 22px;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .shell {
+          width: min(calc(100% - 20px), var(--max-width));
+        }
+
+        h1 {
+          font-size: 34px;
+        }
+
+        .lead {
+          font-size: 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <span class="eyebrow">EARTH PLAYER TERMS</span>
+        <h1>地球玩家用户协议</h1>
+        <p class="lead">
+          欢迎使用地球玩家。本协议适用于你使用地球玩家 App、相关网页、内容服务、榜单功能、记录功能、互动功能、推送通知、反馈举报等服务的全部过程。请你在注册、登录或使用前认真阅读并充分理解本协议内容。
+        </p>
+        <div class="hero-meta">
+          <span class="pill">生效日期：2026-06-16</span>
+          <span class="pill">适用主体：地球玩家 App 用户</span>
+          <span class="pill">当前版本：v1.0</span>
+        </div>
+      </section>
+
+      <section class="content">
+        <article class="card">
+          <h2>1. 协议适用与接受</h2>
+          <p>
+            本协议是你与地球玩家服务提供方之间就你访问、注册、登录、浏览、录入、发布、互动、反馈、举报以及使用相关产品能力所订立的协议。
+          </p>
+          <p>
+            当你完成注册、登录，或以其他方式开始使用地球玩家服务时，即视为你已经阅读、理解并同意接受本协议及平台已公布的相关规则、说明、提示和后续更新内容的约束。
+          </p>
+          <div class="highlight">
+            <strong>特别说明</strong>
+            <p>
+              地球玩家当前定位为基于用户真实经历进行自我记录与成就展示的产品。第一版以用户自主录入为准，不建立复杂真实性审核机制，因此你应对自己录入、发布和互动的内容承担相应责任。
+            </p>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>2. 服务内容</h2>
+          <p>地球玩家当前提供的主要服务包括但不限于：</p>
+          <ul>
+            <li>使用 Apple 账号完成注册、登录与账号识别；</li>
+            <li>查看综合总榜、世界旅游榜、中国旅游榜、玩乐项目榜等榜单；</li>
+            <li>录入你去过的国家、省级行政区和体验过的玩乐项目；</li>
+            <li>为记录补充时间、城市、地点、描述、图片、视频和实况内容；</li>
+            <li>查看记录详情、媒体预览、图片缩放、视频与实况播放；</li>
+            <li>进行点赞、评论、回复、收藏、关注等互动行为；</li>
+            <li>接收与互动、关注、评论相关的站内消息和推送提醒；</li>
+            <li>提交帮助反馈、问题建议，以及对不当内容进行举报；</li>
+            <li>查看年度回顾、成就海报和个人成就展示内容。</li>
+          </ul>
+          <p>
+            我们可能根据产品发展对服务内容进行调整、增加、优化、限制或下线，具体以届时页面展示和实际提供能力为准。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>3. 账号注册与登录</h2>
+          <h3>3.1 登录方式</h3>
+          <p>
+            当前版本主要支持 Apple 登录。你应确保所使用的 Apple 账号及相关授权信息真实、合法、有效，并有权进行对应授权操作。
+          </p>
+          <h3>3.2 账号使用</h3>
+          <ul>
+            <li>你应妥善保管自己的登录设备、账号状态和授权关系；</li>
+            <li>你不得出借、出租、出售、转让或以其他方式许可他人使用你的账号；</li>
+            <li>如你发现账号可能存在异常使用、未经授权访问或安全风险，应及时通过 App 内反馈渠道联系我们。</li>
+          </ul>
+          <h3>3.3 账号资料</h3>
+          <p>
+            你可在平台支持范围内完善头像、昵称等资料。你提供的资料、昵称、头像等内容不得违反法律法规、公共秩序、公序良俗或侵犯他人合法权益。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>4. 用户记录与内容发布规则</h2>
+          <h3>4.1 录入原则</h3>
+          <p>
+            地球玩家的核心服务是帮助用户记录自己的经历并生成榜单成绩。你可以录入国家、省级行政区、玩乐项目，并进一步补充时间、地点、文字说明和媒体内容。
+          </p>
+          <h3>4.2 内容责任</h3>
+          <ul>
+            <li>你应保证自己录入、上传、发布和互动的内容不违反法律法规；</li>
+            <li>你应保证你有权发布相关文字、图片、视频、实况等内容，或已取得必要授权；</li>
+            <li>你不得发布侮辱、诽谤、骚扰、冒充、侵权、暴力、色情、虚假、违法或其他不当内容；</li>
+            <li>你不得利用平台规则漏洞恶意刷榜、批量灌水、恶意互动或干扰平台正常运行。</li>
+          </ul>
+          <h3>4.3 平台边界</h3>
+          <p>
+            地球玩家第一版以“用户录入即成立”为产品原则，不对每一条记录做人工逐条核验，也不承诺你录入的内容一定被其他用户、第三方或平台永久认可。榜单、标签、年度回顾、海报等结果仅作为产品内成就展示和体验反馈使用。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>5. 榜单与分数说明</h2>
+          <p>
+            地球玩家属于“用户成就排行榜 App”，排名对象是用户，不是目的地或项目本身。榜单、分数、标签、排名、阶段称号、回顾内容和海报结果会基于你录入的记录、互动数据及平台规则自动生成。
+          </p>
+          <ul>
+            <li>单榜统计以平台标准库及平台规则为基础；</li>
+            <li>综合总榜由各子榜成绩按既定权重合成；</li>
+            <li>互动数据可能影响影响力分，但不替代成就主分；</li>
+            <li>平台有权因规则调整、数据修正、异常处理等原因更新榜单结果。</li>
+          </ul>
+          <p>
+            你理解并同意：榜单分数和排名具有产品规则属性，并不等同于任何现实官方认证、资格证明或商业评价结果。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>6. 互动、举报与社区秩序</h2>
+          <p>
+            平台支持点赞、评论、回复、收藏、关注、反馈和举报等互动能力。你在互动过程中应当遵守诚实、善意、文明的基本原则。
+          </p>
+          <ul>
+            <li>不得发布辱骂、歧视、骚扰、威胁、恶意引战或侵犯他人权益的内容；</li>
+            <li>不得通过异常频率、自动脚本、批量设备等方式刷赞、刷评论、刷收藏、刷关注；</li>
+            <li>不得恶意举报、虚假举报或反复骚扰他人；</li>
+            <li>不得冒充平台、官方人员或其他用户进行误导。</li>
+          </ul>
+          <p>
+            如你发现存在疑似违规内容，可通过平台内的举报入口发起举报。平台有权根据举报内容、证据材料、平台规则和风险判断，对相关内容或账号采取提醒、折叠、删除、限制互动、限制登录、封禁等处置措施。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>7. 设备权限与通知</h2>
+          <p>
+            为了实现图片/视频上传、视频录制、消息提醒等功能，平台可能在获得你授权后申请访问相册、相机、麦克风、通知等系统权限。不同功能依赖的权限不同，若你拒绝授权，可能导致部分功能无法使用或体验受限。
+          </p>
+          <ul>
+            <li>相册权限：用于选择图片、视频、实况内容作为记录附件或反馈附件；</li>
+            <li>相机权限：用于拍摄图片或视频；</li>
+            <li>麦克风权限：用于录制带声音的视频；</li>
+            <li>通知权限：用于接收关注、点赞、收藏、评论、系统消息等提醒。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h2>8. 知识产权</h2>
+          <p>
+            地球玩家 App、本协议页面、平台规则、界面设计、图文素材、程序代码、产品结构、运营内容及平台依法享有权利的其他内容，其知识产权归平台或相关权利人所有。
+          </p>
+          <p>
+            对于你上传、发布的文字、图片、视频、实况和其他内容，你仍依法享有相应权利；但为了向你提供存储、展示、传播、处理、回顾、海报生成、内容审核、运营维护等服务，你同意授予平台在服务范围内的必要使用权。
+          </p>
+          <p>
+            未经平台或相关权利人书面许可，任何人不得擅自复制、修改、抓取、反编译、传播或以其他方式不当使用平台内容和服务。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>9. 服务变更、中断与终止</h2>
+          <p>
+            平台有权根据业务发展、技术维护、运营策略、合规要求或安全需要，对部分或全部服务进行调整、维护、升级、限制、中断或终止。
+          </p>
+          <ul>
+            <li>如发生系统维护、服务器故障、网络异常、第三方服务波动等情况，可能导致服务暂时中断；</li>
+            <li>如你存在违反法律法规、本协议或平台规则的行为，平台有权视情节采取相应处置措施；</li>
+            <li>如平台判断存在安全风险、权利纠纷、异常使用或重大合规问题，平台可先行限制部分功能或账号状态。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h2>10. 免责声明与责任限制</h2>
+          <ul>
+            <li>平台按照“现状”和“可提供状态”向你提供服务，不对服务绝对不中断、绝对无错误作出承诺；</li>
+            <li>用户发布、录入和互动内容主要由用户自行负责，平台不对用户内容的真实性、准确性、完整性作实质保证；</li>
+            <li>榜单、分数、标签、海报和年度回顾属于平台算法和规则生成结果，仅供产品内展示与参考，不构成现实认证、权威评价或承诺；</li>
+            <li>因不可抗力、网络故障、系统攻击、第三方服务故障、设备问题等原因造成的损失，平台将在法律允许范围内承担相应责任。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h2>11. 未成年人使用</h2>
+          <p>
+            若你为未成年人，应在监护人阅读并同意本协议后，在监护人指导下使用本服务。监护人应当对未成年人的使用行为进行合理监督并承担相应责任。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>12. 协议更新与适用法律</h2>
+          <p>
+            平台有权根据业务发展、法律法规变化或平台规则调整对本协议进行更新。更新后的协议将在合理位置公布，并自公布或载明日期起生效。若你在协议更新后继续使用服务，即视为你接受更新后的内容。
+          </p>
+          <p>
+            本协议的订立、生效、履行、解释和争议解决适用中华人民共和国大陆地区法律。因本协议引起或与本协议有关的争议，双方应优先友好协商解决；协商不成的，任一方可向有管辖权的人民法院提起诉讼。
+          </p>
+        </article>
+      </section>
+
+      <section class="contact-card">
+        <h2>13. 联系我们</h2>
+        <p>
+          如果你对本协议、账号问题、记录内容、举报处理、侵权通知或其他服务事项有疑问，建议优先通过 App 内“帮助与反馈”页面提交，我们会在合理期限内处理。
+        </p>
+        <div class="contact-row">
+          <span class="contact-chip primary">App 内路径：我的 → 帮助与反馈</span>
+          <span class="contact-chip">适用产品：地球玩家</span>
+          <span class="contact-chip">文档日期：2026-06-16</span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shell">
+      <div class="footer-card">
+        <div>
+          <strong>地球玩家</strong>
+          <div>把旅行、足迹和高光时刻沉淀成可展示的个人成就。</div>
+        </div>
+        <div class="footer-links">
+          <a href="./privacy.html">隐私政策</a>
+          <a href="./terms.html">用户协议</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

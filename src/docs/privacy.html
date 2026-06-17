@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>地球玩家 | 隐私政策</title>
+    <meta
+      name="description"
+      content="地球玩家隐私政策，说明 Apple 登录信息、记录内容、互动数据、媒体附件、推送通知、反馈举报信息等数据的收集、使用、存储与保护方式。"
+    />
+    <style>
+      :root {
+        --bg: #fff8f4;
+        --surface: rgba(255, 255, 255, 0.92);
+        --surface-strong: #ffffff;
+        --line: rgba(255, 122, 89, 0.14);
+        --text: #18212f;
+        --text-soft: #786860;
+        --primary: #ff7a59;
+        --primary-deep: #d95f41;
+        --secondary: #6c7cff;
+        --shadow: 0 24px 60px rgba(255, 122, 89, 0.12);
+        --radius-xl: 32px;
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --max-width: 1080px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC',
+          'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(255, 122, 89, 0.16), transparent 28%),
+          radial-gradient(circle at top right, rgba(108, 124, 255, 0.12), transparent 22%),
+          linear-gradient(180deg, #fff8f4 0%, #fffdfc 100%);
+      }
+
+      a {
+        color: var(--primary-deep);
+        text-decoration: none;
+      }
+
+      .shell {
+        width: min(calc(100% - 32px), var(--max-width));
+        margin: 0 auto;
+      }
+
+      main {
+        padding: 24px 0 56px;
+      }
+
+      .hero,
+      .card,
+      .contact-card {
+        background: var(--surface);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        padding: 40px;
+        border-radius: var(--radius-xl);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid var(--line);
+        color: var(--primary-deep);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      h1 {
+        margin: 18px 0 14px;
+        font-size: clamp(34px, 6vw, 58px);
+        line-height: 1.04;
+        letter-spacing: -0.04em;
+      }
+
+      .lead {
+        margin: 0;
+        max-width: 800px;
+        color: var(--text-soft);
+        font-size: 17px;
+        line-height: 1.85;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .pill {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        color: var(--text-soft);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .content {
+        display: grid;
+        gap: 18px;
+        margin-top: 24px;
+      }
+
+      .card {
+        padding: 28px;
+        border-radius: var(--radius-lg);
+      }
+
+      .card h2 {
+        margin: 0 0 12px;
+        font-size: 26px;
+        letter-spacing: -0.03em;
+      }
+
+      .card h3 {
+        margin: 20px 0 10px;
+        font-size: 18px;
+      }
+
+      .card p,
+      .card li {
+        color: var(--text-soft);
+        font-size: 15px;
+        line-height: 1.92;
+      }
+
+      .card ul,
+      .card ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      .card li + li {
+        margin-top: 8px;
+      }
+
+      .note {
+        padding: 18px 20px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, rgba(255, 243, 239, 0.96), rgba(244, 246, 255, 0.96));
+        border: 1px solid rgba(255, 122, 89, 0.12);
+      }
+
+      .note strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 16px;
+        color: var(--text);
+      }
+
+      .contact-card {
+        display: grid;
+        gap: 14px;
+        padding: 26px 28px;
+        margin-top: 24px;
+        border-radius: 28px;
+      }
+
+      .contact-card h2 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .contact-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .contact-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border-radius: 999px;
+        background: var(--surface-strong);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .contact-chip.primary {
+        color: #fff;
+        background: linear-gradient(135deg, var(--primary), var(--primary-deep));
+      }
+
+      footer {
+        padding-bottom: 40px;
+      }
+
+      .footer-card {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 24px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        box-shadow: 0 18px 42px rgba(255, 122, 89, 0.1);
+      }
+
+      .footer-card strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 17px;
+      }
+
+      .footer-card div {
+        color: var(--text-soft);
+        line-height: 1.7;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .footer-links a {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        color: var(--text-soft);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      @media (max-width: 820px) {
+        .hero,
+        .card,
+        .contact-card {
+          padding: 22px;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .shell {
+          width: min(calc(100% - 20px), var(--max-width));
+        }
+
+        h1 {
+          font-size: 34px;
+        }
+
+        .lead {
+          font-size: 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <span class="eyebrow">EARTH PLAYER PRIVACY</span>
+        <h1>地球玩家隐私政策</h1>
+        <p class="lead">
+          地球玩家非常重视你的个人信息与隐私保护。本隐私政策用于说明我们如何收集、使用、存储、共享和保护你在使用地球玩家过程中产生的个人信息，以及你如何管理自己的信息与相关权限。
+        </p>
+        <div class="hero-meta">
+          <span class="pill">生效日期：2026-06-16</span>
+          <span class="pill">适用产品：地球玩家 App</span>
+          <span class="pill">当前版本：v1.0</span>
+        </div>
+      </section>
+
+      <section class="content">
+        <article class="card">
+          <h2>1. 适用范围</h2>
+          <p>
+            本政策适用于你通过地球玩家 App 使用 Apple 登录、榜单浏览、记录录入、媒体上传、互动、消息通知、帮助反馈、举报投诉、年度回顾、成就海报等功能时涉及的个人信息处理活动。
+          </p>
+          <p>
+            若我们提供的某项具体功能有单独的数据规则、页面提示或弹窗说明，相关说明与本政策共同构成对该功能数据处理的完整说明。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>2. 我们收集哪些信息</h2>
+          <h3>2.1 账号与身份信息</h3>
+          <ul>
+            <li>Apple 登录标识信息，例如 Apple 返回的用户唯一标识；</li>
+            <li>Apple 可能返回的昵称、姓名、邮箱等基础信息；</li>
+            <li>你主动补充或修改的头像、昵称、个性资料等账号信息。</li>
+          </ul>
+
+          <h3>2.2 记录与内容信息</h3>
+          <ul>
+            <li>你录入的国家、省级行政区、玩乐项目等经历数据；</li>
+            <li>你主动填写的时间、城市、地点、一句话描述等补充信息；</li>
+            <li>你上传的图片、视频、实况及相关缩略图、时长等媒体信息；</li>
+            <li>你在记录详情页产生的评论、回复、点赞、收藏等互动内容。</li>
+          </ul>
+
+          <h3>2.3 社交与治理信息</h3>
+          <ul>
+            <li>你的关注、粉丝、互动概览和未读提醒状态；</li>
+            <li>你提交的帮助反馈、功能建议、问题描述和附件信息；</li>
+            <li>你发起的举报信息，以及用于说明举报对象的必要快照信息。</li>
+          </ul>
+
+          <h3>2.4 设备与运行信息</h3>
+          <ul>
+            <li>设备类型、系统版本、App 版本、推送标识等必要运行信息；</li>
+            <li>消息通知 token、应用角标和未读消息状态；</li>
+            <li>为保障稳定性与安全所需的基础日志、错误信息和操作事件。</li>
+          </ul>
+
+          <div class="note">
+            <strong>关于位置说明</strong>
+            <p>
+              当前版本主要处理你主动填写的城市、地点、描述等信息，不以系统 GPS 定位作为核心数据来源。若后续接入定位能力，我们会在对应功能启用前单独征求你的授权。
+            </p>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>3. 我们如何使用你的信息</h2>
+          <p>我们会基于合法、正当、必要原则使用你的信息，主要用途包括：</p>
+          <ul>
+            <li>完成注册、登录、账号识别与会话维持；</li>
+            <li>生成榜单、分数、排名、标签、年度回顾与成就海报；</li>
+            <li>保存、展示、同步和管理你的记录、媒体和个人主页内容；</li>
+            <li>支持点赞、评论、回复、收藏、关注、消息提醒等互动功能；</li>
+            <li>处理帮助反馈、举报投诉、风控检查和平台治理；</li>
+            <li>向你推送必要的功能消息、互动通知和服务提醒；</li>
+            <li>改进产品体验、排查故障、优化性能和保障安全。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h2>4. 设备权限调用说明</h2>
+          <p>为实现特定功能，我们可能在取得你授权后调用下列系统权限：</p>
+          <ul>
+            <li>相册权限：用于选择图片、视频、实况媒体并上传到你的记录或反馈中；</li>
+            <li>相机权限：用于拍摄照片或视频后上传；</li>
+            <li>麦克风权限：用于录制带声音的视频；</li>
+            <li>通知权限：用于接收关注、点赞、收藏、评论和系统通知提醒。</li>
+          </ul>
+          <p>
+            若你拒绝授权，相关依赖功能可能无法正常使用，但不会影响其他不依赖该权限的基础功能。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>5. 我们如何共享、转让与公开披露信息</h2>
+          <h3>5.1 对外共享</h3>
+          <p>
+            我们不会出售你的个人信息。仅在实现必要功能、履行法定义务、处理投诉争议或获得你明确同意的情况下，才会在必要范围内共享信息。
+          </p>
+
+          <h3>5.2 可能涉及的第三方服务</h3>
+          <ul>
+            <li>Apple 登录服务：用于完成 Apple 账号登录与身份识别；</li>
+            <li>Apple Push Notification Service / 系统通知链路：用于向你发送通知；</li>
+            <li>腾讯云 CloudBase、对象存储及相关云服务：用于数据存储、媒体存储、云函数处理与服务运行。</li>
+          </ul>
+
+          <h3>5.3 转让与公开披露</h3>
+          <p>
+            除非法律法规另有规定、获得你的单独同意，或因合并、分立、收购、资产转让等确需进行，我们不会将你的个人信息转让给其他公司、组织或个人。若发生前述情形，我们会要求接收方继续受本政策约束。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>6. 你的内容如何展示</h2>
+          <p>
+            你在平台中主动发布或录入的部分内容，可能在平台内用于记录详情、个人主页、榜单流、互动提醒、年度回顾、成就海报、举报处理快照等场景展示。
+          </p>
+          <ul>
+            <li>你主动发布的头像、昵称、记录内容、图片或视频，可能被其他用户在平台内可见范围内看到；</li>
+            <li>评论、点赞、收藏、关注等行为可能形成对应的互动记录与通知；</li>
+            <li>为便于处理举报、投诉和治理，我们可能保存必要的用户快照和记录快照。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h2>7. 我们如何存储和保护信息</h2>
+          <h3>7.1 存储期限</h3>
+          <p>
+            我们会在实现本政策所述目的所必需的期限内保存你的信息，法律法规另有要求的除外。超出必要期限后，我们会根据法律法规要求对信息进行删除、匿名化处理或依法继续保存。
+          </p>
+
+          <h3>7.2 安全措施</h3>
+          <ul>
+            <li>采取访问控制、权限隔离、日志审计等合理安全措施；</li>
+            <li>使用云服务提供方的基础安全能力进行数据和媒体存储；</li>
+            <li>针对举报、反馈、账号等数据实施必要的最小化处理。</li>
+          </ul>
+
+          <p>
+            互联网环境并非绝对安全，我们会尽力保障你的信息安全，但无法保证任何传输或存储系统的绝对安全。如发生可能影响你权利的信息安全事件，我们将依法采取补救措施并进行必要告知。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>8. 你的权利</h2>
+          <p>在法律法规规定范围内，你通常享有以下权利：</p>
+          <ul>
+            <li>查询、访问你的账号资料、记录内容和相关信息；</li>
+            <li>更正、补充或更新你的个人资料、记录内容和反馈内容；</li>
+            <li>删除你主动发布的部分记录、评论、媒体或申请注销账号；</li>
+            <li>关闭通知权限、撤回相册/相机/麦克风等系统权限授权；</li>
+            <li>通过 App 内反馈渠道对本政策或信息处理活动提出问题与投诉。</li>
+          </ul>
+          <p>
+            由于部分数据与平台安全、交易留痕、争议处理、法律义务或系统完整性有关，在符合法律法规的前提下，我们可能无法立即删除全部信息，或需在合理期限内完成处理。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>9. 未成年人保护</h2>
+          <p>
+            若你为未成年人，应在监护人同意和指导下使用地球玩家。若我们发现存在未经适当同意收集未成年人个人信息的情形，会尽快采取删除、限制或其他适当措施。
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>10. 政策更新</h2>
+          <p>
+            我们可能根据产品功能变化、法律法规要求、平台治理策略或服务调整更新本隐私政策。更新后的版本会在合理位置展示，并自公布或载明日期起生效。若更新对你的权利义务产生重大影响，我们会通过更显著方式提示。
+          </p>
+        </article>
+      </section>
+
+      <section class="contact-card">
+        <h2>11. 联系我们</h2>
+        <p>
+          如果你对本隐私政策、个人信息处理方式、权限授权、账号注销、举报反馈或未成年人保护等问题有疑问，建议优先通过 App 内“帮助与反馈”入口联系我们。
+        </p>
+        <div class="contact-row">
+          <span class="contact-chip primary">App 内路径：我的 → 帮助与反馈</span>
+          <span class="contact-chip">适用产品：地球玩家</span>
+          <span class="contact-chip">文档日期：2026-06-16</span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shell">
+      <div class="footer-card">
+        <div>
+          <strong>地球玩家</strong>
+          <div>专注榜单、足迹、回顾与个人成就展示的旅行记录 App。</div>
+        </div>
+        <div class="footer-links">
+          <a href="./terms.html">用户协议</a>
+          <a href="./privacy.html">隐私政策</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
