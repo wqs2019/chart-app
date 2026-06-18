@@ -77,7 +77,7 @@ const CheckinEntryEditorScreen: React.FC = () => {
       toast.success('录入记录已保存');
       navigation.goBack();
     } catch (error) {
-      Alert.alert('保存失败', '当前记录保存失败，请稍后再试。');
+      Alert.alert('保存失败', error instanceof Error ? error.message : '当前记录保存失败，请稍后再试。');
     } finally {
       setSaving(false);
     }

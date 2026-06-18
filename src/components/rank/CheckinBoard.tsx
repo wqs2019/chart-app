@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -107,9 +107,11 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
     setSearchKeyword('');
   }, [code]);
 
-  React.useEffect(() => {
-    fetchData(code);
-  }, [fetchData, code]);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData(code);
+    }, [fetchData, code])
+  );
 
   const visibleItems = React.useMemo(
     () => (isViewerMode ? items.filter((item) => checkedIds.has(item._id)) : items),

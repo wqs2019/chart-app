@@ -75,8 +75,18 @@ async function getStandardItemById(itemId) {
     return null;
   }
 
-  const result = await standardItemsCollection.doc(itemId).get();
-  return getDocData(result);
+  try {
+    const result = await standardItemsCollection.doc(itemId).get();
+    const item = getDocData(result);
+    if (item) {
+      return item;
+    }
+  } catch (error) {
+    console.log('chart_checkin.getStandardItemById fallback to where:', error);
+  }
+
+  const fallback = await standardItemsCollection.where({ _id: itemId }).limit(1).get();
+  return getDocData(fallback);
 }
 
 async function findCheckin(userId, leaderboardCode, itemId) {
@@ -194,11 +204,16 @@ function countComments(comments = []) {
 }
 
 function normalizeCachedInteraction(interaction = {}, fallbackInteraction = null) {
-  const base = fallbackInteraction || {};
+  const safeInteraction =
+    interaction && typeof interaction === 'object' ? interaction : {};
+  const base =
+    fallbackInteraction && typeof fallbackInteraction === 'object'
+      ? fallbackInteraction
+      : {};
   return {
-    likes_count: Math.max(Number(interaction.likes_count ?? base.likes_count ?? 0) || 0, 0),
-    comments_count: Math.max(Number(interaction.comments_count ?? base.comments_count ?? 0) || 0, 0),
-    favorites_count: Math.max(Number(interaction.favorites_count ?? base.favorites_count ?? 0) || 0, 0),
+    likes_count: Math.max(Number(safeInteraction.likes_count ?? base.likes_count ?? 0) || 0, 0),
+    comments_count: Math.max(Number(safeInteraction.comments_count ?? base.comments_count ?? 0) || 0, 0),
+    favorites_count: Math.max(Number(safeInteraction.favorites_count ?? base.favorites_count ?? 0) || 0, 0),
   };
 }
 
