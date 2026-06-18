@@ -10,6 +10,7 @@
     "release": "npx expo run:ios --configuration Release --device",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "testfly": "eas build --platform ios --auto-submit",
     "db:init:tcb": "node scripts/init_tcb_db.js",
     "db:generate:standard-item-icons": "node scripts/generate_standard_item_icons_seed.js",
     "db:seed:standard-items": "node scripts/seed_standard_items.js",

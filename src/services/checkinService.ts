@@ -145,6 +145,15 @@ export const checkinService = {
     return resolved;
   },
 
+  async deleteCheckinEntry(userId: string, code: LeaderboardCode, itemId: string, entryId: string): Promise<void> {
+    await callCheckinFunction<boolean>('deleteCheckinEntry', {
+      userId,
+      code,
+      itemId,
+      entryId,
+    });
+  },
+
   async toggleCheckin(userId: string, item: StandardItem, isChecked: boolean): Promise<void> {
     await callCheckinFunction<boolean>('toggleCheckin', { userId, item, isChecked });
   },

@@ -24,6 +24,7 @@ import { NineGridMedia } from '../../components/common/NineGridMedia';
 import { useToast } from '../../components/common/Toast';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import authService from '../../services/authService';
+import checkinService from '../../services/checkinService';
 import checkinInteractionService from '../../services/checkinInteractionService';
 import feedbackService from '../../services/feedbackService';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -141,6 +142,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const [selectedReportReason, setSelectedReportReason] = React.useState<ReportReason>('spam');
   const [reportDescription, setReportDescription] = React.useState('');
   const [reportSubmitting, setReportSubmitting] = React.useState(false);
+  const [deletingEntry, setDeletingEntry] = React.useState(false);
   const commentInputRef = React.useRef<TextInput>(null);
   const likeButtonScale = React.useRef(new Animated.Value(1)).current;
   const commentButtonScale = React.useRef(new Animated.Value(1)).current;
@@ -155,6 +157,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const avatarUri = getAvatarUri(authorUser);
   const locationText = currentEntry.content?.location_name || currentEntry.content?.city_name || item.name_zh;
   const canReportEntry = Boolean(userId && targetUserId && userId !== targetUserId);
+  const canDeleteEntry = Boolean(userId && targetUserId && userId === targetUserId && (currentEntry._id || entry._id));
 
   const fetchEntryDetail = React.useCallback(async () => {
     if (!targetUserId) {
@@ -202,7 +205,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      headerRight: canReportEntry
+      headerRight: canReportEntry || canDeleteEntry
         ? () => (
             <Pressable
               onPress={() => setMoreActionsVisible(true)}
@@ -214,7 +217,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
           )
         : undefined,
     });
-  }, [canReportEntry, colors.text, navigation]);
+  }, [canDeleteEntry, canReportEntry, colors.text, navigation]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -459,6 +462,33 @@ const CheckinEntryDetailScreen: React.FC = () => {
     toast,
     userId,
   ]);
+
+  const handleDeleteEntry = React.useCallback(() => {
+    if (!canDeleteEntry || !userId) {
+      return;
+    }
+
+    Alert.alert('删除记录', '删除后将无法恢复，这条记录的内容、图片和互动数据都会从当前条目中移除。确认继续吗？', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '删除',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setDeletingEntry(true);
+            setMoreActionsVisible(false);
+            await checkinService.deleteCheckinEntry(userId, code, item._id, currentEntry._id || entry._id || '');
+            toast.success('记录已删除');
+            navigation.goBack();
+          } catch (error) {
+            Alert.alert('删除失败', error instanceof Error ? error.message : '删除记录失败，请稍后重试。');
+          } finally {
+            setDeletingEntry(false);
+          }
+        },
+      },
+    ]);
+  }, [canDeleteEntry, code, currentEntry._id, entry._id, item._id, navigation, toast, userId]);
 
   if (loading) {
     return <Loading message="正在加载记录详情..." />;
@@ -837,10 +867,20 @@ const CheckinEntryDetailScreen: React.FC = () => {
               ]}
             >
               <Text style={[styles.popupTitle, { color: colors.text }]}>更多操作</Text>
-              <Pressable style={styles.popupAction} onPress={handleOpenReportModal}>
-                <Ionicons name="flag-outline" size={18} color="#F59E0B" />
-                <Text style={[styles.popupActionText, { color: colors.text }]}>举报日记</Text>
-              </Pressable>
+              {canReportEntry ? (
+                <Pressable style={styles.popupAction} onPress={handleOpenReportModal}>
+                  <Ionicons name="flag-outline" size={18} color="#F59E0B" />
+                  <Text style={[styles.popupActionText, { color: colors.text }]}>举报日记</Text>
+                </Pressable>
+              ) : null}
+              {canDeleteEntry ? (
+                <Pressable style={styles.popupAction} onPress={handleDeleteEntry} disabled={deletingEntry}>
+                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                  <Text style={[styles.popupActionText, { color: '#EF4444' }]}>
+                    {deletingEntry ? '删除中...' : '删除记录'}
+                  </Text>
+                </Pressable>
+              ) : null}
               <Pressable style={styles.popupCancel} onPress={() => setMoreActionsVisible(false)}>
                 <Text style={[styles.popupCancelText, { color: colors.textSecondary }]}>取消</Text>
               </Pressable>

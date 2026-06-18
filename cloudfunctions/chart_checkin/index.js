@@ -939,6 +939,45 @@ const saveCheckinEntry = async (data = {}) => {
   }
 };
 
+const deleteCheckinEntry = async (data = {}) => {
+  const { userId, itemId, code, entryId } = data;
+  if (!userId || !itemId || !entryId) {
+    return fail('缺少参数');
+  }
+
+  try {
+    const leaderboardCode = normalizeLeaderboardCode(code);
+    const anchorCheckin = await findCheckin(userId, leaderboardCode, itemId);
+    if (!anchorCheckin?._id) {
+      return fail('记录不存在');
+    }
+
+    const existingEntries = getCheckinEntries(anchorCheckin);
+    const nextEntries = existingEntries.filter((currentEntry) => currentEntry.entry_id !== entryId);
+
+    if (nextEntries.length === existingEntries.length) {
+      return fail('记录不存在');
+    }
+
+    if (!nextEntries.length) {
+      await checkinsCollection.doc(anchorCheckin._id).remove();
+    } else {
+      const nextInteraction = summarizeCheckinInteraction(nextEntries, anchorCheckin?.interaction);
+      await checkinsCollection.doc(anchorCheckin._id).update({
+        contents: nextEntries,
+        interaction: nextInteraction,
+        updated_at: db.serverDate(),
+      });
+    }
+
+    await refreshLeaderboardSnapshots(leaderboardCode);
+
+    return ok(true);
+  } catch (error) {
+    return fail('删除录入记录失败', error);
+  }
+};
+
 /**
  * 获取我的榜单位置
  */
@@ -1080,6 +1119,7 @@ const actionMap = {
   toggleCheckin,
   batchCheckin,
   saveCheckinEntry,
+  deleteCheckinEntry,
   getUploadCredentials,
 };
 
