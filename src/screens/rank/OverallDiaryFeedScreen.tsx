@@ -312,7 +312,6 @@ const OverallDiaryFeedScreen: React.FC = () => {
 
               <View style={styles.authorTextWrap}>
                 <View style={styles.eyebrowRow}>
-                  <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ALL DIARIES</Text>
                   {!isSelf ? (
                     <Pressable
                       onPress={() => void handleFollowPress()}
