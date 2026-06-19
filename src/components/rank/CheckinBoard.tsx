@@ -79,7 +79,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
     try {
       const [allOptions, myCheckins] = await Promise.all([
         checkinService.getStandardItems(nextCode),
-        checkinService.getUserCheckins(targetUserId, nextCode),
+        checkinService.getUserCheckins(targetUserId, nextCode, userId || targetUserId),
       ]);
 
       if (requestIdRef.current !== currentRequestId) {
@@ -100,7 +100,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
         setSwitchingCode((current) => (current === nextCode ? null : current));
       }
     }
-  }, [targetUserId]);
+  }, [targetUserId, userId]);
 
   React.useEffect(() => {
     setSelectedCategory(ALL_CATEGORY);

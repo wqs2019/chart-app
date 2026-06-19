@@ -38,6 +38,8 @@ const getEntryInteraction = (entry: UserCheckin) => ({
   favorites: entry.interaction?.favorites_count || 0,
 });
 
+const isEntryModerated = (status?: string) => status === 'violating' || status === 'reviewing';
+
 const getCardVisualHeight = (entry: UserCheckin, cardWidth: number) => {
   const titleLength = (entry.content?.title || '').length;
   const coverHeight = Math.round((cardWidth * 4) / 3);
@@ -74,13 +76,13 @@ const CheckinItemRecordsScreen: React.FC = () => {
     }
 
     try {
-      const rows = await checkinService.getItemCheckinEntries(targetUserId, code, item._id);
+      const rows = await checkinService.getItemCheckinEntries(targetUserId, code, item._id, userId || targetUserId);
       setEntries(rows);
     } catch (error) {
       Alert.alert('加载失败', '该条目的录入记录暂时无法获取，请稍后重试。');
       setEntries([]);
     }
-  }, [code, item._id, targetUserId]);
+  }, [code, item._id, targetUserId, userId]);
 
   React.useEffect(() => {
     navigation.setOptions({ title: item.name_zh });
@@ -218,15 +220,22 @@ const CheckinItemRecordsScreen: React.FC = () => {
                       placeholderText="暂无封面"
                       onPress={() =>
                         navigation.navigate('CheckinEntryDetail', {
-                          code,
-                          item,
-                          entry,
-                          viewedUserId,
-                          viewedUserName,
-                          readOnly,
+                          entryId: entry._id || '',
                         })
                       }
                     >
+                      {isEntryModerated(entry.content?.moderation_status) ? (
+                        <View style={styles.entryBadgeRow}>
+                          <View
+                            style={[
+                              styles.entryBadge,
+                              { backgroundColor: isDark ? 'rgba(239,68,68,0.16)' : 'rgba(239,68,68,0.10)' },
+                            ]}
+                          >
+                            <Text style={[styles.entryBadgeText, { color: '#EF4444' }]}>笔记违规</Text>
+                          </View>
+                        </View>
+                      ) : null}
                       <Text numberOfLines={2} style={[styles.entryTitle, { color: colors.text }]}>
                         {entry.content?.title || `${item.name_zh} 游玩记录 ${index + 1}`}
                       </Text>
@@ -405,6 +414,19 @@ const styles = StyleSheet.create({
   },
   masonryColumnRight: {
     marginLeft: 12,
+  },
+  entryBadgeRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  entryBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  entryBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
   },
   entryTitle: {
     fontSize: 14,

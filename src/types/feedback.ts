@@ -1,7 +1,8 @@
 import { CheckinAttachment } from './rank';
 
-// 普通反馈 + 针对某篇日记的举报
-export type FeedbackType = 'bug' | 'feature' | 'other' | 'report_entry';
+// 普通反馈 + 针对某篇日记的举报 + 违规笔记修改后的复审申请
+export type FeedbackType = 'bug' | 'feature' | 'other' | 'report_entry' | 'review_entry';
+// `pending` 仅用于兼容历史数据，前台统一按 `processing` 展示
 export type FeedbackStatus = 'pending' | 'processing' | 'resolved' | 'rejected';
 
 // 举报原因枚举，前后端与云函数校验保持一致
@@ -40,7 +41,7 @@ export type FeedbackRecord = {
   created_at?: string | number | Date;
   updated_at?: string | number | Date;
 
-  // 仅当 type === 'report_entry' 时存在
+  // 当 type === 'report_entry' 或 'review_entry' 时存在
   report_reason?: ReportReason;
   target_user_id?: string;
   target_entry_id?: string;

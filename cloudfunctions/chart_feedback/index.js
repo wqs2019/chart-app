@@ -5,9 +5,11 @@ const app = cloud.init({
 });
 
 const db = app.database();
+const _ = db.command;
 const feedbacksCollection = db.collection('chart_feedbacks');
 const usersCollection = db.collection('chart_users');
 const adminCollection = db.collection('admin_list');
+const checkinsCollection = db.collection('chart_checkins');
 
 function ok(data) {
   return {
@@ -93,6 +95,71 @@ function sanitizeTargetEntrySnapshot(snapshot = {}) {
   };
 }
 
+function normalizeEntryModerationStatus(status) {
+  return ['violating', 'reviewing'].includes(status) ? status : 'normal';
+}
+
+function getCheckinEntries(checkin) {
+  return Array.isArray(checkin?.contents) ? checkin.contents : [];
+}
+
+async function findTargetCheckin(targetUserId, targetItemId) {
+  if (!targetUserId || !targetItemId) {
+    return null;
+  }
+
+  const result = await checkinsCollection
+    .where({
+      user_id: targetUserId,
+      item_id: targetItemId,
+      is_active: true,
+    })
+    .limit(1)
+    .get();
+
+  return getDocData(result);
+}
+
+async function syncEntryModerationState(feedbackRecord, nextStatus) {
+  if (!feedbackRecord || !['report_entry', 'review_entry'].includes(feedbackRecord.type)) {
+    return;
+  }
+
+  const checkin = await findTargetCheckin(feedbackRecord.target_user_id, feedbackRecord.target_item_id);
+  if (!checkin?._id) {
+    return;
+  }
+
+  const nextModerationStatus =
+    feedbackRecord.type === 'report_entry'
+      ? nextStatus === 'processing'
+        ? 'violating'
+        : 'normal'
+      : nextStatus === 'resolved'
+        ? 'normal'
+        : nextStatus === 'rejected'
+          ? 'violating'
+          : 'reviewing';
+
+  const nextEntries = getCheckinEntries(checkin).map((entry) => {
+    if (entry.entry_id !== feedbackRecord.target_entry_id) {
+      return entry;
+    }
+
+    return {
+      ...entry,
+      moderation_status: normalizeEntryModerationStatus(nextModerationStatus),
+      moderation_updated_at: db.serverDate(),
+      updated_at: db.serverDate(),
+    };
+  });
+
+  await checkinsCollection.doc(checkin._id).update({
+    contents: nextEntries,
+    updated_at: db.serverDate(),
+  });
+}
+
 async function ensureAdminByAppleId(appleUserId) {
   const normalizedAppleId = String(appleUserId || '').trim();
 
@@ -132,7 +199,7 @@ async function addFeedback(data = {}) {
       return fail('缺少用户 ID');
     }
 
-    if (!type || !['bug', 'feature', 'other', 'report_entry'].includes(type)) {
+    if (!type || !['bug', 'feature', 'other', 'report_entry', 'review_entry'].includes(type)) {
       return fail('反馈类型不正确');
     }
 
@@ -140,16 +207,19 @@ async function addFeedback(data = {}) {
       return fail('反馈内容不能为空');
     }
 
-    if (type === 'report_entry') {
+    if (type === 'report_entry' || type === 'review_entry') {
       if (!target_user_id || !target_entry_id || !target_item_id) {
-        return fail('举报目标信息不完整');
+        return fail(type === 'review_entry' ? '复审目标信息不完整' : '举报目标信息不完整');
       }
 
-      if (user_id === target_user_id) {
+      if (type === 'report_entry' && user_id === target_user_id) {
         return fail('不能举报自己的记录');
       }
 
-      if (!['spam', 'abuse', 'harassment', 'pornography', 'violence', 'fraud', 'other'].includes(report_reason)) {
+      if (
+        type === 'report_entry' &&
+        !['spam', 'abuse', 'harassment', 'pornography', 'violence', 'fraud', 'other'].includes(report_reason)
+      ) {
         return fail('举报原因不正确');
       }
     }
@@ -165,21 +235,21 @@ async function addFeedback(data = {}) {
       content: String(content).trim(),
       contact: String(contact || '').trim(),
       media: sanitizeMedia(media),
-      status: 'pending',
+      status: 'processing',
       source,
       report_reason: type === 'report_entry' ? report_reason : '',
-      target_user_id: type === 'report_entry' ? target_user_id : '',
-      target_entry_id: type === 'report_entry' ? target_entry_id : '',
-      target_item_id: type === 'report_entry' ? target_item_id : '',
+      target_user_id: ['report_entry', 'review_entry'].includes(type) ? target_user_id : '',
+      target_entry_id: ['report_entry', 'review_entry'].includes(type) ? target_entry_id : '',
+      target_item_id: ['report_entry', 'review_entry'].includes(type) ? target_item_id : '',
       user_snapshot: {
         full_name: user_snapshot.full_name || user.full_name || user.profile?.nickname || '',
         email: user_snapshot.email || user.email || '',
         avatar_url: user_snapshot.avatar_url || user.profile?.avatar_url || '',
       },
       target_user_snapshot:
-        type === 'report_entry' ? sanitizeTargetUserSnapshot(target_user_snapshot) : {},
+        ['report_entry', 'review_entry'].includes(type) ? sanitizeTargetUserSnapshot(target_user_snapshot) : {},
       target_entry_snapshot:
-        type === 'report_entry' ? sanitizeTargetEntrySnapshot(target_entry_snapshot) : {},
+        ['report_entry', 'review_entry'].includes(type) ? sanitizeTargetEntrySnapshot(target_entry_snapshot) : {},
       created_at: db.serverDate(),
       updated_at: db.serverDate(),
     };
@@ -206,7 +276,7 @@ async function listFeedbacks(data = {}) {
 
     const wherePayload = {};
     if (type !== 'all') {
-      wherePayload.type = type;
+      wherePayload.type = type === 'report_entry' ? _.in(['report_entry', 'review_entry']) : type;
     }
     if (status !== 'all') {
       wherePayload.status = status;
@@ -233,14 +303,27 @@ async function updateFeedbackStatus(data = {}) {
       return fail('缺少反馈记录 ID');
     }
 
-    if (!['pending', 'processing', 'resolved', 'rejected'].includes(status)) {
+    if (!['processing', 'resolved', 'rejected'].includes(status)) {
       return fail('反馈状态不正确');
+    }
+
+    const existingResult = await feedbacksCollection.doc(feedbackId).get();
+    const existingRecord = getDocData(existingResult);
+    if (!existingRecord) {
+      return fail('反馈记录不存在');
+    }
+
+    const currentStatus = existingRecord.status === 'pending' ? 'processing' : existingRecord.status || 'processing';
+    if (currentStatus === 'resolved' || currentStatus === 'rejected') {
+      return fail('当前记录已结案，状态不可再次修改');
     }
 
     await feedbacksCollection.doc(feedbackId).update({
       status,
       updated_at: db.serverDate(),
     });
+
+    await syncEntryModerationState(existingRecord, status);
 
     const result = await feedbacksCollection.doc(feedbackId).get();
     return ok(getDocData(result));

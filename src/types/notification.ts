@@ -1,5 +1,13 @@
 export type AppNotificationType = 'follow' | 'like' | 'favorite' | 'comment' | 'reply';
 
+export type NotificationRoutePayload = {
+  entryId?: string;
+  commentId?: string;
+  viewedUserId?: string;
+  viewedUserName?: string;
+  viewedAvatarUrl?: string;
+};
+
 export type AppNotification = {
   _id: string;
   receiver_user_id: string;
@@ -17,6 +25,8 @@ export type AppNotification = {
   };
   extra_data?: {
     screen?: string;
+    params?: NotificationRoutePayload;
+    entryId?: string;
     viewed_user_id?: string;
     viewed_user_name?: string;
     viewed_avatar_url?: string;

@@ -91,6 +91,8 @@ const getEntryInteraction = (entry: UserCheckin) => ({
   favorites: entry.interaction?.favorites_count || 0,
 });
 
+const isEntryModerated = (status?: string) => status === 'violating' || status === 'reviewing';
+
 const getCheckinEntries = (checkin: UserCheckin) => {
   if (Array.isArray(checkin.contents) && checkin.contents.length) {
     return checkin.contents;
@@ -126,6 +128,8 @@ const buildEntryView = (checkin: UserCheckin, item: StandardItem, entry: NonNull
     weather: entry.weather || '',
     mood: entry.mood || '',
     is_complete: Boolean(entry.is_complete),
+    moderation_status: entry.moderation_status,
+    moderation_updated_at: entry.moderation_updated_at,
   },
   item,
 });
@@ -179,7 +183,7 @@ const OverallDiaryFeedScreen: React.FC = () => {
         CONTENT_LEADERBOARD_CODES.map(async (code) => {
           const [items, checkins] = await Promise.all([
             checkinService.getStandardItems(code),
-            checkinService.getUserCheckins(viewedUserId, code),
+            checkinService.getUserCheckins(viewedUserId, code, currentUserId || viewedUserId),
           ]);
 
           const itemMap = new Map(items.map((item) => [item._id, item]));
@@ -205,7 +209,7 @@ const OverallDiaryFeedScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [viewedUserId]);
+  }, [currentUserId, viewedUserId]);
 
   const fetchSocialSummary = React.useCallback(async () => {
     if (!viewedUserId) {
@@ -392,16 +396,21 @@ const OverallDiaryFeedScreen: React.FC = () => {
                       placeholderIconColor={colors.primary}
                       onPress={() =>
                         navigation.navigate('CheckinEntryDetail', {
-                          code: entry.leaderboard_code,
-                          item: entry.item,
-                          entry,
-                          viewedUserId: isSelf ? undefined : viewedUserId,
-                          viewedUserName: isSelf ? undefined : viewedUserName,
-                          readOnly: !isSelf,
+                          entryId: entry._id || '',
                         })
                       }
                     >
                       <View style={styles.entryTagRow}>
+                        {isEntryModerated(entry.content?.moderation_status) ? (
+                          <View
+                            style={[
+                              styles.entryTag,
+                              { backgroundColor: isDark ? 'rgba(239,68,68,0.16)' : 'rgba(239,68,68,0.10)' },
+                            ]}
+                          >
+                            <Text style={[styles.entryTagText, { color: '#EF4444' }]}>笔记违规</Text>
+                          </View>
+                        ) : null}
                         <View
                           style={[
                             styles.entryTag,

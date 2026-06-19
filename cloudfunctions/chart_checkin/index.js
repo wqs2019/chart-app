@@ -11,6 +11,7 @@ const standardItemsCollection = db.collection('chart_standard_items');
 const checkinsCollection = db.collection('chart_checkins');
 const snapshotsCollection = db.collection('chart_score_snapshots');
 const usersCollection = db.collection('chart_users');
+const feedbacksCollection = db.collection('chart_feedbacks');
 const DEFAULT_COS_BUCKET = '6d61-maoqiu-diary-app-2fpzvwp2e01dbaf-1417164439';
 const DEFAULT_COS_REGION = 'ap-shanghai';
 const DEFAULT_COS_PUBLIC_DOMAIN = `https://${DEFAULT_COS_BUCKET}.tcb.qcloud.la`;
@@ -197,6 +198,89 @@ function createEntryId() {
   return `entry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function normalizeEntryModerationStatus(status) {
+  return ['violating', 'reviewing'].includes(status) ? status : 'normal';
+}
+
+function isEntryVisibleForViewer(entry = {}, ownerUserId = '', viewerUserId = '') {
+  const moderationStatus = normalizeEntryModerationStatus(entry?.moderation_status);
+  if (moderationStatus === 'normal') {
+    return true;
+  }
+
+  return Boolean(ownerUserId && viewerUserId && ownerUserId === viewerUserId);
+}
+
+function filterCheckinEntriesForViewer(checkin, viewerUserId = '') {
+  const ownerUserId = checkin?.user_id || '';
+  return getCheckinEntries(checkin).filter((entry) => isEntryVisibleForViewer(entry, ownerUserId, viewerUserId || ownerUserId));
+}
+
+async function findUserById(userId) {
+  if (!userId) {
+    return null;
+  }
+
+  try {
+    const result = await usersCollection.doc(userId).get();
+    const user = getDocData(result);
+    if (user) {
+      return user;
+    }
+  } catch (error) {
+    console.log('chart_checkin.findUserById fallback to where:', error);
+  }
+
+  const fallback = await usersCollection.where({ _id: userId }).limit(1).get();
+  return getDocData(fallback);
+}
+
+async function createReviewFeedbackRecord({ userId, standardItem, entry }) {
+  const user = await findUserById(userId);
+  if (!user?._id || !standardItem?._id || !entry?.entry_id) {
+    return null;
+  }
+
+  const userSnapshot = {
+    full_name: user.full_name || user.profile?.nickname || '',
+    email: user.email || '',
+    avatar_url: user.profile?.avatar_url || '',
+  };
+
+  const targetUserSnapshot = {
+    full_name: user.full_name || user.profile?.nickname || '',
+    avatar_url: user.profile?.avatar_url || '',
+  };
+
+  const targetEntrySnapshot = {
+    title: entry.title || '',
+    description: entry.description || '',
+    media_count: Array.isArray(entry.attachments) ? entry.attachments.length : 0,
+    item_name_zh: standardItem.name_zh || '',
+  };
+
+  const payload = {
+    user_id: userId,
+    type: 'review_entry',
+    content: '用户已修改违规笔记，申请管理员复审。',
+    contact: user.email || '',
+    media: [],
+    status: 'processing',
+    source: 'entry_violation_resubmission',
+    report_reason: '',
+    target_user_id: userId,
+    target_entry_id: entry.entry_id,
+    target_item_id: standardItem._id,
+    user_snapshot: userSnapshot,
+    target_user_snapshot: targetUserSnapshot,
+    target_entry_snapshot: targetEntrySnapshot,
+    created_at: db.serverDate(),
+    updated_at: db.serverDate(),
+  };
+
+  return feedbacksCollection.add(payload);
+}
+
 function countComments(comments = []) {
   return (comments || []).reduce((total, comment) => {
     return total + 1 + countComments(Array.isArray(comment?.replies) ? comment.replies : []);
@@ -242,6 +326,8 @@ function buildEntryRecord(content = {}, standardItem = {}, existingEntry = null,
     ...normalizedContent,
     interaction,
     comments,
+    moderation_status: normalizeEntryModerationStatus(existingEntry?.moderation_status),
+    moderation_updated_at: existingEntry?.moderation_updated_at || existingEntry?.updated_at || db.serverDate(),
     created_at: existingEntry?.created_at || db.serverDate(),
     updated_at: db.serverDate(),
   };
@@ -287,6 +373,8 @@ function buildEntryView(checkin, entry = {}) {
       weather: entry.weather || '',
       mood: entry.mood || '',
       is_complete: Boolean(entry.is_complete),
+      moderation_status: normalizeEntryModerationStatus(entry.moderation_status),
+      moderation_updated_at: entry.moderation_updated_at || entry.updated_at || safeCheckin.updated_at,
       interaction,
       comments,
     },
@@ -723,11 +811,29 @@ const getStandardItems = async (data = {}) => {
   }
 };
 
+const getStandardItemDetail = async (data = {}) => {
+  const { itemId } = data;
+  if (!itemId) {
+    return fail('缺少 itemId');
+  }
+
+  try {
+    const item = await getStandardItemById(itemId);
+    if (!item) {
+      return fail('标准项不存在');
+    }
+
+    return ok(item);
+  } catch (error) {
+    return fail('获取标准项失败', error);
+  }
+};
+
 /**
  * 获取用户打卡记录
  */
 const getUserCheckins = async (data = {}) => {
-  const { userId, code } = data;
+  const { userId, code, viewerUserId = userId } = data;
   const normalizedCode = normalizeLeaderboardCode(code);
   const codeCandidates = getLeaderboardCodeCandidates(normalizedCode);
   if (!userId || !normalizedCode) return fail('缺少参数');
@@ -743,14 +849,19 @@ const getUserCheckins = async (data = {}) => {
       .limit(1000)
       .get();
 
-    return ok(checkins);
+    const visibleCheckins = (checkins || []).map((checkin) => ({
+      ...checkin,
+      contents: filterCheckinEntriesForViewer(checkin, viewerUserId),
+    }));
+
+    return ok(visibleCheckins);
   } catch (error) {
     return fail('获取用户打卡记录失败', error);
   }
 };
 
 const getItemCheckinEntries = async (data = {}) => {
-  const { userId, code, itemId } = data;
+  const { userId, code, itemId, viewerUserId = userId } = data;
   const normalizedCode = normalizeLeaderboardCode(code);
   const codeCandidates = getLeaderboardCodeCandidates(normalizedCode);
   if (!userId || !normalizedCode || !itemId) return fail('缺少参数');
@@ -768,7 +879,9 @@ const getItemCheckinEntries = async (data = {}) => {
       .get();
 
     const entries = (checkins || [])
-      .flatMap((checkin) => getCheckinEntries(checkin).map((entry) => buildEntryView(checkin, entry)))
+      .flatMap((checkin) =>
+        filterCheckinEntriesForViewer(checkin, viewerUserId).map((entry) => buildEntryView(checkin, entry))
+      )
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
     return ok(entries);
@@ -911,6 +1024,12 @@ const saveCheckinEntry = async (data = {}) => {
       existingEntry,
       existingEntry?.interaction || (existingEntries.length <= 1 ? anchorCheckin?.interaction || null : null)
     );
+    const existingModerationStatus = normalizeEntryModerationStatus(existingEntry?.moderation_status);
+    const shouldSubmitReview = Boolean(existingEntry?.entry_id && ['violating', 'reviewing'].includes(existingModerationStatus));
+    if (shouldSubmitReview) {
+      nextEntry.moderation_status = 'reviewing';
+      nextEntry.moderation_updated_at = db.serverDate();
+    }
     const nextEntries = existingEntry
       ? existingEntries.map((currentEntry) =>
           currentEntry.entry_id === nextEntry.entry_id ? { ...currentEntry, ...nextEntry } : currentEntry
@@ -944,6 +1063,14 @@ const saveCheckinEntry = async (data = {}) => {
     }
 
     await refreshLeaderboardSnapshots(leaderboardCode);
+
+    if (shouldSubmitReview) {
+      await createReviewFeedbackRecord({
+        userId,
+        standardItem,
+        entry: nextEntry,
+      });
+    }
 
     const savedCheckin = await findCheckinEntryById(savedCheckinId);
     const savedEntries = getCheckinEntries(savedCheckin);
@@ -1129,6 +1256,7 @@ const getUploadCredentials = async () => {
 
 const actionMap = {
   getStandardItems,
+  getStandardItemDetail,
   getUserCheckins,
   getItemCheckinEntries,
   toggleCheckin,

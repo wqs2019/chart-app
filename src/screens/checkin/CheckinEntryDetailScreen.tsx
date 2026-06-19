@@ -31,7 +31,7 @@ import { RootStackParamList } from '../../navigation/RootNavigator';
 import { useAppStore } from '../../store/appStore';
 import { ReportReason } from '../../types/feedback';
 import { MediaResource } from '../../types/media';
-import { CheckinAttachment, CheckinComment, UserCheckin } from '../../types/rank';
+import { CheckinAttachment, CheckinComment, LeaderboardCode, StandardItem, UserCheckin } from '../../types/rank';
 import { User } from '../../types/user';
 
 type ScreenRouteProp = RouteProp<RootStackParamList, 'CheckinEntryDetail'>;
@@ -106,6 +106,8 @@ const getDefaultInteraction = () => ({
   viewer_has_favorited: false,
 });
 
+const isEntryModerated = (status?: string) => status === 'violating' || status === 'reviewing';
+
 const REPORT_REASON_OPTIONS: Array<{ value: ReportReason; label: string }> = [
   { value: 'spam', label: '垃圾广告' },
   { value: 'abuse', label: '辱骂攻击' },
@@ -123,13 +125,16 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const currentUser = useAppStore((state) => state.currentUser);
-  const { code, item, entry, viewedUserId, viewedUserName, readOnly } = route.params;
+  const { entryId } = route.params;
   const userId = currentUser?._id;
-  const targetUserId = viewedUserId || userId;
-  const isViewerMode = Boolean(readOnly && targetUserId);
 
   const [loading, setLoading] = React.useState(true);
-  const [currentEntry, setCurrentEntry] = React.useState<UserCheckin>(entry);
+  const [resolvedCode, setResolvedCode] = React.useState<LeaderboardCode | null>(null);
+  const [resolvedItem, setResolvedItem] = React.useState<StandardItem | null>(null);
+  const [currentEntry, setCurrentEntry] = React.useState<UserCheckin | null>(null);
+  const [resolvedViewedUserId, setResolvedViewedUserId] = React.useState<string | undefined>(undefined);
+  const [resolvedViewedUserName, setResolvedViewedUserName] = React.useState<string | undefined>(undefined);
+  const [resolvedReadOnly, setResolvedReadOnly] = React.useState(true);
   const [authorProfile, setAuthorProfile] = React.useState<User | null>(null);
   const [commentInput, setCommentInput] = React.useState('');
   const [submittingComment, setSubmittingComment] = React.useState(false);
@@ -148,60 +153,64 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const commentButtonScale = React.useRef(new Animated.Value(1)).current;
   const favoriteButtonScale = React.useRef(new Animated.Value(1)).current;
 
-  const attachments = currentEntry.content?.attachments || [];
+  const targetUserId = resolvedViewedUserId || userId;
+  const isViewerMode = Boolean(resolvedReadOnly && targetUserId);
+  const attachments = currentEntry?.content?.attachments || [];
   const noteMedia = React.useMemo(() => mapAttachmentsToMedia(attachments), [attachments]);
-  const interaction = currentEntry.interaction || getDefaultInteraction();
-  const comments = currentEntry.comments || currentEntry.content?.comments || [];
+  const interaction = currentEntry?.interaction || getDefaultInteraction();
+  const comments = currentEntry?.comments || currentEntry?.content?.comments || [];
   const authorUser: DisplayUser = isViewerMode ? authorProfile : currentUser;
-  const displayName = isViewerMode && viewedUserName ? viewedUserName : getDisplayName(authorUser);
+  const displayName = isViewerMode && resolvedViewedUserName ? resolvedViewedUserName : getDisplayName(authorUser);
   const avatarUri = getAvatarUri(authorUser);
-  const locationText = currentEntry.content?.location_name || currentEntry.content?.city_name || item.name_zh;
+  const locationText = currentEntry?.content?.location_name || currentEntry?.content?.city_name || resolvedItem?.name_zh || '';
+  const hasViolationBadge = isEntryModerated(currentEntry?.content?.moderation_status);
   const canReportEntry = Boolean(userId && targetUserId && userId !== targetUserId);
-  const canDeleteEntry = Boolean(userId && targetUserId && userId === targetUserId && (currentEntry._id || entry._id));
+  const canDeleteEntry = Boolean(userId && targetUserId && userId === targetUserId && currentEntry?._id);
 
   const fetchEntryDetail = React.useCallback(async () => {
-    if (!targetUserId) {
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
-      const [nextEntry, profile] = await Promise.all([
-        checkinInteractionService.getEntryDetail({
-          viewerUserId: userId || targetUserId || '',
-          ownerUserId: targetUserId,
-          code,
-          itemId: item._id,
-          entryId: entry._id || '',
-        }),
-        isViewerMode ? authService.getUser(targetUserId).catch(() => null) : Promise.resolve(null),
-      ]);
-      setCurrentEntry(nextEntry);
+      const context = await checkinInteractionService.getEntryContextById({
+        entryId,
+        viewerUserId: userId || '',
+        viewerAppleUserId: currentUser?.appleUserId || '',
+      });
+      const profile = await authService.getUser(context.ownerUserId).catch(() => null);
+      setResolvedCode(context.code);
+      setResolvedItem(context.item);
+      setResolvedViewedUserId(context.ownerUserId);
+      setResolvedViewedUserName(profile?.full_name || profile?.profile?.nickname || profile?.username || '该用户');
+      setResolvedReadOnly(context.ownerUserId !== userId);
+      setCurrentEntry(context.entry);
       setAuthorProfile(profile);
     } catch (error) {
       Alert.alert('加载失败', '这篇记录详情暂时无法获取，请稍后重试。');
-      setCurrentEntry(entry);
+      setResolvedCode(null);
+      setResolvedItem(null);
+      setCurrentEntry(null);
       setAuthorProfile(null);
     } finally {
       setLoading(false);
     }
-  }, [code, entry, isViewerMode, item._id, targetUserId, userId]);
+  }, [currentUser?.appleUserId, entryId, userId]);
 
   const interactionPayload = React.useMemo(
-    () => ({
-      userId: userId || '',
-      ownerUserId: targetUserId || '',
-      code,
-      itemId: item._id,
-      entryId: currentEntry._id || entry._id || '',
-    }),
-    [code, currentEntry._id, entry._id, item._id, targetUserId, userId]
+    () =>
+      resolvedCode && resolvedItem && currentEntry?._id
+        ? {
+            userId: userId || '',
+            ownerUserId: targetUserId || '',
+            code: resolvedCode,
+            itemId: resolvedItem._id,
+            entryId: currentEntry._id,
+          }
+        : null,
+    [currentEntry?._id, resolvedCode, resolvedItem, targetUserId, userId]
   );
 
   React.useEffect(() => {
-    navigation.setOptions({ title: currentEntry.content?.title || item.name_zh });
-  }, [currentEntry.content?.title, item.name_zh, navigation]);
+    navigation.setOptions({ title: currentEntry?.content?.title || resolvedItem?.name_zh || '记录详情' });
+  }, [currentEntry?.content?.title, navigation, resolvedItem?.name_zh]);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -278,6 +287,9 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const applyOptimisticInteraction = React.useCallback(
     (type: 'like' | 'favorite') => {
       setCurrentEntry((prev) => {
+        if (!prev) {
+          return prev;
+        }
         const previousInteraction = prev.interaction || prev.content?.interaction || getDefaultInteraction();
         const nextInteraction =
           type === 'like'
@@ -314,7 +326,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
   );
 
   const handleToggleLike = async () => {
-    if (!userId || !targetUserId) {
+    if (!userId || !targetUserId || !interactionPayload || !currentEntry) {
       return;
     }
 
@@ -334,7 +346,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
   };
 
   const handleToggleFavorite = async () => {
-    if (!userId || !targetUserId) {
+    if (!userId || !targetUserId || !interactionPayload || !currentEntry) {
       return;
     }
 
@@ -355,7 +367,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
 
   const handleSubmitComment = async () => {
     const trimmed = commentInput.trim();
-    if (!trimmed || !userId || !targetUserId) {
+    if (!trimmed || !userId || !targetUserId || !interactionPayload) {
       return;
     }
 
@@ -396,7 +408,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
   }, [canReportEntry]);
 
   const handleSubmitReport = React.useCallback(async () => {
-    if (!userId || !targetUserId) {
+    if (!userId || !targetUserId || !currentEntry || !resolvedItem) {
       Alert.alert('提示', '请先登录后再举报。');
       return;
     }
@@ -412,8 +424,8 @@ const CheckinEntryDetailScreen: React.FC = () => {
       await feedbackService.submitEntryReport({
         user_id: userId,
         target_user_id: targetUserId,
-        target_entry_id: currentEntry._id || entry._id || '',
-        target_item_id: item._id,
+        target_entry_id: currentEntry._id || '',
+        target_item_id: resolvedItem._id,
         report_reason: selectedReportReason,
         content: trimmedDescription,
         source: 'app_checkin_entry_report',
@@ -427,10 +439,10 @@ const CheckinEntryDetailScreen: React.FC = () => {
           avatar_url: avatarUri || '',
         },
         target_entry_snapshot: {
-          title: currentEntry.content?.title || `${item.name_zh} 游玩记录`,
+          title: currentEntry.content?.title || `${resolvedItem.name_zh} 游玩记录`,
           description: currentEntry.content?.description || '',
           media_count: attachments.length,
-          item_name_zh: item.name_zh,
+          item_name_zh: resolvedItem.name_zh,
         },
       });
 
@@ -446,17 +458,16 @@ const CheckinEntryDetailScreen: React.FC = () => {
   }, [
     attachments.length,
     avatarUri,
-    currentEntry._id,
-    currentEntry.content?.description,
-    currentEntry.content?.title,
+    currentEntry?._id,
+    currentEntry?.content?.description,
+    currentEntry?.content?.title,
     currentUser?.email,
     currentUser?.fullName,
     currentUser?.profile?.avatar_url,
     displayName,
-    entry._id,
-    item._id,
-    item.name_zh,
+    currentEntry,
     reportDescription,
+    resolvedItem,
     selectedReportReason,
     targetUserId,
     toast,
@@ -464,9 +475,11 @@ const CheckinEntryDetailScreen: React.FC = () => {
   ]);
 
   const handleDeleteEntry = React.useCallback(() => {
-    if (!canDeleteEntry || !userId) {
+    if (!canDeleteEntry || !userId || !resolvedCode || !resolvedItem || !currentEntry?._id) {
       return;
     }
+
+    const currentEntryId = currentEntry._id;
 
     Alert.alert('删除记录', '删除后将无法恢复，这条记录的内容、图片和互动数据都会从当前条目中移除。确认继续吗？', [
       { text: '取消', style: 'cancel' },
@@ -477,7 +490,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
           try {
             setDeletingEntry(true);
             setMoreActionsVisible(false);
-            await checkinService.deleteCheckinEntry(userId, code, item._id, currentEntry._id || entry._id || '');
+            await checkinService.deleteCheckinEntry(userId, resolvedCode, resolvedItem._id, currentEntryId);
             toast.success('记录已删除');
             navigation.goBack();
           } catch (error) {
@@ -488,11 +501,14 @@ const CheckinEntryDetailScreen: React.FC = () => {
         },
       },
     ]);
-  }, [canDeleteEntry, code, currentEntry._id, entry._id, item._id, navigation, toast, userId]);
+  }, [canDeleteEntry, currentEntry?._id, navigation, resolvedCode, resolvedItem, toast, userId]);
 
-  if (loading) {
+  if (loading || !currentEntry || !resolvedItem || !resolvedCode) {
     return <Loading message="正在加载记录详情..." />;
   }
+
+  const code = resolvedCode;
+  const item = resolvedItem;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -552,8 +568,20 @@ const CheckinEntryDetailScreen: React.FC = () => {
             {currentEntry.content?.description || '这篇记录还没有填写正文内容。'}
           </Text>
 
-          {currentEntry.content?.weather || currentEntry.content?.mood || attachments.length ? (
+          {hasViolationBadge || currentEntry.content?.weather || currentEntry.content?.mood || attachments.length ? (
             <View style={styles.noteTagRow}>
+              {hasViolationBadge ? (
+                <View
+                  style={[
+                    styles.noteTag,
+                    {
+                      backgroundColor: isDark ? 'rgba(239,68,68,0.16)' : 'rgba(239,68,68,0.10)',
+                    },
+                  ]}
+                >
+                  <Text style={[styles.noteTagText, { color: '#EF4444' }]}>笔记违规</Text>
+                </View>
+              ) : null}
               {currentEntry.content?.weather ? (
                 <View
                   style={[

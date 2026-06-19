@@ -1,17 +1,20 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useToast } from '../../components/common/Toast';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { RootStackParamList } from '../../navigation/RootNavigator';
 import feedbackService from '../../services/feedbackService';
 import { useAppStore } from '../../store/appStore';
 import { FeedbackRecord, FeedbackStatus } from '../../types/feedback';
 
 type TypeFilter = 'all' | 'feedback' | 'report_entry';
 type StatusFilter = 'all' | FeedbackStatus;
+type ActiveFeedbackStatus = Exclude<FeedbackStatus, 'pending'>;
 
 const typeOptions: Array<{ key: TypeFilter; label: string }> = [
   { key: 'all', label: '全部' },
@@ -21,7 +24,6 @@ const typeOptions: Array<{ key: TypeFilter; label: string }> = [
 
 const statusOptions: Array<{ key: StatusFilter; label: string }> = [
   { key: 'all', label: '全部状态' },
-  { key: 'pending', label: '待处理' },
   { key: 'processing', label: '处理中' },
   { key: 'resolved', label: '已解决' },
   { key: 'rejected', label: '已驳回' },
@@ -33,12 +35,17 @@ const quickStatusActions: Array<{ key: FeedbackStatus; label: string }> = [
   { key: 'rejected', label: '已驳回' },
 ];
 
-const statusLabelMap: Record<FeedbackStatus, string> = {
-  pending: '待处理',
+const statusLabelMap: Record<ActiveFeedbackStatus, string> = {
   processing: '处理中',
   resolved: '已解决',
   rejected: '已驳回',
 };
+
+const normalizeFeedbackStatus = (status?: FeedbackStatus): ActiveFeedbackStatus =>
+  status === 'pending' ? 'processing' : status || 'processing';
+
+const isLockedFeedbackStatus = (status: ActiveFeedbackStatus) =>
+  status === 'resolved' || status === 'rejected';
 
 const reportReasonLabelMap: Record<string, string> = {
   spam: '垃圾内容',
@@ -49,6 +56,8 @@ const reportReasonLabelMap: Record<string, string> = {
   fraud: '诈骗欺骗',
   other: '其他',
 };
+
+type ScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const formatTime = (value?: string | number | Date) => {
   if (!value) {
@@ -91,7 +100,32 @@ const getStatusTone = (status: FeedbackStatus, isDark: boolean) => {
   };
 };
 
+const getRecordStatusLabel = (item: FeedbackRecord, status: ActiveFeedbackStatus) => {
+  if (status !== 'processing') {
+    return statusLabelMap[status];
+  }
+
+  if (item.type === 'review_entry') {
+    return '复审中';
+  }
+
+  if (item.type === 'report_entry') {
+    return '已处理';
+  }
+
+  return statusLabelMap[status];
+};
+
+const getActionLabel = (item: FeedbackRecord, status: FeedbackStatus) => {
+  if (status === 'processing' && item.type === 'report_entry') {
+    return '已处理';
+  }
+
+  return statusLabelMap[normalizeFeedbackStatus(status)];
+};
+
 const AdminFeedbackReportsScreen: React.FC = () => {
+  const navigation = useNavigation<ScreenNavigationProp>();
   const { colors, isDark } = useAppTheme();
   const toast = useToast();
   const currentUser = useAppStore((state) => state.currentUser);
@@ -100,6 +134,7 @@ const AdminFeedbackReportsScreen: React.FC = () => {
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all');
   const [updatingId, setUpdatingId] = React.useState('');
+  const [openingEntryId, setOpeningEntryId] = React.useState('');
 
   const appleUserId = currentUser?.appleUserId || '';
 
@@ -120,10 +155,12 @@ const AdminFeedbackReportsScreen: React.FC = () => {
 
       const filteredRecords =
         typeFilter === 'feedback'
-          ? nextRecords.filter((item) => item.type !== 'report_entry')
+          ? nextRecords.filter((item) => item.type !== 'report_entry' && item.type !== 'review_entry')
           : nextRecords;
       const nextByStatus =
-        statusFilter === 'all' ? filteredRecords : filteredRecords.filter((item) => (item.status || 'pending') === statusFilter);
+        statusFilter === 'all'
+          ? filteredRecords
+          : filteredRecords.filter((item) => normalizeFeedbackStatus(item.status) === statusFilter);
 
       setRecords(nextByStatus);
     } catch (error) {
@@ -164,6 +201,25 @@ const AdminFeedbackReportsScreen: React.FC = () => {
       }
     },
     [appleUserId, toast, updatingId]
+  );
+
+  const handleOpenReportedEntry = React.useCallback(
+    async (item: FeedbackRecord) => {
+      if (!item.target_entry_id || !item.target_item_id || !item.target_user_id) {
+        toast.error('缺少举报目标信息，暂时无法查看');
+        return;
+      }
+
+      try {
+        setOpeningEntryId(item._id || item.target_entry_id);
+        navigation.navigate('CheckinEntryDetail', { entryId: item.target_entry_id });
+      } catch (error) {
+        Alert.alert('打开失败', error instanceof Error ? error.message : '暂时无法打开这篇日记，请稍后重试。');
+      } finally {
+        setOpeningEntryId('');
+      }
+    },
+    [navigation, toast]
   );
 
   return (
@@ -239,9 +295,10 @@ const AdminFeedbackReportsScreen: React.FC = () => {
           </View>
         ) : (
           records.map((item) => {
-            const status = item.status || 'pending';
+            const status = normalizeFeedbackStatus(item.status);
             const statusTone = getStatusTone(status, isDark);
-            const isReport = item.type === 'report_entry';
+            const isReport = item.type === 'report_entry' || item.type === 'review_entry';
+            const isStatusLocked = isLockedFeedbackStatus(status);
             const displayName =
               item.user_snapshot?.full_name || (isReport ? item.target_user_snapshot?.full_name : '') || '匿名用户';
 
@@ -250,21 +307,44 @@ const AdminFeedbackReportsScreen: React.FC = () => {
                 <View style={styles.recordHeader}>
                   <View style={styles.recordMeta}>
                     <Text style={[styles.recordTitle, { color: colors.text }]}>
-                      {isReport ? '内容举报' : item.type === 'feature' ? '功能建议' : item.type === 'bug' ? '问题反馈' : '其他反馈'}
+                      {item.type === 'review_entry'
+                        ? '违规复审'
+                        : isReport
+                          ? '内容举报'
+                          : item.type === 'feature'
+                            ? '功能建议'
+                            : item.type === 'bug'
+                              ? '问题反馈'
+                              : '其他反馈'}
                     </Text>
                     <Text style={[styles.recordSubline, { color: colors.textSecondary }]}>
                       {displayName} · {formatTime(item.created_at)}
                     </Text>
                   </View>
                   <View style={[styles.statusChip, { backgroundColor: statusTone.backgroundColor }]}>
-                    <Text style={[styles.statusChipText, { color: statusTone.textColor }]}>{statusLabelMap[status]}</Text>
+                    <Text style={[styles.statusChipText, { color: statusTone.textColor }]}>
+                      {getRecordStatusLabel(item, status)}
+                    </Text>
                   </View>
                 </View>
 
                 {isReport ? (
-                  <View style={[styles.contextBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF7F1' }]}>
+                  <Pressable
+                    disabled={openingEntryId === (item._id || item.target_entry_id || '')}
+                    onPress={() => void handleOpenReportedEntry(item)}
+                    style={[
+                      styles.contextBox,
+                      styles.contextPressable,
+                      {
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF7F1',
+                        opacity: openingEntryId === (item._id || item.target_entry_id || '') ? 0.7 : 1,
+                      },
+                    ]}
+                  >
                     <Text style={[styles.contextTitle, { color: colors.text }]}>
-                      举报原因：{reportReasonLabelMap[item.report_reason || 'other'] || '其他'}
+                      {item.type === 'review_entry'
+                        ? '复审申请：用户已修改笔记，等待复核'
+                        : `举报原因：${reportReasonLabelMap[item.report_reason || 'other'] || '其他'}`}
                     </Text>
                     <Text style={[styles.contextText, { color: colors.textSecondary }]}>
                       {item.target_entry_snapshot?.item_name_zh || '未命名记录'}
@@ -274,7 +354,13 @@ const AdminFeedbackReportsScreen: React.FC = () => {
                         {item.target_entry_snapshot.description}
                       </Text>
                     ) : null}
-                  </View>
+                    <View style={styles.contextFooter}>
+                      <Text style={[styles.contextLinkText, { color: colors.primary }]}>
+                        {openingEntryId === (item._id || item.target_entry_id || '') ? '打开中...' : '查看具体日记'}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                    </View>
+                  </Pressable>
                 ) : null}
 
                 <Text style={[styles.recordContent, { color: colors.text }]}>{item.content || '未填写说明'}</Text>
@@ -282,7 +368,7 @@ const AdminFeedbackReportsScreen: React.FC = () => {
                 <View style={styles.actionRow}>
                   {quickStatusActions.map((action) => {
                     const active = status === action.key;
-                    const disabled = updatingId === item._id;
+                    const disabled = updatingId === item._id || isStatusLocked;
                     return (
                       <Pressable
                         key={action.key}
@@ -296,17 +382,22 @@ const AdminFeedbackReportsScreen: React.FC = () => {
                               : isDark
                                 ? 'rgba(255,255,255,0.05)'
                                 : '#FFF7F1',
-                            opacity: disabled && !active ? 0.6 : 1,
+                            opacity: disabled && !active ? 0.45 : 1,
                           },
                         ]}
                       >
                         <Text style={[styles.actionChipText, { color: active ? '#FFFFFF' : colors.text }]}>
-                          {updatingId === item._id && active ? '更新中...' : action.label}
+                          {updatingId === item._id && active ? '更新中...' : getActionLabel(item, action.key)}
                         </Text>
                       </Pressable>
                     );
                   })}
                 </View>
+                {isStatusLocked ? (
+                  <Text style={[styles.lockedHint, { color: colors.textSecondary }]}>
+                    当前记录已结案，状态不可再次修改。
+                  </Text>
+                ) : null}
               </View>
             );
           })
@@ -427,6 +518,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
   },
+  contextPressable: {
+    overflow: 'hidden',
+  },
   contextTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -435,6 +529,16 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     lineHeight: 19,
+  },
+  contextFooter: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  contextLinkText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   recordContent: {
     marginTop: 14,
@@ -455,6 +559,11 @@ const styles = StyleSheet.create({
   actionChipText: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  lockedHint: {
+    marginTop: 12,
+    fontSize: 12,
+    lineHeight: 18,
   },
 });
 

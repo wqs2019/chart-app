@@ -16,6 +16,34 @@ type ScreenRouteProp = RouteProp<RootStackParamList, 'NotificationCenter'>;
 
 const getAvatarFallback = (name: string) => name.trim().charAt(0).toUpperCase() || '旅';
 
+const resolveNotificationRoute = (item: AppNotification) => {
+  const screen = item.extra_data?.screen || '';
+  const params = item.extra_data?.params || {};
+
+  if (screen === 'CheckinEntryDetail') {
+    const entryId = params.entryId || item.extra_data?.entryId || item.related_id || '';
+    return entryId ? { screen: 'CheckinEntryDetail' as const, params: { entryId } } : null;
+  }
+
+  if (screen === 'OverallDiaryFeed' || item.type === 'follow') {
+    const viewedUserId = params.viewedUserId || item.extra_data?.viewed_user_id || '';
+    if (!viewedUserId) {
+      return null;
+    }
+
+    return {
+      screen: 'OverallDiaryFeed' as const,
+      params: {
+        viewedUserId,
+        viewedUserName: params.viewedUserName || item.extra_data?.viewed_user_name,
+        viewedAvatarUrl: params.viewedAvatarUrl || item.extra_data?.viewed_avatar_url,
+      },
+    };
+  }
+
+  return null;
+};
+
 const NotificationCenterScreen: React.FC = () => {
   const navigation = useNavigation<ScreenNavigationProp>();
   const route = useRoute<ScreenRouteProp>();
@@ -84,12 +112,14 @@ const NotificationCenterScreen: React.FC = () => {
 
   const handlePressNotification = React.useCallback(
     (item: AppNotification) => {
-      if (item.type === 'follow' && item.extra_data?.viewed_user_id) {
-        navigation.navigate('OverallDiaryFeed', {
-          viewedUserId: item.extra_data.viewed_user_id,
-          viewedUserName: item.extra_data.viewed_user_name,
-          viewedAvatarUrl: item.extra_data.viewed_avatar_url,
-        });
+      const routeTarget = resolveNotificationRoute(item);
+      if (routeTarget?.screen === 'CheckinEntryDetail') {
+        navigation.navigate(routeTarget.screen, routeTarget.params);
+        return;
+      }
+
+      if (routeTarget?.screen === 'OverallDiaryFeed') {
+        navigation.navigate(routeTarget.screen, routeTarget.params);
       }
     },
     [navigation]

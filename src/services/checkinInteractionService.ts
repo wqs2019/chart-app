@@ -1,4 +1,4 @@
-import { CheckinComment, UserCheckin } from '../types/rank';
+import { CheckinComment, LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
 import CloudService from './tcb';
 
 type CloudResult<T> = {
@@ -60,9 +60,17 @@ const resolveEntryAttachmentUrls = async (entry: UserCheckin): Promise<UserCheck
   };
 };
 
+type EntryContextById = {
+  entry: UserCheckin;
+  item: StandardItem;
+  code: LeaderboardCode;
+  ownerUserId: string;
+};
+
 export const checkinInteractionService = {
   async getEntryDetail(payload: {
     viewerUserId: string;
+    viewerAppleUserId?: string;
     ownerUserId: string;
     code: string;
     itemId: string;
@@ -70,6 +78,18 @@ export const checkinInteractionService = {
   }): Promise<UserCheckin> {
     const entry = await callInteractionFunction<UserCheckin>('getEntryDetail', payload);
     return resolveEntryAttachmentUrls(entry);
+  },
+
+  async getEntryContextById(payload: {
+    entryId: string;
+    viewerUserId: string;
+    viewerAppleUserId?: string;
+  }): Promise<EntryContextById> {
+    const context = await callInteractionFunction<EntryContextById>('getEntryContextById', payload);
+    return {
+      ...context,
+      entry: await resolveEntryAttachmentUrls(context.entry),
+    };
   },
 
   async toggleLike(payload: {

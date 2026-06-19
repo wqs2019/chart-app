@@ -14,6 +14,7 @@ const usersCollection = db.collection('chart_users');
 const commentsCollection = db.collection('chart_comments');
 const interactionsCollection = db.collection('chart_interactions');
 const notificationsCollection = db.collection('chart_notifications');
+const adminCollection = db.collection('admin_list');
 const CHECKIN_CONTENT_TARGET_TYPE = 'checkin_content';
 const ACTIVE_STATUS = 'active';
 const CANCELLED_STATUS = 'cancelled';
@@ -136,6 +137,58 @@ async function findCheckinById(checkinId) {
 
   const result = await checkinsCollection.doc(checkinId).get();
   return getDocData(result);
+}
+
+async function getStandardItemById(itemId) {
+  if (!itemId) {
+    return null;
+  }
+
+  try {
+    const result = await standardItemsCollection.doc(itemId).get();
+    const item = getDocData(result);
+    if (item) {
+      return item;
+    }
+  } catch (error) {
+    console.log('chart_checkin_interaction.getStandardItemById fallback to where:', error);
+  }
+
+  const fallback = await standardItemsCollection.where({ _id: itemId }).limit(1).get();
+  return getDocData(fallback);
+}
+
+async function findCheckinEntryContextByEntryId(entryId) {
+  if (!entryId) {
+    return null;
+  }
+
+  const limit = 1000;
+  let offset = 0;
+
+  while (true) {
+    const result = await checkinsCollection
+      .where({ is_active: true })
+      .skip(offset)
+      .limit(limit)
+      .get();
+    const checkins = Array.isArray(result.data) ? result.data : [];
+
+    for (const checkin of checkins) {
+      const entry = getCheckinEntries(checkin).find((currentEntry) => currentEntry.entry_id === entryId);
+      if (entry) {
+        return { checkin, entry };
+      }
+    }
+
+    if (checkins.length < limit) {
+      break;
+    }
+
+    offset += limit;
+  }
+
+  return null;
 }
 
 function getInteractionRawScore(interaction = {}) {
@@ -562,6 +615,24 @@ function getEntryPreview(entry = {}) {
   return String(entry.title || entry.description || '').trim();
 }
 
+function normalizeEntryModerationStatus(status) {
+  return ['violating', 'reviewing'].includes(status) ? status : 'normal';
+}
+
+function isEntryRestricted(entry = {}) {
+  return normalizeEntryModerationStatus(entry?.moderation_status) !== 'normal';
+}
+
+async function isAdminViewerByAppleId(appleUserId) {
+  const normalizedAppleId = String(appleUserId || '').trim();
+  if (!normalizedAppleId) {
+    return false;
+  }
+
+  const result = await adminCollection.where({ apple_id: normalizedAppleId }).limit(1).get();
+  return Boolean(getDocData(result));
+}
+
 async function createUserNotification({
   receiverUserId,
   senderUser,
@@ -815,6 +886,8 @@ async function buildEntryView(checkin, entry = {}, viewerUserId = '') {
       weather: entry.weather || '',
       mood: entry.mood || '',
       is_complete: Boolean(entry.is_complete),
+      moderation_status: normalizeEntryModerationStatus(entry.moderation_status),
+      moderation_updated_at: entry.moderation_updated_at || entry.updated_at || safeCheckin.updated_at,
       interaction,
       comments,
     },
@@ -986,7 +1059,7 @@ async function refreshLeaderboardSnapshots(code) {
 }
 
 async function getEntryDetail(data = {}) {
-  const { ownerUserId, viewerUserId = '', code, itemId, entryId } = data;
+  const { ownerUserId, viewerUserId = '', viewerAppleUserId = '', code, itemId, entryId } = data;
   const normalizedCode = normalizeLeaderboardCode(code);
   if (!ownerUserId || !normalizedCode || !itemId || !entryId) {
     return fail('缺少参数');
@@ -1003,9 +1076,52 @@ async function getEntryDetail(data = {}) {
       return fail('日记不存在');
     }
 
+    if (isEntryRestricted(entry) && viewerUserId !== ownerUserId) {
+      const isAdminViewer = await isAdminViewerByAppleId(viewerAppleUserId);
+      if (!isAdminViewer) {
+        return fail('日记不存在');
+      }
+    }
+
     return ok(await buildEntryView(checkin, entry, viewerUserId));
   } catch (error) {
     return fail('获取日记详情失败', error);
+  }
+}
+
+async function getEntryContextById(data = {}) {
+  const { entryId, viewerUserId = '', viewerAppleUserId = '' } = data;
+  if (!entryId) {
+    return fail('缺少参数');
+  }
+
+  try {
+    const context = await findCheckinEntryContextByEntryId(entryId);
+    if (!context?.checkin || !context.entry) {
+      return fail('日记不存在');
+    }
+
+    const ownerUserId = context.checkin.user_id || '';
+    if (isEntryRestricted(context.entry) && viewerUserId !== ownerUserId) {
+      const isAdminViewer = await isAdminViewerByAppleId(viewerAppleUserId);
+      if (!isAdminViewer) {
+        return fail('日记不存在');
+      }
+    }
+
+    const standardItem = await getStandardItemById(context.checkin.item_id);
+    if (!standardItem) {
+      return fail('标准项不存在');
+    }
+
+    return ok({
+      entry: await buildEntryView(context.checkin, context.entry, viewerUserId),
+      item: standardItem,
+      code: normalizeLeaderboardCode(context.checkin.leaderboard_code),
+      ownerUserId,
+    });
+  } catch (error) {
+    return fail('获取日记上下文失败', error);
   }
 }
 
@@ -1036,6 +1152,9 @@ async function toggleReaction(data = {}, reactionType) {
     }
 
     const entry = entries[entryIndex];
+    if (isEntryRestricted(entry) && userId !== targetOwnerId) {
+      return fail('当前日记暂不可互动');
+    }
     const cachedInteraction = normalizeStoredInteraction(
       entry.interaction,
       getEntryFallbackInteraction(checkin, entries, entry)
@@ -1093,9 +1212,9 @@ async function toggleReaction(data = {}, reactionType) {
         relatedId: entryId,
         extraData: {
           screen: 'CheckinEntryDetail',
-          ownerUserId: targetOwnerId,
-          leaderboardCode: normalizedCode,
-          itemId,
+          params: {
+            entryId,
+          },
           entryId,
         },
       });
@@ -1137,6 +1256,9 @@ async function addComment(data = {}) {
     }
 
     const entry = entries[entryIndex];
+    if (isEntryRestricted(entry) && userId !== targetOwnerId) {
+      return fail('当前日记暂不可评论');
+    }
     const cachedInteraction = normalizeStoredInteraction(
       entry.interaction,
       getEntryFallbackInteraction(checkin, entries, entry)
@@ -1178,9 +1300,9 @@ async function addComment(data = {}) {
       relatedId: entryId,
       extraData: {
         screen: 'CheckinEntryDetail',
-        ownerUserId: targetOwnerId,
-        leaderboardCode: normalizedCode,
-        itemId,
+        params: {
+          entryId,
+        },
         entryId,
       },
     });
@@ -1221,6 +1343,9 @@ async function replyComment(data = {}) {
     }
 
     const entry = entries[entryIndex];
+    if (isEntryRestricted(entry) && userId !== targetOwnerId) {
+      return fail('当前日记暂不可评论');
+    }
     const cachedInteraction = normalizeStoredInteraction(
       entry.interaction,
       getEntryFallbackInteraction(checkin, entries, entry)
@@ -1271,9 +1396,10 @@ async function replyComment(data = {}) {
       relatedId: entryId,
       extraData: {
         screen: 'CheckinEntryDetail',
-        ownerUserId: targetOwnerId,
-        leaderboardCode: normalizedCode,
-        itemId,
+        params: {
+          entryId,
+          commentId,
+        },
         entryId,
         commentId,
       },
@@ -1289,6 +1415,7 @@ async function replyComment(data = {}) {
 
 const actionMap = {
   getEntryDetail,
+  getEntryContextById,
   toggleLike: (data) => toggleReaction(data, 'like'),
   toggleFavorite: (data) => toggleReaction(data, 'favorite'),
   addComment,

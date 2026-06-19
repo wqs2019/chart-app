@@ -121,6 +121,11 @@ async function createFollowNotification(actor, target) {
     },
     extra_data: {
       screen: 'OverallDiaryFeed',
+      params: {
+        viewedUserId: actor._id,
+        viewedUserName: actorName,
+        viewedAvatarUrl: actorAvatar,
+      },
       viewed_user_id: actor._id,
       viewed_user_name: actorName,
       viewed_avatar_url: actorAvatar,
@@ -132,10 +137,15 @@ async function createFollowNotification(actor, target) {
   if (target.push_token) {
     await sendPushNotification(target.push_token, title, content, {
       type: 'follow',
+      screen: 'OverallDiaryFeed',
+      params: {
+        viewedUserId: actor._id,
+        viewedUserName: actorName,
+        viewedAvatarUrl: actorAvatar,
+      },
       viewedUserId: actor._id,
       viewedUserName: actorName,
       viewedAvatarUrl: actorAvatar,
-      screen: 'OverallDiaryFeed',
     });
   }
 }

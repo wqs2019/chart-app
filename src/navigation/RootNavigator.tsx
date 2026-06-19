@@ -64,12 +64,7 @@ export type RootStackParamList = {
     readOnly?: boolean;
   };
   CheckinEntryDetail: {
-    code: LeaderboardCode;
-    item: StandardItem;
-    entry: UserCheckin;
-    viewedUserId?: string;
-    viewedUserName?: string;
-    readOnly?: boolean;
+    entryId: string;
   };
   CheckinEntryEditor: { code: LeaderboardCode; item: StandardItem; entry?: UserCheckin };
 };

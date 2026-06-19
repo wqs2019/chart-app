@@ -89,16 +89,26 @@ export const checkinService = {
     return callCheckinFunction<StandardItem[]>('getStandardItems', { code });
   },
 
-  async getUserCheckins(userId: string, code: LeaderboardCode): Promise<UserCheckin[]> {
-    const checkins = await callCheckinFunction<UserCheckin[]>('getUserCheckins', { userId, code });
+  async getStandardItemDetail(itemId: string): Promise<StandardItem> {
+    return callCheckinFunction<StandardItem>('getStandardItemDetail', { itemId });
+  },
+
+  async getUserCheckins(userId: string, code: LeaderboardCode, viewerUserId?: string): Promise<UserCheckin[]> {
+    const checkins = await callCheckinFunction<UserCheckin[]>('getUserCheckins', { userId, code, viewerUserId });
     return resolveCheckinAttachmentUrls(checkins);
   },
 
-  async getItemCheckinEntries(userId: string, code: LeaderboardCode, itemId: string): Promise<UserCheckin[]> {
+  async getItemCheckinEntries(
+    userId: string,
+    code: LeaderboardCode,
+    itemId: string,
+    viewerUserId?: string
+  ): Promise<UserCheckin[]> {
     const checkins = await callCheckinFunction<UserCheckin[]>('getItemCheckinEntries', {
       userId,
       code,
       itemId,
+      viewerUserId,
     });
     return resolveCheckinAttachmentUrls(checkins);
   },
