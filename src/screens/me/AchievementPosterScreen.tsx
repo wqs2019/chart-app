@@ -163,7 +163,7 @@ const AchievementPosterScreen: React.FC = () => {
                 </View>
                 <View style={styles.posterHeaderText}>
                   <Text style={styles.posterName}>{displayName}</Text>
-                  <Text style={styles.posterTagline}>把走过的地方，变成看得见的个人成绩</Text>
+                  <Text style={styles.posterTagline}>把走过的地方，整理成一张值得晒出去的成绩海报</Text>
                 </View>
               </View>
 
@@ -205,9 +205,9 @@ const AchievementPosterScreen: React.FC = () => {
             </View>
 
             <View style={styles.posterFooterCard}>
-              <Text style={styles.posterFooterLead}>继续补录旅行经历，解锁更高排名与更强成就。</Text>
+              <Text style={styles.posterFooterLead}>把这一刻的旅行战绩分享出去，让朋友看见你的高光成绩。</Text>
               <Text style={styles.posterFooterSub}>
-                世界旅游、中国旅游、玩乐项目三大榜单都会持续累积到我的个人成绩单。
+                综合榜、最强榜单和三大分榜表现，都会一起浓缩进这张专属成就海报。
               </Text>
             </View>
           </View>
@@ -352,7 +352,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 28,
     padding: 18,
-    backgroundColor: '#111827',
+    backgroundColor: 'rgba(255,255,255,0.86)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,122,89,0.18)',
   },
   posterHeader: {
     flexDirection: 'row',
@@ -366,14 +368,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: '#FFE7DB',
   },
   avatar: {
     width: '100%',
     height: '100%',
   },
   avatarFallback: {
-    color: '#FFF7F1',
+    color: '#FF7A59',
     fontSize: 24,
     fontWeight: '900',
   },
@@ -381,13 +383,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   posterName: {
-    color: '#FFFFFF',
+    color: '#111827',
     fontSize: 22,
     fontWeight: '900',
   },
   posterTagline: {
     marginTop: 4,
-    color: 'rgba(255,255,255,0.76)',
+    color: '#6B7280',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -395,13 +397,13 @@ const styles = StyleSheet.create({
     marginTop: 26,
   },
   posterScoreLabel: {
-    color: 'rgba(255,255,255,0.76)',
+    color: '#6B7280',
     fontSize: 13,
     fontWeight: '700',
   },
   posterScoreValue: {
     marginTop: 8,
-    color: '#FFFFFF',
+    color: '#FF7A59',
     fontSize: 54,
     fontWeight: '900',
     letterSpacing: -1,
@@ -417,7 +419,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: '#111827',
   },
   posterRankChipText: {
     color: '#FFFFFF',
@@ -425,7 +427,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   posterRankText: {
-    color: 'rgba(255,255,255,0.86)',
+    color: '#7C2D12',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -497,7 +499,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 22,
     padding: 16,
-    backgroundColor: '#FFE0D2',
+    backgroundColor: '#FFF1E8',
   },
   posterFooterLead: {
     color: '#7C2D12',
