@@ -478,7 +478,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
 const styles = StyleSheet.create({
   listContent: {
     padding: 16,
-    paddingBottom: 140,
+    paddingBottom: 20,
   },
   inlineLoadingCard: {
     marginTop: 16,

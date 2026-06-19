@@ -13,7 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import DiaryMasonryCard from '../../components/common/DiaryMasonryCard';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -138,6 +138,7 @@ const OverallDiaryFeedScreen: React.FC = () => {
   const route = useRoute<ScreenRouteProp>();
   const navigation = useNavigation<ScreenNavigationProp>();
   const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const currentUser = useAppStore((state) => state.currentUser);
   const { viewedUserId, viewedUserName, viewedAvatarUrl } = route.params;
@@ -163,12 +164,6 @@ const OverallDiaryFeedScreen: React.FC = () => {
   const horizontalPadding = 32;
   const columnGap = 12;
   const cardWidth = Math.max((width - horizontalPadding - columnGap) / 2, 140);
-
-  React.useEffect(() => {
-    navigation.setOptions({
-      title: '综合日记',
-    });
-  }, [navigation]);
 
   const fetchEntries = React.useCallback(async () => {
     if (!viewedUserId) {
@@ -281,8 +276,22 @@ const OverallDiaryFeedScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={[]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={[styles.pageHeader, { paddingTop: insets.top + 8 }]}>
+          <View style={styles.pageHeaderRow}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={[styles.backButton, { backgroundColor: colors.surface }]}
+            >
+              <Ionicons name="chevron-back" size={20} color={colors.text} />
+            </Pressable>
+            <View style={styles.pageHeaderTextWrap}>
+              <Text style={[styles.pageHeaderTitle, { color: colors.text }]}>{displayName} 的全部日记</Text>
+            </View>
+          </View>
+        </View>
+
         <View style={[styles.heroCard, { backgroundColor: colors.surface }]}>
           <View style={styles.heroTopRow}>
             <View style={styles.authorRow}>
@@ -302,9 +311,8 @@ const OverallDiaryFeedScreen: React.FC = () => {
               )}
 
               <View style={styles.authorTextWrap}>
-                <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ALL DIARIES</Text>
-                <View style={styles.titleRow}>
-                  <Text style={[styles.title, { color: colors.text }]}>{displayName} 的全部日记</Text>
+                <View style={styles.eyebrowRow}>
+                  <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ALL DIARIES</Text>
                   {!isSelf ? (
                     <Pressable
                       onPress={() => void handleFollowPress()}
@@ -480,8 +488,30 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 20,
     gap: 16,
+  },
+  pageHeader: {
+    marginBottom: 4,
+  },
+  pageHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  pageHeaderTextWrap: {
+    flex: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageHeaderTitle: {
+    fontSize: 28,
+    fontWeight: '800',
   },
   heroCard: {
     borderRadius: 24,
@@ -514,6 +544,12 @@ const styles = StyleSheet.create({
   authorTextWrap: {
     flex: 1,
   },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   eyebrow: {
     fontSize: 12,
     fontWeight: '700',
@@ -523,13 +559,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 24,
     fontWeight: '800',
-    flex: 1,
-  },
-  titleRow: {
-    marginTop: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
   },
   subtitle: {
     marginTop: 8,

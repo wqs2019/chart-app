@@ -132,9 +132,9 @@ export const RootNavigator = () => {
             component={AchievementPosterScreen}
             options={{ title: '成就海报' }}
           />
-          <Stack.Screen name="OverallDiaryFeed" component={OverallDiaryFeedScreen} options={{ title: '综合日记' }} />
-          <Stack.Screen name="Checkin" component={CheckinScreen} />
-          <Stack.Screen name="CheckinItemRecords" component={CheckinItemRecordsScreen} />
+          <Stack.Screen name="OverallDiaryFeed" component={OverallDiaryFeedScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Checkin" component={CheckinScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="CheckinItemRecords" component={CheckinItemRecordsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="CheckinEntryDetail" component={CheckinEntryDetailScreen} />
           <Stack.Screen name="CheckinEntryEditor" component={CheckinEntryEditorScreen} />
         </>

@@ -3,7 +3,7 @@ import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import DiaryMasonryCard from '../../components/common/DiaryMasonryCard';
 import { MediaPreviewer } from '../../components/common/MediaPreviewer';
@@ -55,6 +55,7 @@ const CheckinItemRecordsScreen: React.FC = () => {
   const route = useRoute<ScreenRouteProp>();
   const navigation = useNavigation<ScreenNavigationProp>();
   const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const currentUser = useAppStore((state) => state.currentUser);
   const { code, item, viewedUserId, viewedUserName, readOnly } = route.params;
@@ -83,10 +84,6 @@ const CheckinItemRecordsScreen: React.FC = () => {
       setEntries([]);
     }
   }, [code, item._id, targetUserId, userId]);
-
-  React.useEffect(() => {
-    navigation.setOptions({ title: item.name_zh });
-  }, [item.name_zh, navigation]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -135,13 +132,26 @@ const CheckinItemRecordsScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={[]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={[styles.pageHeader, { paddingTop: insets.top + 8 }]}>
+          <View style={styles.pageHeaderRow}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={[styles.backButton, { backgroundColor: colors.surface }]}
+            >
+              <Ionicons name="chevron-back" size={20} color={colors.text} />
+            </Pressable>
+            <View style={styles.pageHeaderTextWrap}>
+              <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ITEM DIARIES</Text>
+            </View>
+          </View>
+        </View>
+
         <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.heroCardRow}>
             <View style={styles.heroContent}>
-              <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ITEM DIARIES</Text>
-              <Text style={[styles.title, { color: colors.text }]}>{item.name_zh}</Text>
+              <Text style={[styles.heroTitle, { color: colors.text }]}>{item.name_zh}</Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                 {item.name_en || '暂无英文名'} · {item.category_label_zh || item.category}
               </Text>
@@ -299,8 +309,26 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 20,
     gap: 16,
+  },
+  pageHeader: {
+    marginBottom: 4,
+  },
+  pageHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  pageHeaderTextWrap: {
+    flex: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroCard: {
     borderWidth: 0,
@@ -320,8 +348,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
   },
-  title: {
-    marginTop: 8,
+  heroTitle: {
     fontSize: 28,
     fontWeight: '800',
   },

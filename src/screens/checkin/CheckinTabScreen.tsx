@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CheckinBoard from '../../components/rank/CheckinBoard';
 import LeaderboardSwitcher from '../../components/rank/LeaderboardSwitcher';
@@ -15,6 +15,7 @@ type CheckinTabRouteProp = RouteProp<{ Checkin: { code?: LeaderboardCode } | und
 
 const CheckinTabScreen: React.FC = () => {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const route = useRoute<CheckinTabRouteProp>();
   const [selectedCode, setSelectedCode] = React.useState<LeaderboardCode>('world_travel');
 
@@ -26,11 +27,11 @@ const CheckinTabScreen: React.FC = () => {
   }, [route.params?.code]);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={[]}>
       <CheckinBoard
         code={selectedCode}
         header={
-          <View style={styles.headerWrap}>
+          <View style={[styles.headerWrap, { paddingTop: insets.top + 8 }]}>
             <View style={styles.topHeader}>
               <View>
                 <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>CHECK-IN STUDIO</Text>

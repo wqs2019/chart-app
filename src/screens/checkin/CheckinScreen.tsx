@@ -1,8 +1,8 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CheckinBoard from '../../components/rank/CheckinBoard';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -20,33 +20,37 @@ const CheckinScreen = () => {
   const viewedUserName = route.params.viewedUserName;
   const readOnly = Boolean(route.params.readOnly);
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const config = LEADERBOARD_CONFIGS[code];
-  const screenTitle = readOnly && viewedUserName ? `${viewedUserName}的${config.title}` : config?.title || '录入';
   const viewerContentLabel =
     code === 'world_travel' ? '国家足迹' : code === 'china_travel' ? '省份足迹' : '项目足迹';
   const ownerLabel = readOnly ? viewedUserName || '该用户' : '我';
 
-  React.useEffect(() => {
-    navigation.setOptions({ title: screenTitle });
-  }, [navigation, screenTitle]);
-
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={[]}>
       <CheckinBoard
         code={code}
         viewedUserId={viewedUserId}
         viewedUserName={viewedUserName}
         readOnly={readOnly}
         header={
-          <View style={styles.headerWrap}>
+          <View style={[styles.headerWrap, { paddingTop: insets.top + 8 }]}>
             <View style={styles.topHeader}>
-              <View>
-                <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
-                  FOOTPRINT LIST
-                </Text>
-                <Text style={[styles.title, { color: colors.text }]}>
-                  {readOnly && viewedUserName ? `${viewedUserName}的${config.title}` : `我的${config.title}`}
-                </Text>
+              <View style={styles.headerRow}>
+                <Pressable
+                  onPress={() => navigation.goBack()}
+                  style={[styles.backButton, { backgroundColor: colors.surface }]}
+                >
+                  <Ionicons name="chevron-back" size={20} color={colors.text} />
+                </Pressable>
+                <View style={styles.headerTextWrap}>
+                  <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
+                    FOOTPRINT LIST
+                  </Text>
+                  <Text style={[styles.title, { color: colors.text }]}>
+                    {readOnly && viewedUserName ? `${viewedUserName}的${config.title}` : `我的${config.title}`}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -83,9 +87,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   topHeader: {
+    gap: 12,
+  },
+  headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerTextWrap: {
+    flex: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   eyebrow: {
     fontSize: 12,
