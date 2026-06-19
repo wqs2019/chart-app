@@ -121,6 +121,11 @@ export interface UserScoreSnapshot {
   tags: string[];
   score_updated_at?: Date | string;
   world_raw_count?: number;
+  china_raw_count?: number;
+  activity_raw_count?: number;
+  world_final_score?: number;
+  china_final_score?: number;
+  activity_final_score?: number;
   updated_at: Date | string;
 }
 

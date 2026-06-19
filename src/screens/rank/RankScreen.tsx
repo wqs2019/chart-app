@@ -42,6 +42,33 @@ const formatScore = (value?: number | null) => {
   return Number(value).toFixed(2);
 };
 
+const getRawCountLabel = (code: LeaderboardCode, snapshot?: Pick<
+  UserScoreSnapshot,
+  'raw_count' | 'world_raw_count' | 'china_raw_count' | 'activity_raw_count'
+> | null) => {
+  const safeCount = snapshot?.raw_count ?? 0;
+
+  if (code === 'overall') {
+    return `世界 ${snapshot?.world_raw_count ?? 0} 项 · 中国 ${snapshot?.china_raw_count ?? 0} 项 · 玩乐 ${snapshot?.activity_raw_count ?? 0} 项`;
+  }
+
+  return `已录入 ${safeCount}${LEADERBOARD_CONFIGS[code].unit}`;
+};
+
+const getOverallScoreBreakdownLines = (
+  snapshot?: Pick<UserScoreSnapshot, 'world_final_score' | 'china_final_score' | 'activity_final_score'> | null
+) => {
+  const worldScore = Number(snapshot?.world_final_score ?? 0);
+  const chinaScore = Number(snapshot?.china_final_score ?? 0);
+  const activityScore = Number(snapshot?.activity_final_score ?? 0);
+
+  return [
+    `世界旅游 ${formatScore(worldScore)} × 70% = ${formatScore(worldScore * 0.7)}`,
+    `中国旅游 ${formatScore(chinaScore)} × 20% = ${formatScore(chinaScore * 0.2)}`,
+    `玩乐项目 ${formatScore(activityScore)} × 10% = ${formatScore(activityScore * 0.1)}`,
+  ];
+};
+
 const getAvatarUri = (row: UserScoreSnapshot, currentAvatarUrl?: string) =>
   row.avatar_url || currentAvatarUrl || '';
 
@@ -50,48 +77,53 @@ const getAvatarFallback = (name: string) => name.trim().charAt(0).toUpperCase() 
 const getScoreRuleLines = (code: LeaderboardCode) => {
   if (code === 'world_travel') {
     return [
-      '成就分 = 国家数 × 4 + 覆盖洲数 × 5 + A类 × 0.20 + B类 × 0.40 + C类 × 0.80',
-      '影响力分 = ln(1 + 点赞 × 1 + 评论 × 2 + 收藏 × 3) × 10',
-      '总分 = 成就分 × 70% + 影响力分 × 30%',
+      '去过更多国家、覆盖更多洲，世界旅游分数会更高。',
+      'A / B / C 三类国家也会带来不同的额外加成。',
+      '点赞、评论、收藏越多，互动带来的影响力分也会继续上涨。',
+      '最终成绩由成就分占 70%，影响力分占 30%。',
     ];
   }
 
   if (code === 'china_travel') {
     return [
-      '成就分 = 省级行政区数 × 2 + 覆盖中国大区数 × 5',
-      '影响力分 = ln(1 + 点赞 × 1 + 评论 × 2 + 收藏 × 3) × 10',
-      '总分 = 成就分 × 70% + 影响力分 × 30%',
+      '去过更多省级行政区、覆盖更多中国大区，分数会更高。',
+      '点赞、评论、收藏越多，互动带来的影响力分也会继续上涨。',
+      '最终成绩由成就分占 70%，影响力分占 30%。',
     ];
   }
 
   if (code === 'activity') {
     return [
-      '成就分 = 项目类型数 × 2 + 覆盖项目大类数 × 4',
-      '影响力分 = ln(1 + 点赞 × 1 + 评论 × 2 + 收藏 × 3) × 10',
-      '总分 = 成就分 × 70% + 影响力分 × 30%',
+      '体验过更多项目类型、覆盖更多项目大类，分数会更高。',
+      '点赞、评论、收藏越多，互动带来的影响力分也会继续上涨。',
+      '最终成绩由成就分占 70%，影响力分占 30%。',
     ];
   }
 
   return [
-    '综合总分 = 世界旅游总分 × 70% + 中国旅游总分 × 20% + 玩乐项目总分 × 10%',
+    '综合榜会把世界旅游、中国旅游、玩乐项目三个子榜的总分合并计算。',
+    '权重分配：世界旅游 70%，中国旅游 20%，玩乐项目 10%。',
+    '你的综合榜表现越均衡，综合总分通常越高。',
   ];
 };
 
 const getScoreSourceHint = (code: LeaderboardCode) => {
   if (code === 'world_travel') {
-    return '当前分数已经把国家数量、洲覆盖和 A/B/C 结构加成一起算进成就分。';
+    return '简单理解：去得更广、覆盖更完整、内容互动更高，世界旅游榜分数就会更高。';
   }
 
   if (code === 'china_travel') {
-    return '当前分数已经把省级行政区数量和中国大区覆盖一起算进成就分。';
+    return '简单理解：去过的省份越多、覆盖的大区越完整，外加更高互动，就越容易冲到前排。';
   }
 
   if (code === 'activity') {
-    return '当前分数已经把项目类型数量和项目大类覆盖一起算进成就分。';
+    return '简单理解：玩过的项目越丰富、覆盖的大类越广，加上更高互动，玩乐项目榜分数就会更高。';
   }
 
-  return '当前分数已经把三个子榜总分按 0.7 / 0.2 / 0.1 权重合成。';
+  return '综合榜不直接按录入数量计分，而是把三个子榜的总分按权重合成为最终成绩。';
 };
+
+const SCORE_ROUNDING_HINT = '分数展示保留两位小数，并按四舍五入显示。';
 
 type RankScreenData = {
   myRank: UserScoreSnapshot | null;
@@ -323,7 +355,7 @@ const RankScreen: React.FC = () => {
                             {myRank.raw_count ?? 0}
                           </Text>
                           <Text style={[styles.compactMetricLabel, { color: colors.textSecondary }]}>
-                            已录入{currentConfig.unit}
+                            {selectedCode === 'overall' ? '累计录入项目' : `已录入${currentConfig.unit}`}
                           </Text>
                         </View>
                       </View>
@@ -444,7 +476,7 @@ const RankScreen: React.FC = () => {
                             ) : null}
                           </View>
                           <Text style={[styles.rankMeta, { color: colors.textSecondary }]}>
-                            已录入 {row.raw_count ?? 0}{currentConfig.unit} · {formatPercentile(row.percentile)}
+                            {getRawCountLabel(selectedCode, row)} · {formatPercentile(row.percentile)}
                           </Text>
                           {!!row.tags?.length && (
                             <View style={styles.tagsRow}>
@@ -504,6 +536,9 @@ const RankScreen: React.FC = () => {
           <Text style={[styles.scoreGuideHint, { color: colors.textSecondary }]}>
             {scoreSourceHint}
           </Text>
+          <Text style={[styles.scoreGuideHint, { color: colors.textSecondary }]}>
+            {SCORE_ROUNDING_HINT}
+          </Text>
           {myRank && (
             <View
               style={[
@@ -516,12 +551,19 @@ const RankScreen: React.FC = () => {
             >
               <Text style={[styles.scoreGuideTitle, { color: colors.text }]}>你的当前分数拆解</Text>
               <Text style={[styles.scoreGuideText, { color: colors.textSecondary }]}>
-                已录入 {myRank.raw_count ?? 0}{currentConfig.unit}
+                {getRawCountLabel(selectedCode, myRank)}
               </Text>
               {selectedCode === 'overall' ? (
-                <Text style={[styles.scoreBreakdownValue, { color: colors.text }]}>
-                  综合总分 = {formatScore(myRank.final_score)}
-                </Text>
+                <>
+                  {getOverallScoreBreakdownLines(myRank).map((line) => (
+                    <Text key={line} style={[styles.scoreGuideText, { color: colors.textSecondary }]}>
+                      {line}
+                    </Text>
+                  ))}
+                  <Text style={[styles.scoreBreakdownValue, { color: colors.text }]}>
+                    综合总分 = <Text style={{ color: colors.primary }}>{formatScore(myRank.final_score)}</Text>
+                  </Text>
+                </>
               ) : (
                 <Text style={[styles.scoreBreakdownValue, { color: colors.text }]}>
                   {formatScore(myRank.achievement_score)} × 70% + {formatScore(myRank.influence_score)} × 30% ={' '}

@@ -358,7 +358,9 @@ async function refreshOverallSnapshots() {
       raw_count: 0,
       world_final_score: 0,
       world_raw_count: 0,
+      china_raw_count: 0,
       china_final_score: 0,
+      activity_raw_count: 0,
       activity_final_score: 0,
     };
 
@@ -370,10 +372,12 @@ async function refreshOverallSnapshots() {
     }
 
     if (snapshot.leaderboard_code === 'china_travel') {
+      current.china_raw_count = snapshot.raw_count || 0;
       current.china_final_score = snapshot.final_score || 0;
     }
 
     if (snapshot.leaderboard_code === 'activity') {
+      current.activity_raw_count = snapshot.raw_count || 0;
       current.activity_final_score = snapshot.final_score || 0;
     }
 
@@ -401,6 +405,11 @@ async function refreshOverallSnapshots() {
         leaderboard_code: 'overall',
         raw_count: entry.raw_count,
         world_raw_count: entry.world_raw_count,
+        china_raw_count: entry.china_raw_count,
+        activity_raw_count: entry.activity_raw_count,
+        world_final_score: entry.world_final_score,
+        china_final_score: entry.china_final_score,
+        activity_final_score: entry.activity_final_score,
         achievement_score: finalScore,
         influence_score: 0,
         final_score: finalScore,
@@ -431,6 +440,11 @@ async function refreshOverallSnapshots() {
         influence_score: row.influence_score,
         final_score: row.final_score,
         world_raw_count: row.world_raw_count,
+        china_raw_count: row.china_raw_count,
+        activity_raw_count: row.activity_raw_count,
+        world_final_score: row.world_final_score,
+        china_final_score: row.china_final_score,
+        activity_final_score: row.activity_final_score,
         rank: row.rank,
         percentile: row.percentile,
         tags: row.tags,
