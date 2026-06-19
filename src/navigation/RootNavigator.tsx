@@ -135,7 +135,7 @@ export const RootNavigator = () => {
           <Stack.Screen name="OverallDiaryFeed" component={OverallDiaryFeedScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Checkin" component={CheckinScreen} options={{ headerShown: false }} />
           <Stack.Screen name="CheckinItemRecords" component={CheckinItemRecordsScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="CheckinEntryDetail" component={CheckinEntryDetailScreen} />
+          <Stack.Screen name="CheckinEntryDetail" component={CheckinEntryDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="CheckinEntryEditor" component={CheckinEntryEditorScreen} />
         </>
       ) : (

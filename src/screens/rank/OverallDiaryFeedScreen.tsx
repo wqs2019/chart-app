@@ -13,7 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import DiaryMasonryCard from '../../components/common/DiaryMasonryCard';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -276,103 +276,109 @@ const OverallDiaryFeedScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={[]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.pageHeader, { paddingTop: insets.top + 8 }]}>
-          <View style={styles.pageHeaderRow}>
-            <Pressable
-              onPress={() => navigation.goBack()}
-              style={[styles.backButton, { backgroundColor: colors.surface }]}
-            >
-              <Ionicons name="chevron-back" size={20} color={colors.text} />
-            </Pressable>
-            <View style={styles.pageHeaderTextWrap}>
-              <Text style={[styles.pageHeaderTitle, { color: colors.text }]}>{displayName} 的全部日记</Text>
-            </View>
+    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <View style={[styles.pageHeader, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.pageHeaderRow}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={[styles.backButton, { backgroundColor: colors.surface }]}
+          >
+            <Ionicons name="chevron-back" size={20} color={colors.text} />
+          </Pressable>
+          <View style={styles.pageHeaderTextWrap}>
+            <Text style={[styles.pageHeaderTitle, { color: colors.text }]}>{displayName} 的全部日记</Text>
           </View>
         </View>
+      </View>
 
-        <View style={[styles.heroCard, { backgroundColor: colors.surface }]}>
-          <View style={styles.heroTopRow}>
-            <View style={styles.authorRow}>
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatar} />
-              ) : (
-                <View
-                  style={[
-                    styles.avatarFallbackWrap,
-                    {
-                      backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.08)',
-                    },
-                  ]}
-                >
-                  <Text style={[styles.avatarFallbackText, { color: colors.primary }]}>{avatarFallback}</Text>
-                </View>
-              )}
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 72 }]}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+      >
+        <View style={styles.heroWrap}>
+          <View style={[styles.heroCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.authorRow}>
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                ) : (
+                  <View
+                    style={[
+                      styles.avatarFallbackWrap,
+                      {
+                        backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.08)',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.avatarFallbackText, { color: colors.primary }]}>{avatarFallback}</Text>
+                  </View>
+                )}
 
-              <View style={styles.authorTextWrap}>
-                <View style={styles.eyebrowRow}>
-                  {!isSelf ? (
-                    <Pressable
-                      onPress={() => void handleFollowPress()}
-                      disabled={followSubmitting}
-                      style={[
-                        styles.followButton,
-                        {
-                          backgroundColor: socialSummary.viewer_is_following
-                            ? isDark
-                              ? 'rgba(255,255,255,0.06)'
-                              : '#F3F4F6'
-                            : isDark
-                              ? 'rgba(255,155,122,0.14)'
-                              : '#FFF1E8',
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name={socialSummary.viewer_is_following ? 'checkmark' : 'add'}
-                        size={14}
-                        color={socialSummary.viewer_is_following ? colors.textSecondary : colors.primary}
-                      />
-                      <Text
+                <View style={styles.authorTextWrap}>
+                  <View style={styles.eyebrowRow}>
+                    {!isSelf ? (
+                      <Pressable
+                        onPress={() => void handleFollowPress()}
+                        disabled={followSubmitting}
                         style={[
-                          styles.followButtonText,
+                          styles.followButton,
                           {
-                            color: socialSummary.viewer_is_following ? colors.textSecondary : colors.primary,
+                            backgroundColor: socialSummary.viewer_is_following
+                              ? isDark
+                                ? 'rgba(255,255,255,0.06)'
+                                : '#F3F4F6'
+                              : isDark
+                                ? 'rgba(255,155,122,0.14)'
+                                : '#FFF1E8',
                           },
                         ]}
                       >
-                        {socialSummary.viewer_is_following ? '已关注' : '关注'}
-                      </Text>
-                    </Pressable>
-                  ) : null}
+                        <Ionicons
+                          name={socialSummary.viewer_is_following ? 'checkmark' : 'add'}
+                          size={14}
+                          color={socialSummary.viewer_is_following ? colors.textSecondary : colors.primary}
+                        />
+                        <Text
+                          style={[
+                            styles.followButtonText,
+                            {
+                              color: socialSummary.viewer_is_following ? colors.textSecondary : colors.primary,
+                            },
+                          ]}
+                        >
+                          {socialSummary.viewer_is_following ? '已关注' : '关注'}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                  <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                    综合展示世界旅游、中国旅游和玩乐项目的全部记录，不再区分榜单。
+                  </Text>
                 </View>
-                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  综合展示世界旅游、中国旅游和玩乐项目的全部记录，不再区分榜单。
-                </Text>
+              </View>
+
+              <View style={[styles.totalBadge, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' }]}>
+                <Text style={[styles.totalBadgeLabel, { color: colors.primary }]}>共 {entries.length} 篇</Text>
               </View>
             </View>
 
-            <View style={[styles.totalBadge, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' }]}>
-              <Text style={[styles.totalBadgeLabel, { color: colors.primary }]}>共 {entries.length} 篇</Text>
+            <View style={styles.summaryRow}>
+              {summaryCounts.map(({ code, count }) => (
+                <View
+                  key={code}
+                  style={[
+                    styles.summaryChip,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FBFF' },
+                  ]}
+                >
+                  <Ionicons name={getLeaderboardIcon(code)} size={14} color={colors.primary} />
+                  <Text numberOfLines={1} style={[styles.summaryChipText, { color: colors.textSecondary }]}>
+                    {getSummaryLabel(code)} {count}
+                  </Text>
+                </View>
+              ))}
             </View>
-          </View>
-
-          <View style={styles.summaryRow}>
-            {summaryCounts.map(({ code, count }) => (
-              <View
-                key={code}
-                style={[
-                  styles.summaryChip,
-                  { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FBFF' },
-                ]}
-              >
-                <Ionicons name={getLeaderboardIcon(code)} size={14} color={colors.primary} />
-                <Text numberOfLines={1} style={[styles.summaryChipText, { color: colors.textSecondary }]}>
-                  {getSummaryLabel(code)} {count}
-                </Text>
-              </View>
-            ))}
           </View>
         </View>
 
@@ -477,7 +483,7 @@ const OverallDiaryFeedScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -487,11 +493,16 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 20,
+    paddingBottom: 0,
     gap: 16,
   },
   pageHeader: {
-    marginBottom: 4,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingHorizontal: 16,
   },
   pageHeaderRow: {
     flexDirection: 'row',
@@ -500,6 +511,9 @@ const styles = StyleSheet.create({
   },
   pageHeaderTextWrap: {
     flex: 1,
+  },
+  heroWrap: {
+    marginTop: -12,
   },
   backButton: {
     width: 40,

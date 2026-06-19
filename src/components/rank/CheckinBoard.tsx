@@ -27,6 +27,7 @@ type CheckinBoardProps = {
   viewedUserId?: string;
   viewedUserName?: string;
   readOnly?: boolean;
+  bottomContentInset?: number;
 };
 
 type CheckinBoardData = {
@@ -42,6 +43,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
   viewedUserId,
   viewedUserName,
   readOnly = false,
+  bottomContentInset = 20,
 }) => {
   const { colors, isDark } = useAppTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -51,6 +53,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
   const targetUserId = viewedUserId || userId;
   const isViewerMode = Boolean(readOnly && targetUserId);
   const ownerLabel = viewedUserName || (isViewerMode ? '该用户' : '我');
+  const shouldShowAddActivityHint = code === 'activity' && !isViewerMode;
 
   const [dataByCode, setDataByCode] = React.useState<Partial<Record<LeaderboardCode, CheckinBoardData>>>({});
   const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
@@ -192,7 +195,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
     <FlatList
       data={filteredItems}
       keyExtractor={(item) => item._id}
-      contentContainerStyle={styles.listContent}
+      contentContainerStyle={[styles.listContent, { paddingBottom: bottomContentInset }]}
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={
         <>
@@ -471,6 +474,25 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
           </Text>
         </View>
       }
+      ListFooterComponent={
+        shouldShowAddActivityHint ? (
+          <Pressable
+            onPress={() => navigation.navigate('HelpFeedback')}
+            style={[
+              styles.addActivityHintCard,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFF8F3',
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.addActivityHintText, { color: colors.textSecondary }]}>
+              没有我的项目？
+              <Text style={[styles.addActivityHintAction, { color: colors.primary }]}>点击添加</Text>
+            </Text>
+          </Pressable>
+        ) : null
+      }
     />
   );
 };
@@ -478,7 +500,6 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
 const styles = StyleSheet.create({
   listContent: {
     padding: 16,
-    paddingBottom: 20,
   },
   inlineLoadingCard: {
     marginTop: 16,
@@ -718,6 +739,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     textAlign: 'center',
+  },
+  addActivityHintCard: {
+    marginTop: 8,
+    borderWidth: 0,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addActivityHintText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addActivityHintAction: {
+    fontWeight: '800',
   },
 });
 

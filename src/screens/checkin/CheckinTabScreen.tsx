@@ -18,6 +18,7 @@ const CheckinTabScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute<CheckinTabRouteProp>();
   const [selectedCode, setSelectedCode] = React.useState<LeaderboardCode>('world_travel');
+  const bottomContentInset = Math.max(insets.bottom + 96, 120);
 
   React.useEffect(() => {
     const requestedCode = route.params?.code;
@@ -30,6 +31,7 @@ const CheckinTabScreen: React.FC = () => {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={[]}>
       <CheckinBoard
         code={selectedCode}
+        bottomContentInset={bottomContentInset}
         header={
           <View style={[styles.headerWrap, { paddingTop: insets.top + 8 }]}>
             <View style={styles.topHeader}>

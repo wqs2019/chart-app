@@ -17,7 +17,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Loading from '../../components/common/Loading';
 import { NineGridMedia } from '../../components/common/NineGridMedia';
@@ -208,26 +208,6 @@ const CheckinEntryDetailScreen: React.FC = () => {
     [currentEntry?._id, resolvedCode, resolvedItem, targetUserId, userId]
   );
 
-  React.useEffect(() => {
-    navigation.setOptions({ title: currentEntry?.content?.title || resolvedItem?.name_zh || '记录详情' });
-  }, [currentEntry?.content?.title, navigation, resolvedItem?.name_zh]);
-
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: canReportEntry || canDeleteEntry
-        ? () => (
-            <Pressable
-              onPress={() => setMoreActionsVisible(true)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.headerMoreButton}
-            >
-              <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
-            </Pressable>
-          )
-        : undefined,
-    });
-  }, [canDeleteEntry, canReportEntry, colors.text, navigation]);
-
   useFocusEffect(
     React.useCallback(() => {
       fetchEntryDetail();
@@ -252,7 +232,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSubscription = Keyboard.addListener(showEvent, (event) => {
-      const nextHeight = Math.max((event.endCoordinates?.height || 0) - insets.bottom, 0);
+      const nextHeight = Math.max(event.endCoordinates?.height || 0, 0);
       setKeyboardHeight(nextHeight);
     });
     const hideSubscription = Keyboard.addListener(hideEvent, () => {
@@ -265,7 +245,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
     };
   }, [insets.bottom]);
 
-  const bottomBarPaddingBottom = Math.max(insets.bottom, 10);
+  const bottomBarPaddingBottom = 12;
   const composerOffsetBottom = keyboardHeight;
 
   const playButtonFeedback = React.useCallback((scaleValue: Animated.Value) => {
@@ -511,9 +491,48 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const item = resolvedItem;
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
+    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <View style={[styles.pageHeader, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.pageHeaderRow}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={[
+              styles.headerIconButton,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.92)' },
+            ]}
+          >
+            <Ionicons name="chevron-back" size={20} color={colors.text} />
+          </Pressable>
+
+          <View style={styles.pageHeaderCenter}>
+            <Text numberOfLines={1} style={[styles.pageHeaderTitle, { color: colors.text }]}>
+              {currentEntry.content?.title || resolvedItem.name_zh}
+            </Text>
+          </View>
+
+          {canReportEntry || canDeleteEntry ? (
+            <Pressable
+              onPress={() => setMoreActionsVisible(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={[
+                styles.headerIconButton,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.92)' },
+              ]}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
+            </Pressable>
+          ) : (
+            <View style={styles.headerIconPlaceholder} />
+          )}
+        </View>
+      </View>
+
       <View style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + 72 }]}
+          showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="never"
+        >
           <View style={styles.noteContent}>
           <View style={styles.authorRow}>
             <View style={styles.authorLeft}>
@@ -1018,7 +1037,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
           </KeyboardAvoidingView>
         </Modal>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -1028,10 +1047,41 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 160,
+    paddingBottom: 148,
   },
   noteContent: {
-    paddingTop: 6,
+    paddingTop: 0,
+  },
+  pageHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    paddingHorizontal: 16,
+  },
+  pageHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  pageHeaderCenter: {
+    flex: 1,
+  },
+  pageHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerIconPlaceholder: {
+    width: 40,
+    height: 40,
   },
   authorRow: {
     flexDirection: 'row',
