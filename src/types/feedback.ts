@@ -2,8 +2,8 @@ import { CheckinAttachment } from './rank';
 
 // 普通反馈 + 针对某篇日记的举报 + 违规笔记修改后的复审申请
 export type FeedbackType = 'bug' | 'feature' | 'other' | 'report_entry' | 'review_entry';
-// `pending` 仅用于兼容历史数据，前台统一按 `processing` 展示
-export type FeedbackStatus = 'pending' | 'processing' | 'resolved' | 'rejected';
+// `pending` 表示管理员尚未处理，`violation` 表示举报成立并已下架笔记
+export type FeedbackStatus = 'pending' | 'processing' | 'violation' | 'resolved' | 'rejected';
 
 // 举报原因枚举，前后端与云函数校验保持一致
 export type ReportReason = 'spam' | 'abuse' | 'harassment' | 'pornography' | 'violence' | 'fraud' | 'other';

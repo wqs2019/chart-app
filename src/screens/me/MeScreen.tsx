@@ -6,6 +6,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import authService from '../../services/authService';
+import feedbackService from '../../services/feedbackService';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { notificationService } from '../../services/notificationService';
@@ -25,6 +26,7 @@ const MeScreen: React.FC = () => {
   const setUnreadCommentCount = useAppStore((state) => state.setUnreadCommentCount);
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
   const [isAdmin, setIsAdmin] = React.useState(false);
+  const [adminPendingCount, setAdminPendingCount] = React.useState(0);
 
   const displayName =
     currentUser?.fullName || currentUser?.profile?.nickname || currentUser?.username || '旅行玩家';
@@ -154,15 +156,24 @@ const MeScreen: React.FC = () => {
 
     if (!appleUserId) {
       setIsAdmin(false);
+      setAdminPendingCount(0);
       return;
     }
 
     try {
       const nextIsAdmin = await authService.getAdminStatus(appleUserId);
       setIsAdmin(nextIsAdmin);
+      if (!nextIsAdmin) {
+        setAdminPendingCount(0);
+        return;
+      }
+
+      const summary = await feedbackService.getAdminPendingSummary({ appleUserId });
+      setAdminPendingCount(summary.totalPendingCount || 0);
     } catch (error) {
       console.warn('[Me] load admin status failed:', error);
       setIsAdmin(false);
+      setAdminPendingCount(0);
     }
   }, [currentUser?.appleUserId]);
 
@@ -386,6 +397,11 @@ const MeScreen: React.FC = () => {
                   进入管理员工具入口，后续统一承接用户、反馈与运营管理能力
                 </Text>
               </View>
+              {adminPendingCount > 0 ? (
+                <View style={styles.menuBadge}>
+                  <Text style={styles.menuBadgeText}>{Math.min(adminPendingCount, 99)}</Text>
+                </View>
+              ) : null}
               <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </Pressable>
           </View>

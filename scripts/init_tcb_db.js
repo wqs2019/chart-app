@@ -4,7 +4,6 @@ const CloudBase = require('@cloudbase/manager-node');
 
 const COLLECTIONS = [
   'chart_users',
-  'chart_leaderboards',
   'chart_standard_items',
   'chart_checkins',
   'chart_interactions',
@@ -12,7 +11,6 @@ const COLLECTIONS = [
   'chart_follows',
   'chart_notifications',
   'chart_score_snapshots',
-  'chart_activity_candidates',
   'chart_year_reviews',
   'chart_share_posters',
 ];

@@ -132,12 +132,12 @@ async function syncEntryModerationState(feedbackRecord, nextStatus) {
 
   const nextModerationStatus =
     feedbackRecord.type === 'report_entry'
-      ? nextStatus === 'processing'
+      ? nextStatus === 'violation'
         ? 'violating'
         : 'normal'
       : nextStatus === 'resolved'
         ? 'normal'
-        : nextStatus === 'rejected'
+        : nextStatus === 'violation'
           ? 'violating'
           : 'reviewing';
 
@@ -235,7 +235,7 @@ async function addFeedback(data = {}) {
       content: String(content).trim(),
       contact: String(contact || '').trim(),
       media: sanitizeMedia(media),
-      status: 'processing',
+      status: type === 'report_entry' ? 'pending' : 'processing',
       source,
       report_reason: type === 'report_entry' ? report_reason : '',
       target_user_id: ['report_entry', 'review_entry'].includes(type) ? target_user_id : '',
@@ -292,6 +292,39 @@ async function listFeedbacks(data = {}) {
   }
 }
 
+async function getAdminPendingSummary(data = {}) {
+  try {
+    await ensureAdminByAppleId(data.appleUserId);
+
+    const [feedbackPendingResult, reportPendingResult] = await Promise.all([
+      feedbacksCollection
+        .where({
+          type: _.in(['bug', 'feature', 'other']),
+          status: 'processing',
+        })
+        .count(),
+      feedbacksCollection
+        .where({
+          type: _.in(['report_entry', 'review_entry']),
+          status: _.in(['pending', 'processing']),
+        })
+        .count(),
+    ]);
+
+    const feedbackPendingCount = feedbackPendingResult.total || 0;
+    const reportPendingCount = reportPendingResult.total || 0;
+
+    return ok({
+      feedbackPendingCount,
+      reportPendingCount,
+      totalPendingCount: feedbackPendingCount + reportPendingCount,
+    });
+  } catch (error) {
+    console.error('chart_feedback.getAdminPendingSummary error:', error);
+    return fail('获取管理员待处理统计失败', error);
+  }
+}
+
 async function updateFeedbackStatus(data = {}) {
   try {
     await ensureAdminByAppleId(data.appleUserId);
@@ -303,7 +336,7 @@ async function updateFeedbackStatus(data = {}) {
       return fail('缺少反馈记录 ID');
     }
 
-    if (!['processing', 'resolved', 'rejected'].includes(status)) {
+    if (!['processing', 'violation', 'resolved', 'rejected'].includes(status)) {
       return fail('反馈状态不正确');
     }
 
@@ -313,8 +346,14 @@ async function updateFeedbackStatus(data = {}) {
       return fail('反馈记录不存在');
     }
 
-    const currentStatus = existingRecord.status === 'pending' ? 'processing' : existingRecord.status || 'processing';
-    if (currentStatus === 'resolved' || currentStatus === 'rejected') {
+    const currentStatus =
+      existingRecord.status || (existingRecord.type === 'report_entry' ? 'pending' : 'processing');
+    if (
+      currentStatus === 'resolved' ||
+      currentStatus === 'rejected' ||
+      ((existingRecord.type === 'report_entry' || existingRecord.type === 'review_entry') &&
+        currentStatus === 'violation')
+    ) {
       return fail('当前记录已结案，状态不可再次修改');
     }
 
@@ -336,6 +375,7 @@ async function updateFeedbackStatus(data = {}) {
 const actionMap = {
   add: addFeedback,
   list: listFeedbacks,
+  pendingSummary: getAdminPendingSummary,
   updateStatus: updateFeedbackStatus,
 };
 

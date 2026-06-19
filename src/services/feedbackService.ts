@@ -57,6 +57,27 @@ class FeedbackService {
     return unwrap(response);
   }
 
+  async getAdminPendingSummary(params: {
+    appleUserId: string;
+  }): Promise<{
+    feedbackPendingCount: number;
+    reportPendingCount: number;
+    totalPendingCount: number;
+  }> {
+    const response = await CloudService.callFunction<
+      CloudResult<{
+        feedbackPendingCount: number;
+        reportPendingCount: number;
+        totalPendingCount: number;
+      }>
+    >('chart_feedback', {
+      action: 'pendingSummary',
+      data: params,
+    });
+
+    return unwrap(response);
+  }
+
   async updateAdminFeedbackStatus(params: {
     appleUserId: string;
     feedbackId: string;

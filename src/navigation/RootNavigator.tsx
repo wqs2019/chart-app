@@ -22,6 +22,7 @@ import { useAppStore } from '../store/appStore';
 import { AppNotificationType } from '../types/notification';
 import { LeaderboardCode, StandardItem, UserCheckin } from '../types/rank';
 import { FollowTabKey } from '../types/social';
+import AdminFeedbackInboxScreen from '../screens/me/AdminFeedbackInboxScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   AccountSecurity: undefined;
   AdminCenter: undefined;
+  AdminFeedbackInbox: undefined;
   AdminFeedbackReports: undefined;
   AppSettings: undefined;
   AboutApp: undefined;
@@ -102,9 +104,14 @@ export const RootNavigator = () => {
           <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} options={{ title: '账户与安全' }} />
           <Stack.Screen name="AdminCenter" component={AdminCenterScreen} options={{ title: '管理员中心' }} />
           <Stack.Screen
+            name="AdminFeedbackInbox"
+            component={AdminFeedbackInboxScreen}
+            options={{ title: '意见反馈' }}
+          />
+          <Stack.Screen
             name="AdminFeedbackReports"
             component={AdminFeedbackReportsScreen}
-            options={{ title: '反馈与举报' }}
+            options={{ title: '举报处理' }}
           />
           <Stack.Screen name="AppSettings" component={AppSettingsScreen} options={{ title: '应用设置' }} />
           <Stack.Screen name="AboutApp" component={AboutAppScreen} options={{ title: '关于 App' }} />
