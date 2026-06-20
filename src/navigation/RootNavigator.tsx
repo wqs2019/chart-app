@@ -35,6 +35,16 @@ export type RootStackParamList = {
   AppSettings: undefined;
   AboutApp: undefined;
   HelpFeedback: undefined;
+  ActivityItemRequest: {
+    code: LeaderboardCode;
+    searchKeyword?: string;
+    selectedCategory?: string;
+    selectedCategoryLabel?: string;
+    categoryOptions?: Array<{
+      value: string;
+      label: string;
+    }>;
+  };
   NotificationCenter:
     | undefined
     | {
@@ -116,6 +126,11 @@ export const RootNavigator = () => {
           <Stack.Screen name="AppSettings" component={AppSettingsScreen} options={{ title: '应用设置' }} />
           <Stack.Screen name="AboutApp" component={AboutAppScreen} options={{ title: '关于 App' }} />
           <Stack.Screen name="HelpFeedback" component={HelpFeedbackScreen} options={{ title: '帮助与反馈' }} />
+          <Stack.Screen
+            name="ActivityItemRequest"
+            component={require('../screens/checkin/ActivityItemRequestScreen').default}
+            options={{ title: '申请收录项目' }}
+          />
           <Stack.Screen
             name="NotificationCenter"
             component={NotificationCenterScreen}

@@ -1,7 +1,7 @@
-import { CheckinAttachment } from './rank';
+import { CheckinAttachment, LeaderboardCode } from './rank';
 
-// 普通反馈 + 针对某篇日记的举报 + 违规笔记修改后的复审申请
-export type FeedbackType = 'bug' | 'feature' | 'other' | 'report_entry' | 'review_entry';
+// 普通反馈 + 项目收录申请 + 针对某篇日记的举报 + 违规笔记修改后的复审申请
+export type FeedbackType = 'bug' | 'feature' | 'other' | 'item_request' | 'report_entry' | 'review_entry';
 // `pending` 表示管理员尚未处理，`violation` 表示举报成立并已下架笔记
 export type FeedbackStatus = 'pending' | 'processing' | 'violation' | 'resolved' | 'rejected';
 
@@ -50,6 +50,13 @@ export type FeedbackRecord = {
   target_user_snapshot?: FeedbackTargetUserSnapshot;
   target_entry_snapshot?: FeedbackTargetEntrySnapshot;
   user_snapshot?: FeedbackUserSnapshot;
+
+  // 当 type === 'item_request' 时存在
+  leaderboard_code?: LeaderboardCode;
+  requested_item_name?: string;
+  requested_category?: string;
+  requested_category_label?: string;
+  search_keyword?: string;
 };
 
 export type SubmitFeedbackPayload = {
@@ -66,4 +73,9 @@ export type SubmitFeedbackPayload = {
   target_user_snapshot?: FeedbackTargetUserSnapshot;
   target_entry_snapshot?: FeedbackTargetEntrySnapshot;
   user_snapshot?: FeedbackUserSnapshot;
+  leaderboard_code?: LeaderboardCode;
+  requested_item_name?: string;
+  requested_category?: string;
+  requested_category_label?: string;
+  search_keyword?: string;
 };

@@ -193,18 +193,37 @@ async function addFeedback(data = {}) {
       target_item_id = '',
       target_user_snapshot = {},
       target_entry_snapshot = {},
+      leaderboard_code = '',
+      requested_item_name = '',
+      requested_category = '',
+      requested_category_label = '',
+      search_keyword = '',
     } = data;
 
     if (!user_id) {
       return fail('缺少用户 ID');
     }
 
-    if (!type || !['bug', 'feature', 'other', 'report_entry', 'review_entry'].includes(type)) {
+    if (!type || !['bug', 'feature', 'other', 'item_request', 'report_entry', 'review_entry'].includes(type)) {
       return fail('反馈类型不正确');
     }
 
-    if (!content || !String(content).trim()) {
+    if (type !== 'item_request' && (!content || !String(content).trim())) {
       return fail('反馈内容不能为空');
+    }
+
+    if (type === 'item_request') {
+      if (!leaderboard_code || !['activity'].includes(String(leaderboard_code))) {
+        return fail('榜单类型不正确');
+      }
+
+      if (!requested_item_name || !String(requested_item_name).trim()) {
+        return fail('项目名称不能为空');
+      }
+
+      if (!requested_category || !String(requested_category).trim()) {
+        return fail('项目分类不能为空');
+      }
     }
 
     if (type === 'report_entry' || type === 'review_entry') {
@@ -232,7 +251,11 @@ async function addFeedback(data = {}) {
     const payload = {
       user_id,
       type,
-      content: String(content).trim(),
+      content:
+        type === 'item_request'
+          ? String(content || '').trim() ||
+            `申请收录项目：${String(requested_item_name || '').trim()} / ${String(requested_category_label || requested_category || '').trim()}`
+          : String(content).trim(),
       contact: String(contact || '').trim(),
       media: sanitizeMedia(media),
       status: type === 'report_entry' ? 'pending' : 'processing',
@@ -250,6 +273,12 @@ async function addFeedback(data = {}) {
         ['report_entry', 'review_entry'].includes(type) ? sanitizeTargetUserSnapshot(target_user_snapshot) : {},
       target_entry_snapshot:
         ['report_entry', 'review_entry'].includes(type) ? sanitizeTargetEntrySnapshot(target_entry_snapshot) : {},
+      leaderboard_code: type === 'item_request' ? String(leaderboard_code || '').trim() : '',
+      requested_item_name: type === 'item_request' ? String(requested_item_name || '').trim() : '',
+      requested_category: type === 'item_request' ? String(requested_category || '').trim() : '',
+      requested_category_label:
+        type === 'item_request' ? String(requested_category_label || requested_category || '').trim() : '',
+      search_keyword: type === 'item_request' ? String(search_keyword || '').trim() : '',
       created_at: db.serverDate(),
       updated_at: db.serverDate(),
     };
@@ -299,7 +328,7 @@ async function getAdminPendingSummary(data = {}) {
     const [feedbackPendingResult, reportPendingResult] = await Promise.all([
       feedbacksCollection
         .where({
-          type: _.in(['bug', 'feature', 'other']),
+          type: _.in(['bug', 'feature', 'other', 'item_request']),
           status: 'processing',
         })
         .count(),

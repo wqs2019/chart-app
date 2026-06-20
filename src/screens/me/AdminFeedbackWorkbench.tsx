@@ -96,6 +96,7 @@ const isLockedFeedbackStatus = (item: FeedbackRecord, status: ActiveFeedbackStat
 };
 
 const isReportRecord = (item: FeedbackRecord) => item.type === 'report_entry' || item.type === 'review_entry';
+const isItemRequestRecord = (item: FeedbackRecord) => item.type === 'item_request';
 
 const shouldIncludeRecord = (mode: AdminWorkbenchMode, item: FeedbackRecord) =>
   mode === 'report' ? isReportRecord(item) : !isReportRecord(item);
@@ -193,6 +194,10 @@ const getRecordStatusLabel = (item: FeedbackRecord, status: ActiveFeedbackStatus
     return '已处理';
   }
 
+  if (item.type === 'item_request') {
+    return '待审核';
+  }
+
   return '待跟进';
 };
 
@@ -207,6 +212,10 @@ const getRecordTitle = (item: FeedbackRecord) => {
 
   if (item.type === 'feature') {
     return '功能建议';
+  }
+
+  if (item.type === 'item_request') {
+    return '项目收录申请';
   }
 
   if (item.type === 'bug') {
@@ -424,6 +433,32 @@ const AdminFeedbackWorkbench: React.FC<AdminFeedbackWorkbenchProps> = ({ mode })
                       <Ionicons name="chevron-forward" size={16} color={colors.primary} />
                     </View>
                   </Pressable>
+                ) : null}
+
+                {isItemRequestRecord(item) ? (
+                  <View
+                    style={[
+                      styles.contextBox,
+                      {
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF7F1',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.contextTitle, { color: colors.text }]}>
+                      {item.requested_item_name || '未命名项目'} · {item.requested_category_label || item.requested_category || '未填写分类'}
+                    </Text>
+                    <Text style={[styles.contextText, { color: colors.textSecondary }]}>
+                      榜单：{item.leaderboard_code === 'activity' ? '玩乐项目榜' : item.leaderboard_code || '未标记'}
+                    </Text>
+                    {item.search_keyword ? (
+                      <Text style={[styles.contextText, { color: colors.textSecondary }]}>
+                        搜索词：{item.search_keyword}
+                      </Text>
+                    ) : null}
+                    <Text style={[styles.contextText, { color: colors.textSecondary }]}>
+                      联系方式：{item.contact || item.user_snapshot?.email || '未填写'}
+                    </Text>
+                  </View>
                 ) : null}
 
                 <Text style={[styles.recordContent, { color: colors.text }]}>{item.content || '未填写说明'}</Text>

@@ -25,6 +25,26 @@ class FeedbackService {
     return unwrap(response);
   }
 
+  async submitItemRequest(payload: {
+    user_id: string;
+    leaderboard_code: SubmitFeedbackPayload['leaderboard_code'];
+    requested_item_name: string;
+    requested_category: string;
+    requested_category_label?: string;
+    search_keyword?: string;
+    content?: string;
+    contact?: string;
+    media?: SubmitFeedbackPayload['media'];
+    source?: string;
+    user_snapshot?: SubmitFeedbackPayload['user_snapshot'];
+  }): Promise<FeedbackRecord> {
+    return this.submitFeedback({
+      ...payload,
+      content: payload.content || '',
+      type: 'item_request',
+    });
+  }
+
   async submitEntryReport(payload: {
     user_id: string;
     target_user_id: string;

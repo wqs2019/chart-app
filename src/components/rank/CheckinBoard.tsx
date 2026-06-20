@@ -170,6 +170,16 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
     selectedCategory === ALL_CATEGORY
       ? '全部分类'
       : categoryLabels[selectedCategory];
+  const activityCategoryOptions = React.useMemo(
+    () =>
+      categories
+        .filter((item) => item !== ALL_CATEGORY)
+        .map((item) => ({
+          value: item,
+          label: categoryLabels[item] || item,
+        })),
+    [categories, categoryLabels]
+  );
   const entryCountMap = React.useMemo(() => {
     const nextMap: Record<string, number> = {};
     userCheckins.forEach((checkin) => {
@@ -477,7 +487,16 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
       ListFooterComponent={
         shouldShowAddActivityHint ? (
           <Pressable
-            onPress={() => navigation.navigate('HelpFeedback')}
+            onPress={() =>
+              navigation.navigate('ActivityItemRequest', {
+                code,
+                searchKeyword: normalizedSearchKeyword,
+                selectedCategory: selectedCategory === ALL_CATEGORY ? '' : selectedCategory,
+                selectedCategoryLabel: selectedCategory === ALL_CATEGORY ? '' : activeCategoryLabel,
+                categoryOptions: activityCategoryOptions,
+              })
+            }
+            accessibilityLabel="申请收录项目"
             style={[
               styles.addActivityHintCard,
               {
@@ -488,7 +507,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
           >
             <Text style={[styles.addActivityHintText, { color: colors.textSecondary }]}>
               没有我的项目？
-              <Text style={[styles.addActivityHintAction, { color: colors.primary }]}>点击添加</Text>
+              <Text style={[styles.addActivityHintAction, { color: colors.primary }]}>申请收录</Text>
             </Text>
           </Pressable>
         ) : null

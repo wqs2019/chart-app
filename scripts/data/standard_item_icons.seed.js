@@ -344,18 +344,195 @@ const RAW_STANDARD_ITEM_ICON_MAP = {
   activity_roller_coaster: 'https://upload.wikimedia.org/wikipedia/commons/6/65/Luna_Park_Melbourne_scenic_railway.jpg',
   activity_safari: 'https://upload.wikimedia.org/wikipedia/commons/0/06/Sabi_sabi_game_drive.jpg',
   activity_whale_watching: 'https://upload.wikimedia.org/wikipedia/commons/b/bc/Ballenafranca%2Balvina.jpg',
+  activity_escape_room:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Tulleys_Farm_Outfitter_Escape_Room.jpg/3840px-Tulleys_Farm_Outfitter_Escape_Room.jpg',
+  activity_scripted_murder_mystery:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Murder_mystery_merriment_at_RAF_Mildenhall_131025-F-DL987-126.jpg/3840px-Murder_mystery_merriment_at_RAF_Mildenhall_131025-F-DL987-126.jpg',
+  activity_board_games:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/US_Navy_110713-N-NT881-124_Personnel_Specialist_2nd_Class_James_Vail%2C_left%2C_and_Boatswain%27s_Mate_2nd_Class_Nathaniel_Eaton_play_board_games_with_ch.jpg/3840px-US_Navy_110713-N-NT881-124_Personnel_Specialist_2nd_Class_James_Vail%2C_left%2C_and_Boatswain%27s_Mate_2nd_Class_Nathaniel_Eaton_play_board_games_with_ch.jpg',
+  activity_karaoke: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/%E5%8D%A1%E6%8B%89OK.jpg',
+  activity_bowling:
+    'https://upload.wikimedia.org/wikipedia/commons/f/fd/US_Navy_090819-N-2259V-119_A_Sailor_releases_the_ball_down_the_lane_at_a_bowling_competition_during_the_2009_San_Diego_Surface_Line_Week.jpg',
+  activity_billiards: 'https://upload.wikimedia.org/wikipedia/commons/c/c4/1674_illustration-The_Billiard_Table.png',
+  activity_standup_comedy: 'https://upload.wikimedia.org/wikipedia/commons/2/2e/Jesus_is_coming.._Look_Busy_%28George_Carlin%29.jpg',
+  activity_livehouse: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Sydney_Opera_House_Concert_Theatre.JPG',
+  activity_golf: 'https://upload.wikimedia.org/wikipedia/commons/6/6e/Golfer_swing.jpg',
+  activity_archery: 'https://upload.wikimedia.org/wikipedia/commons/b/ba/ArcheryGermanyEarly1980s-2.jpg',
+  activity_walking_tour: 'https://upload.wikimedia.org/wikipedia/commons/0/04/Tourists_with_guide_in_lower_canyon%2C_Petra.jpg',
+  activity_hot_spring: 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Aerial_view_of_Grand_Prismatic_%2823428929375%29.jpg',
+  activity_baking_class: 'https://upload.wikimedia.org/wikipedia/commons/b/ba/Freshly_baked_bread_loaves.jpg',
+  activity_pottery_workshop:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Traditional_pottery_in_Nigeria_%28Ikpu_ite%29_19.jpg/3840px-Traditional_pottery_in_Nigeria_%28Ikpu_ite%29_19.jpg',
+  activity_tea_ceremony:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Japanese_tea_ceremony_20100502_Japan_Matsuri_02.jpg/3840px-Japanese_tea_ceremony_20100502_Japan_Matsuri_02.jpg',
+  activity_coffee_cupping:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Fancy_a_cupper.jpg/3840px-Fancy_a_cupper.jpg',
   activity_desert_camp: 'https://upload.wikimedia.org/wikipedia/commons/5/56/Mountain_in_Wadi_Rum%2C_Jordan.jpg',
   activity_northern_lights_tour:
     'https://upload.wikimedia.org/wikipedia/commons/d/d3/Aurora_borealis_over_Eielson_Air_Force_Base%2C_Alaska.jpg',
   activity_helicopter_tour: 'https://upload.wikimedia.org/wikipedia/commons/7/70/VH-SUF_Taking_Off.jpg',
 };
 
+// 对尚未单独配置图片的玩乐项目，先使用同类代表图做兜底，避免前端出现空图。
+const ACTIVITY_ICON_ALIAS_MAP = {
+  activity_parasailing: 'activity_paragliding',
+  activity_hang_gliding: 'activity_glider',
+  activity_cable_car: 'activity_hot_air_balloon',
+  activity_seaplane_tour: 'activity_helicopter_tour',
+
+  activity_snorkeling: 'activity_scuba_diving',
+  activity_sea_walking: 'activity_scuba_diving',
+  activity_shark_diving: 'activity_scuba_diving',
+
+  activity_paddleboarding: 'activity_kayaking',
+  activity_jet_ski: 'activity_surfing',
+  activity_wakeboarding: 'activity_surfing',
+  activity_windsurfing: 'activity_surfing',
+
+  activity_river_tubing: 'activity_rafting',
+  activity_canoeing: 'activity_kayaking',
+
+  activity_yacht_cruise: 'activity_sailboat',
+  activity_sunset_cruise: 'activity_sailboat',
+  activity_catamaran_cruise: 'activity_sailboat',
+  activity_speedboat_tour: 'activity_sailboat',
+  activity_party_cruise: 'activity_sailboat',
+
+  activity_island_hopping: 'activity_sailboat',
+  activity_sea_cave_boat_tour: 'activity_sailboat',
+  activity_glass_bottom_boat: 'activity_sailboat',
+  activity_lagoon_tour: 'activity_sailboat',
+
+  activity_cross_country_skiing: 'activity_skiing',
+  activity_snowshoe_hiking: 'activity_skiing',
+  activity_ice_skating: 'activity_snowboarding',
+  activity_snow_tubing: 'activity_sledding',
+
+  activity_camping: 'activity_hiking',
+  activity_trail_running: 'activity_hiking',
+  activity_bouldering: 'activity_rock_climbing',
+  activity_canyon_swing: 'activity_zipline',
+
+  activity_caving: 'activity_canyoning',
+  activity_slot_canyon_hiking: 'activity_canyoning',
+  activity_glacier_hiking: 'activity_mountaineering',
+
+  activity_dune_bashing: 'activity_offroad',
+  activity_sandboarding: 'activity_desert_camp',
+  activity_camel_riding: 'activity_desert_camp',
+
+  activity_dolphin_watching: 'activity_whale_watching',
+  activity_birdwatching: 'activity_safari',
+  activity_firefly_viewing: 'activity_safari',
+
+  activity_atv: 'activity_offroad',
+  activity_dune_buggy: 'activity_offroad',
+  activity_drift_experience: 'activity_gokart',
+
+  activity_road_cycling: 'activity_offroad',
+  activity_mountain_biking: 'activity_offroad',
+  activity_ebike_tour: 'activity_offroad',
+  activity_horseback_riding: 'activity_safari',
+
+  activity_water_park: 'activity_theme_park',
+  activity_amusement_arcade: 'activity_theme_park',
+
+  activity_escape_room: 'activity_theme_park',
+  activity_scripted_murder_mystery: 'activity_theme_park',
+  activity_board_games: 'activity_theme_park',
+  activity_mahjong: 'activity_theme_park',
+  activity_trampoline_park: 'activity_roller_coaster',
+  activity_bowling: 'activity_theme_park',
+  activity_laser_tag: 'activity_theme_park',
+  activity_vr_experience: 'activity_theme_park',
+  activity_arcade_gaming: 'activity_theme_park',
+  activity_karaoke: 'activity_theme_park',
+  activity_billiards: 'activity_theme_park',
+
+  activity_handmade_candle: 'country_france',
+  activity_cooking_class: 'country_italy',
+  activity_baking_class: 'country_france',
+  activity_pottery_workshop: 'country_japan',
+  activity_silver_jewelry_workshop: 'country_india',
+  activity_painting_workshop: 'country_france',
+  activity_floral_arrangement: 'country_japan',
+  activity_tea_ceremony: 'country_japan',
+  activity_perfume_workshop: 'country_france',
+  activity_dance_class: 'country_spain',
+
+  activity_golf: 'country_united_kingdom',
+  activity_mini_golf: 'activity_theme_park',
+  activity_tennis: 'country_united_kingdom',
+  activity_pickleball: 'country_united_states',
+  activity_archery: 'country_mongolia',
+  activity_badminton: 'country_malaysia',
+  activity_frisbee: 'country_united_states',
+  activity_climbing_gym: 'activity_rock_climbing',
+
+  activity_concert: 'province_sh',
+  activity_theater: 'country_united_kingdom',
+  activity_musical: 'country_united_kingdom',
+  activity_cabaret_show: 'country_france',
+  activity_magic_show: 'province_mo',
+  activity_immersive_theater: 'province_sh',
+  activity_opera: 'country_austria',
+  activity_standup_comedy: 'province_bj',
+  activity_livehouse: 'province_sh',
+  activity_crosstalk_show: 'province_bj',
+  activity_dj_party: 'province_hk',
+
+  activity_food_tour: 'province_cq',
+  activity_wine_tasting: 'country_france',
+  activity_brewery_tasting: 'country_germany',
+  activity_coffee_cupping: 'country_ethiopia',
+  activity_cocktail_experience: 'province_hk',
+  activity_afternoon_tea: 'country_united_kingdom',
+
+  activity_hot_spring: 'country_iceland',
+  activity_spa: 'country_iceland',
+  activity_massage: 'country_thailand',
+  activity_yoga_class: 'country_india',
+  activity_meditation_retreat: 'country_bhutan',
+
+  activity_stargazing: 'activity_northern_lights_tour',
+  activity_night_safari: 'activity_safari',
+  activity_fireworks_cruise: 'province_hk',
+  activity_night_city_tour: 'province_sh',
+  activity_night_boat_tour: 'province_hk',
+
+  activity_walking_tour: 'province_sh',
+  activity_bike_tour: 'province_sh',
+  activity_photography_walk: 'province_sh',
+  activity_segway_tour: 'province_sh',
+  activity_scavenger_hunt: 'province_sh',
+
+  activity_aquarium: 'activity_whale_watching',
+  activity_zoo: 'activity_safari',
+  activity_farm_experience: 'province_yn',
+  activity_fruit_picking: 'province_sd',
+  activity_science_center: 'province_sh',
+  activity_hands_on_museum: 'province_bj',
+  activity_playground_park: 'activity_theme_park',
+
+  activity_forest_bathing: 'province_sc',
+  activity_stargazing_camp: 'province_qh',
+};
+
+const RESOLVED_RAW_STANDARD_ITEM_ICON_MAP = {
+  ...RAW_STANDARD_ITEM_ICON_MAP,
+  ...Object.fromEntries(
+    Object.entries(ACTIVITY_ICON_ALIAS_MAP)
+      .filter(([itemId, sourceItemId]) => !RAW_STANDARD_ITEM_ICON_MAP[itemId] && Boolean(RAW_STANDARD_ITEM_ICON_MAP[sourceItemId]))
+      .map(([itemId, sourceItemId]) => [itemId, RAW_STANDARD_ITEM_ICON_MAP[sourceItemId]])
+  ),
+};
+
 const STANDARD_ITEM_ICON_MAP = Object.fromEntries(
-  Object.entries(RAW_STANDARD_ITEM_ICON_MAP).map(([itemId, url]) => [itemId, toWikipediaThumbnailSource(url)])
+  Object.entries(RESOLVED_RAW_STANDARD_ITEM_ICON_MAP).map(([itemId, url]) => [itemId, toWikipediaThumbnailSource(url)])
 );
 
 const STANDARD_ITEM_ORIGINAL_ICON_MAP = Object.fromEntries(
-  Object.entries(RAW_STANDARD_ITEM_ICON_MAP).map(([itemId, url]) => [itemId, toWikipediaOriginalSource(url)])
+  Object.entries(RESOLVED_RAW_STANDARD_ITEM_ICON_MAP).map(([itemId, url]) => [itemId, toWikipediaOriginalSource(url)])
 );
 
 module.exports = {

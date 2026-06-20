@@ -14,6 +14,7 @@
     "db:init:tcb": "node scripts/init_tcb_db.js",
     "db:generate:standard-item-icons": "node scripts/generate_standard_item_icons_seed.js",
     "db:seed:standard-items": "node scripts/seed_standard_items.js",
+    "db:overwrite:activity-standard-items": "node scripts/overwrite_activity_standard_items.js",
     "db:backfill:standard-item-icons": "node scripts/backfill_standard_item_icons.js",
     "db:backfill:standard-item-labels": "node scripts/backfill_standard_item_labels.js",
     "db:cleanup:standard-item-legacy-labels": "node scripts/cleanup_standard_item_legacy_labels.js",
