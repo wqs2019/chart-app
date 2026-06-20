@@ -1,4 +1,5 @@
 import React from 'react';
+import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   createBottomTabNavigator,
   type BottomTabBarProps,
@@ -6,7 +7,6 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -129,6 +129,7 @@ const hexToRgba = (hex: string, alpha: number) => {
 const HomeTabScreen = HomeScreen;
 const RankTabScreen = RankScreen;
 const MeTabScreen = MeScreen;
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const { colors, isDark } = useAppTheme();
@@ -136,6 +137,10 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
   const unreadNotificationCount = useAppStore((store) => store.unreadNotificationCount);
   const meTabBadgeCount = Math.max(unreadNotificationCount, unreadFollowerCount);
   const tabScaleMapRef = React.useRef<Record<string, Animated.Value>>({});
+  const shellScale = React.useRef(new Animated.Value(1)).current;
+  const shellLift = React.useRef(new Animated.Value(0)).current;
+  const shellGlow = React.useRef(new Animated.Value(0.14)).current;
+  const [reduceMotionEnabled, setReduceMotionEnabled] = React.useState(false);
   const currentRoute = state.routes[state.index];
   const currentOptions = descriptors[currentRoute.key]?.options;
 
@@ -156,6 +161,88 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
     }).start();
   };
 
+  const animateShellPress = React.useCallback(
+    (pressed: boolean) => {
+      if (reduceMotionEnabled) {
+        shellScale.setValue(1);
+        shellLift.setValue(0);
+        shellGlow.setValue(0.16);
+        return;
+      }
+
+      Animated.parallel([
+        Animated.spring(shellScale, {
+          toValue: pressed ? 0.985 : 1,
+          speed: 22,
+          bounciness: pressed ? 0 : 10,
+          useNativeDriver: false,
+        }),
+        Animated.spring(shellLift, {
+          toValue: pressed ? -2 : 0,
+          speed: 18,
+          bounciness: pressed ? 0 : 8,
+          useNativeDriver: false,
+        }),
+        Animated.timing(shellGlow, {
+          toValue: pressed ? 0.26 : 0.16,
+          duration: pressed ? 120 : 240,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+      ]).start();
+    },
+    [reduceMotionEnabled, shellGlow, shellLift, shellScale]
+  );
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled: boolean) => {
+        if (isMounted) {
+          setReduceMotionEnabled(enabled);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setReduceMotionEnabled(false);
+        }
+      });
+
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled: boolean) => {
+      setReduceMotionEnabled(enabled);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (reduceMotionEnabled) {
+      shellScale.setValue(1);
+      shellLift.setValue(0);
+      shellGlow.setValue(0.16);
+      return;
+    }
+
+    Animated.sequence([
+      Animated.timing(shellGlow, {
+        toValue: 0.22,
+        duration: 110,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(shellGlow, {
+        toValue: 0.16,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [reduceMotionEnabled, shellGlow, shellLift, shellScale, state.index]);
+
   if (currentOptions?.tabBarStyle && 'display' in currentOptions.tabBarStyle) {
     const display = currentOptions.tabBarStyle.display;
     if (display === 'none') {
@@ -166,7 +253,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
   return (
     <View pointerEvents="box-none" style={styles.tabBarOuter}>
       <SafeAreaView edges={['bottom']} style={styles.tabBarSafeArea}>
-        <BlurView
+        <AnimatedBlurView
           intensity={35}
           tint={isDark ? 'dark' : 'light'}
           style={[
@@ -174,6 +261,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
             {
               borderColor: hexToRgba(colors.border, isDark ? 0.68 : 0.85),
               backgroundColor: hexToRgba(colors.surface, isDark ? 0.36 : 0.6),
+              transform: [{ translateY: shellLift }, { scale: shellScale }],
             },
           ]}
         >
@@ -213,9 +301,15 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
                 <Pressable
                   key={route.key}
                   onLongPress={handleTabLongPress}
-                  onPressIn={() => animateTabScale(route.key, 0.92, 0)}
+                  onPressIn={() => {
+                    animateTabScale(route.key, 0.92, 0);
+                    animateShellPress(true);
+                  }}
                   onPress={handleTabPress}
-                  onPressOut={() => animateTabScale(route.key, 1, 12)}
+                  onPressOut={() => {
+                    animateTabScale(route.key, 1, 12);
+                    animateShellPress(false);
+                  }}
                   style={styles.tabButton}
                 >
                   <Animated.View
@@ -258,7 +352,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
               );
             })}
           </View>
-        </BlurView>
+        </AnimatedBlurView>
       </SafeAreaView>
     </View>
   );
@@ -439,6 +533,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   blurShell: {
+    position: 'relative',
     overflow: 'hidden',
     borderWidth: 1,
     borderRadius: 26,
