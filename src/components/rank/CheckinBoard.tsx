@@ -60,6 +60,10 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
   const [selectedCategory, setSelectedCategory] = React.useState(ALL_CATEGORY);
   const [searchKeyword, setSearchKeyword] = React.useState('');
   const requestIdRef = React.useRef(0);
+  const categoryScrollRef = React.useRef<ScrollView | null>(null);
+  const categoryChipLayoutsRef = React.useRef<Record<string, { x: number; width: number }>>({});
+  const [categoryViewportWidth, setCategoryViewportWidth] = React.useState(0);
+  const [categoryContentWidth, setCategoryContentWidth] = React.useState(0);
 
   const currentData = dataByCode[code];
   const items = currentData?.items ?? [];
@@ -180,6 +184,30 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
         })),
     [categories, categoryLabels]
   );
+  const centerCategoryChip = React.useCallback(
+    (category: string) => {
+      const layout = categoryChipLayoutsRef.current[category];
+      if (!layout || !categoryScrollRef.current || categoryViewportWidth <= 0) {
+        return;
+      }
+
+      const rawOffset = layout.x + layout.width / 2 - categoryViewportWidth / 2;
+      const maxOffset = Math.max(categoryContentWidth - categoryViewportWidth, 0);
+      const nextOffset = Math.min(Math.max(rawOffset, 0), maxOffset);
+
+      categoryScrollRef.current.scrollTo({ x: nextOffset, animated: true });
+    },
+    [categoryContentWidth, categoryViewportWidth]
+  );
+
+  React.useEffect(() => {
+    const frameId = requestAnimationFrame(() => {
+      centerCategoryChip(selectedCategory);
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [centerCategoryChip, selectedCategory]);
+
   const entryCountMap = React.useMemo(() => {
     const nextMap: Record<string, number> = {};
     userCheckins.forEach((checkin) => {
@@ -320,9 +348,16 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
               </View>
 
               <ScrollView
+                ref={categoryScrollRef}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.categoryContent}
+                onLayout={(event) => {
+                  setCategoryViewportWidth(event.nativeEvent.layout.width);
+                }}
+                onContentSizeChange={(width) => {
+                  setCategoryContentWidth(width);
+                }}
               >
                 {categories.map((item) => {
                   const active = item === selectedCategory;
@@ -330,7 +365,16 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
                   return (
                     <Pressable
                       key={item}
-                      onPress={() => setSelectedCategory(item)}
+                      onPress={() => {
+                        setSelectedCategory(item);
+                        requestAnimationFrame(() => centerCategoryChip(item));
+                      }}
+                      onLayout={(event) => {
+                        categoryChipLayoutsRef.current[item] = {
+                          x: event.nativeEvent.layout.x,
+                          width: event.nativeEvent.layout.width,
+                        };
+                      }}
                       style={[
                         styles.categoryChip,
                         {
