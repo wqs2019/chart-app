@@ -6,7 +6,7 @@ on:
       - master
     paths:
       - 'src/docs/**'
-      - 'assets/logo.png'
+      - 'assets/icon.png'
       - '.github/workflows/deploy-docs-pages.yml'
   workflow_dispatch:
 
@@ -40,7 +40,7 @@ jobs:
           mkdir -p _site/assets
           cp src/docs/*.html _site/
           cp src/docs/*.md _site/
-          cp assets/logo.png _site/assets/logo.png
+          cp assets/icon.png _site/assets/icon.png
           echo "earth.maoqiu.site" > _site/CNAME
 
       - name: Upload Pages Artifact
