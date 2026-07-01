@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '../../components/common/Button';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import authService from '../../services/authService';
 import { useAppStore } from '../../store/appStore';
 
 const AccountSecurityScreen: React.FC = () => {
@@ -37,6 +38,34 @@ const AccountSecurityScreen: React.FC = () => {
         },
       },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '注销账号',
+      '注销账号后，你的所有记录、分数、互动数据将被永久删除且无法恢复。确认要注销吗？',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确认注销',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsSubmitting(true);
+              if (currentUser?._id) {
+                await authService.deleteAccount(currentUser._id);
+              }
+              await signOut();
+              Alert.alert('账号已注销', '你的账号及相关数据已被清除。');
+            } catch (error) {
+              Alert.alert('注销失败', error instanceof Error ? error.message : '注销账号失败，请稍后重试。');
+            } finally {
+              setIsSubmitting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -97,6 +126,7 @@ const AccountSecurityScreen: React.FC = () => {
         </View>
 
         <Button title="退出登录" variant="danger" loading={isSubmitting} onPress={handleSignOut} />
+        <Button title="注销账号" variant="secondary" loading={isSubmitting} onPress={handleDeleteAccount} style={{ marginTop: 16 }} />
       </ScrollView>
     </SafeAreaView>
   );

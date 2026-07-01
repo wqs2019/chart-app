@@ -84,6 +84,15 @@ class AuthService {
     return unwrap(response);
   }
 
+  async deleteAccount(userId: string): Promise<boolean> {
+    const response = await CloudService.callFunction<CloudResult<boolean>>('chart_user', {
+      action: 'delete',
+      data: { _id: userId },
+    });
+
+    return unwrap(response);
+  }
+
   async getAdminStatus(appleUserId: string): Promise<boolean> {
     const response = await CloudService.callFunction<CloudResult<{ isAdmin: boolean }>>('chart_user', {
       action: 'getAdminStatus',

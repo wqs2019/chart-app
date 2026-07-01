@@ -48,6 +48,7 @@ const AppleLoginScreen: React.FC = () => {
   const [isCheckingAvailability, setIsCheckingAvailability] = React.useState(Platform.OS === 'ios');
   const [isAppleAvailable, setIsAppleAvailable] = React.useState(Platform.OS === 'ios');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isAgreed, setIsAgreed] = React.useState(false);
   const glowPrimaryAnim = React.useRef(new Animated.Value(0)).current;
   const glowSecondaryAnim = React.useRef(new Animated.Value(0)).current;
   const glowTertiaryAnim = React.useRef(new Animated.Value(0)).current;
@@ -205,6 +206,11 @@ const AppleLoginScreen: React.FC = () => {
 
   const handleAppleLogin = async () => {
     if (isSubmitting) {
+      return;
+    }
+
+    if (!isAgreed) {
+      Alert.alert('请先同意协议', '请阅读并勾选同意《用户协议》与《隐私政策》，以允许我们将你的分数上传至全球排行榜。');
       return;
     }
 
@@ -429,26 +435,32 @@ const AppleLoginScreen: React.FC = () => {
               </Pressable>
             )}
 
-            <Text style={[styles.legalText, { color: colors.textSecondary }]}>
-              登录即表示你已阅读并同意
-              <Text
-                style={[styles.legalLink, { color: colors.primary }]}
-                onPress={() => {
-                  void openLegalDocument(TERMS_URL);
-                }}
-              >
-                《用户协议》
+            <Pressable style={styles.agreementRow} onPress={() => setIsAgreed(!isAgreed)}>
+              <View style={[styles.checkbox, isAgreed && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                {isAgreed && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
+              </View>
+              <Text style={[styles.legalText, { color: colors.textSecondary }]}>
+                我已阅读并同意
+                <Text
+                  style={[styles.legalLink, { color: colors.primary }]}
+                  onPress={() => {
+                    void openLegalDocument(TERMS_URL);
+                  }}
+                >
+                  《用户协议》
+                </Text>
+                与
+                <Text
+                  style={[styles.legalLink, { color: colors.primary }]}
+                  onPress={() => {
+                    void openLegalDocument(PRIVACY_URL);
+                  }}
+                >
+                  《隐私政策》
+                </Text>
+                ，并同意将我的分数上传至全球排行榜。
               </Text>
-              与
-              <Text
-                style={[styles.legalLink, { color: colors.primary }]}
-                onPress={() => {
-                  void openLegalDocument(PRIVACY_URL);
-                }}
-              >
-                《隐私政策》
-              </Text>
-            </Text>
+            </Pressable>
 
             <Text style={[styles.tip, { color: colors.textSecondary }]}>
               {isSubmitting ? '正在验证 Apple 账号...' : '仅请求 Apple 返回基础身份信息。'}
@@ -643,6 +655,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
+  agreementRow: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  checkbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#9CA3AF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
   tip: {
     marginTop: 10,
     fontSize: 12,
@@ -650,10 +679,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   legalText: {
-    marginTop: 12,
+    flex: 1,
     fontSize: 12,
     lineHeight: 18,
-    textAlign: 'center',
   },
   legalLink: {
     fontWeight: '700',

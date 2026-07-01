@@ -6,8 +6,16 @@ const app = cloud.init({
 });
 
 const db = app.database();
+const _ = db.command;
 const usersCollection = db.collection('chart_users');
 const adminCollection = db.collection('admin_list');
+const checkinsCollection = db.collection('chart_checkins');
+const interactionsCollection = db.collection('chart_interactions');
+const commentsCollection = db.collection('chart_comments');
+const followsCollection = db.collection('chart_follows');
+const snapshotsCollection = db.collection('chart_score_snapshots');
+const notificationsCollection = db.collection('chart_notifications');
+
 const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 
 function ok(data) {
@@ -263,7 +271,49 @@ async function deleteUser(data = {}) {
       return fail('缺少用户 ID');
     }
 
-    await usersCollection.doc(data._id).remove();
+    const userId = data._id;
+
+    // 1. Delete user's checkins
+    await checkinsCollection.where({ user_id: userId }).remove();
+
+    // 2. Delete user's interactions (likes, favorites)
+    await interactionsCollection.where(
+      _.or([
+        { user_id: userId },
+        { target_user_id: userId }
+      ])
+    ).remove();
+
+    // 3. Delete user's comments
+    await commentsCollection.where(
+      _.or([
+        { actor_user_id: userId },
+        { target_user_id: userId }
+      ])
+    ).remove();
+
+    // 4. Delete user's follows
+    await followsCollection.where(
+      _.or([
+        { follower_user_id: userId },
+        { followed_user_id: userId }
+      ])
+    ).remove();
+
+    // 5. Delete user's score snapshots
+    await snapshotsCollection.where({ user_id: userId }).remove();
+
+    // 6. Delete user's notifications
+    await notificationsCollection.where(
+      _.or([
+        { receiver_user_id: userId },
+        { sender_user_id: userId }
+      ])
+    ).remove();
+
+    // 7. Finally, delete the user record
+    await usersCollection.doc(userId).remove();
+    
     return ok(true);
   } catch (error) {
     console.error('chart_user.deleteUser error:', error);
