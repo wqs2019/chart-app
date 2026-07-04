@@ -1,14 +1,17 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { NavigationProp, useFocusEffect, useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { UpdateModal } from '../../components/common/UpdateModal';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import { LEADERBOARD_CONFIGS, LeaderboardCode, UserScoreSnapshot } from '../../types/rank';
+import { checkAppUpdate } from '../../utils/update';
 
 const rankOptions: LeaderboardCode[] = ['world_travel', 'china_travel', 'activity'];
 const summaryCodes: LeaderboardCode[] = ['overall', ...rankOptions];
@@ -84,6 +87,12 @@ const HomeScreen: React.FC<Props> = () => {
   const [summaryByCode, setSummaryByCode] = React.useState<SummaryMap>({});
   const [loadingSummary, setLoadingSummary] = React.useState(false);
 
+  const [updateInfo, setUpdateInfo] = useState<{ visible: boolean; currentVersion: string; latestVersion: string }>({
+    visible: false,
+    currentVersion: '',
+    latestVersion: '',
+  });
+
   const displayName =
     currentUser?.fullName || currentUser?.profile?.nickname || currentUser?.username || '旅行玩家';
   const avatarUrl = currentUser?.profile?.avatar_url || '';
@@ -111,6 +120,34 @@ const HomeScreen: React.FC<Props> = () => {
       void fetchSummary();
     }, [fetchSummary])
   );
+
+  useEffect(() => {
+    const checkUpdate = async () => {
+      const info = await checkAppUpdate();
+      if (info?.hasUpdate && info.latestVersion && info.currentVersion) {
+        // 检查是否已经提示过该版本以及上次提示的时间
+        const lastPromptedVersion = await AsyncStorage.getItem('last_prompted_update_version');
+        const lastPromptedTimeStr = await AsyncStorage.getItem('last_prompted_update_time');
+        
+        const now = Date.now();
+        const lastPromptedTime = lastPromptedTimeStr ? parseInt(lastPromptedTimeStr, 10) : 0;
+        const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+        
+        // 如果是新版本，或者距离上次提示已经超过30天，则再次提示
+        if (lastPromptedVersion !== info.latestVersion || (now - lastPromptedTime) > thirtyDaysInMs) {
+          setUpdateInfo({
+            visible: true,
+            currentVersion: info.currentVersion,
+            latestVersion: info.latestVersion,
+          });
+          // 记录已提示的版本和时间
+          await AsyncStorage.setItem('last_prompted_update_version', info.latestVersion);
+          await AsyncStorage.setItem('last_prompted_update_time', now.toString());
+        }
+      }
+    };
+    checkUpdate();
+  }, []);
 
   const overallSnapshot = summaryByCode.overall;
   const strongestCode = React.useMemo(() => getStrongestCode(summaryByCode), [summaryByCode]);
@@ -333,8 +370,14 @@ const HomeScreen: React.FC<Props> = () => {
             <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </Pressable>
         </View>
-
       </ScrollView>
+
+      <UpdateModal
+        visible={updateInfo.visible}
+        currentVersion={updateInfo.currentVersion}
+        latestVersion={updateInfo.latestVersion}
+        onClose={() => setUpdateInfo((prev) => ({ ...prev, visible: false }))}
+      />
     </SafeAreaView>
   );
 };
