@@ -162,7 +162,7 @@ export const LEADERBOARD_CONFIGS: Record<LeaderboardCode, LeaderboardConfig> = {
   overall: {
     code: 'overall',
     title: '综合成就榜',
-    description: '你的全站综合成就排名',
+    description: '你的全站综合排名',
     unit: '分',
     icon: 'trophy',
   },
