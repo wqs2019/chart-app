@@ -330,6 +330,10 @@ async function appleLogin(data = {}) {
 
     let user = await findUserByAppleId(userId);
 
+    if (user && (user.accountStatus === 'frozen' || user.isDelete)) {
+      return fail('该账号已被冻结或注销，无法登录');
+    }
+
     if (!user) {
       const payload = buildAppleUserPayload({
         userId,
@@ -403,6 +407,10 @@ async function validateSession(data = {}) {
     const user = await findUserById(userId);
     if (!user) {
       return fail('用户不存在');
+    }
+
+    if (user.accountStatus === 'frozen' || user.isDelete) {
+      return fail('该账号已被冻结或注销');
     }
 
     if (user.status && user.status !== 'active') {

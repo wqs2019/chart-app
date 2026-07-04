@@ -1080,6 +1080,11 @@ async function getEntryDetail(data = {}) {
   }
 
   try {
+    const viewerUser = await findUserById(viewerUserId);
+    if (viewerUser && (viewerUser.accountStatus === 'frozen' || viewerUser.isDelete)) {
+      return fail('该账号已被冻结或注销，无法查看详情');
+    }
+
     const checkin = await findCheckin(ownerUserId, normalizedCode, itemId);
     if (!checkin) {
       return fail('日记不存在');
@@ -1110,6 +1115,11 @@ async function getEntryContextById(data = {}) {
   }
 
   try {
+    const viewerUser = await findUserById(viewerUserId);
+    if (viewerUser && (viewerUser.accountStatus === 'frozen' || viewerUser.isDelete)) {
+      return fail('该账号已被冻结或注销，无法查看详情');
+    }
+
     const context = await findCheckinEntryContextByEntryId(entryId);
     if (!context?.checkin || !context.entry) {
       return fail('日记不存在');
@@ -1148,10 +1158,12 @@ async function toggleReaction(data = {}, reactionType) {
   }
 
   try {
-    const [checkin, actorUser] = await Promise.all([
-      findCheckin(targetOwnerId, normalizedCode, itemId),
-      findUserById(userId),
-    ]);
+    const actorUser = await findUserById(userId);
+    if (actorUser && (actorUser.accountStatus === 'frozen' || actorUser.isDelete)) {
+      return fail('该账号已被冻结或注销，无法进行此操作');
+    }
+
+    const checkin = await findCheckin(targetOwnerId, normalizedCode, itemId);
     if (!checkin?._id) {
       return fail('日记不存在');
     }
@@ -1252,10 +1264,12 @@ async function addComment(data = {}) {
   }
 
   try {
-    const [checkin, actorUser] = await Promise.all([
-      findCheckin(targetOwnerId, normalizedCode, itemId),
-      findUserById(userId),
-    ]);
+    const actorUser = await findUserById(userId);
+    if (actorUser && (actorUser.accountStatus === 'frozen' || actorUser.isDelete)) {
+      return fail('该账号已被冻结或注销，无法进行此操作');
+    }
+
+    const checkin = await findCheckin(targetOwnerId, normalizedCode, itemId);
     if (!checkin?._id) {
       return fail('日记不存在');
     }
@@ -1339,10 +1353,12 @@ async function replyComment(data = {}) {
   }
 
   try {
-    const [checkin, actorUser] = await Promise.all([
-      findCheckin(targetOwnerId, normalizedCode, itemId),
-      findUserById(userId),
-    ]);
+    const actorUser = await findUserById(userId);
+    if (actorUser && (actorUser.accountStatus === 'frozen' || actorUser.isDelete)) {
+      return fail('该账号已被冻结或注销，无法进行此操作');
+    }
+
+    const checkin = await findCheckin(targetOwnerId, normalizedCode, itemId);
     if (!checkin?._id) {
       return fail('日记不存在');
     }
