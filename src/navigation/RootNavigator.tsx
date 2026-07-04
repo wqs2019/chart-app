@@ -99,7 +99,7 @@ export const RootNavigator = () => {
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
 
   return (
-    <Stack.Navigator screenOptions={{ headerShadowVisible: false }}>
+    <Stack.Navigator screenOptions={{ headerShadowVisible: false, headerBackButtonDisplayMode: 'minimal' }}>
       {isAuthenticated ? (
         <>
           <Stack.Screen
@@ -134,12 +134,12 @@ export const RootNavigator = () => {
           <Stack.Screen
             name="NotificationCenter"
             component={NotificationCenterScreen}
-            options={{ title: '消息通知' }}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="FollowCenter"
             component={require('../screens/me/FollowCenterScreen').default}
-            options={{ title: '粉丝关注' }}
+            options={{ headerShown: false }}
           />
           <Stack.Screen name="YearReview" component={YearReviewScreen} options={{ title: '年度回顾' }} />
           <Stack.Screen
