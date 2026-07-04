@@ -124,7 +124,7 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
               />
             </View>
             <View style={styles.textWrap}>
-              <Text style={[styles.title, { color: colors.text }]}>
+              <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
                 {config.title}
               </Text>
               <Text
@@ -139,7 +139,7 @@ const LeaderboardSwitcher: React.FC<LeaderboardSwitcherProps> = ({
             </View>
             {isActive ? (
               <View style={[styles.activeBadge, { backgroundColor: 'rgba(255,122,89,0.10)' }]}>
-                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                <Ionicons name="chevron-forward" size={10} color={colors.primary} />
               </View>
             ) : null}
           </Pressable>
@@ -156,24 +156,24 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   tab: {
-    width: 164,
-    minHeight: 68,
+    width: 168,
+    minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 20,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
   },
   iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 8,
   },
   textWrap: {
     flex: 1,
@@ -183,18 +183,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   desc: {
-    marginTop: 4,
-    fontSize: 12,
-    lineHeight: 16,
+    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 15,
     fontWeight: '600',
   },
   activeBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    marginLeft: 4,
   },
 });
 

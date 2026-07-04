@@ -3,7 +3,7 @@ import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navig
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -56,12 +56,7 @@ const NotificationCenterScreen: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const selectedTypes = route.params?.types;
   const screenTitle = route.params?.title || '消息通知';
-
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      title: screenTitle,
-    });
-  }, [navigation, screenTitle]);
+  const insets = useSafeAreaInsets();
 
   const resetFilteredUnreadState = React.useCallback(
     (totalUnreadCount: number, types?: AppNotificationType[]) => {
@@ -126,8 +121,22 @@ const NotificationCenterScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={[]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={[styles.pageHeader, { paddingTop: insets.top + 8 }]}>
+          <View style={styles.pageHeaderRow}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={[styles.backButton, { backgroundColor: colors.surface }]}
+            >
+              <Ionicons name="chevron-back" size={20} color={colors.text} />
+            </Pressable>
+            <View style={styles.pageHeaderTextWrap}>
+              <Text style={[styles.pageHeaderTitle, { color: colors.text }]}>{screenTitle}</Text>
+            </View>
+          </View>
+        </View>
+
         {loading ? (
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>加载中...</Text>
         ) : notifications.length === 0 ? (
@@ -186,6 +195,28 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 120,
     gap: 12,
+  },
+  pageHeader: {
+    marginBottom: 4,
+  },
+  pageHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  pageHeaderTextWrap: {
+    flex: 1,
+  },
+  pageHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     marginTop: 64,

@@ -853,6 +853,11 @@ const getUserCheckins = async (data = {}) => {
   if (!userId || !normalizedCode) return fail('缺少参数');
 
   try {
+    const user = await findUserById(userId);
+    if (user && (user.accountStatus === 'frozen' || user.isDelete)) {
+      return fail('该账号已被冻结或注销，无法查看其记录');
+    }
+
     const { data: checkins } = await checkinsCollection
       .where({
         user_id: userId,
@@ -881,6 +886,11 @@ const getItemCheckinEntries = async (data = {}) => {
   if (!userId || !normalizedCode || !itemId) return fail('缺少参数');
 
   try {
+    const user = await findUserById(userId);
+    if (user && (user.accountStatus === 'frozen' || user.isDelete)) {
+      return fail('该账号已被冻结或注销，无法查看其记录');
+    }
+
     const { data: checkins } = await checkinsCollection
       .where({
         user_id: userId,
@@ -915,6 +925,11 @@ const toggleCheckin = async (data = {}) => {
   }
 
   try {
+    const user = await findUserById(userId);
+    if (user && (user.accountStatus === 'frozen' || user.isDelete)) {
+      return fail('该账号已被冻结或注销，无法进行此操作');
+    }
+
     const standardItem = item || (await getStandardItemById(itemId));
     if (!standardItem) {
       return fail('标准项不存在');
@@ -975,6 +990,11 @@ const batchCheckin = async (data = {}) => {
   }
 
   try {
+    const user = await findUserById(userId);
+    if (user && (user.accountStatus === 'frozen' || user.isDelete)) {
+      return fail('该账号已被冻结或注销，无法进行此操作');
+    }
+
     const timestamp = db.serverDate();
     for (const itemId of itemIds) {
       const standardItem = await getStandardItemById(itemId);
@@ -1020,6 +1040,11 @@ const saveCheckinEntry = async (data = {}) => {
   }
 
   try {
+    const user = await findUserById(userId);
+    if (user && (user.accountStatus === 'frozen' || user.isDelete)) {
+      return fail('该账号已被冻结或注销，无法进行此操作');
+    }
+
     const standardItem = item || (await getStandardItemById(itemId));
     if (!standardItem) {
       return fail('标准项不存在');
@@ -1102,6 +1127,11 @@ const deleteCheckinEntry = async (data = {}) => {
   }
 
   try {
+    const user = await findUserById(userId);
+    if (user && (user.accountStatus === 'frozen' || user.isDelete)) {
+      return fail('该账号已被冻结或注销，无法进行此操作');
+    }
+
     const leaderboardCode = normalizeLeaderboardCode(code);
     const anchorCheckin = await findCheckin(userId, leaderboardCode, itemId);
     if (!anchorCheckin?._id) {

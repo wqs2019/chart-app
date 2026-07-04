@@ -10,7 +10,7 @@ import { RootStackParamList } from '../../navigation/RootNavigator';
 import feedbackService from '../../services/feedbackService';
 import { useAppStore } from '../../store/appStore';
 
-type AdminModuleRoute = 'AdminFeedbackInbox' | 'AdminFeedbackReports';
+type AdminModuleRoute = 'AdminUserManagement' | 'AdminFeedbackInbox' | 'AdminFeedbackReports';
 
 type AdminModule = {
   title: string;
@@ -24,7 +24,7 @@ const adminModules: AdminModule[] = [
     title: '用户管理',
     description: '后续可在这里查看重点用户信息、登录状态与账户处理入口。',
     icon: 'people-outline' as const,
-    route: undefined,
+    route: 'AdminUserManagement' as const,
   },
   {
     title: '意见反馈',

@@ -30,6 +30,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   AccountSecurity: undefined;
   AdminCenter: undefined;
+  AdminUserManagement: undefined;
   AdminFeedbackInbox: undefined;
   AdminFeedbackReports: undefined;
   AppSettings: undefined;
@@ -99,7 +100,7 @@ export const RootNavigator = () => {
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
 
   return (
-    <Stack.Navigator screenOptions={{ headerShadowVisible: false }}>
+    <Stack.Navigator screenOptions={{ headerShadowVisible: false, headerBackButtonDisplayMode: 'minimal' }}>
       {isAuthenticated ? (
         <>
           <Stack.Screen
@@ -113,6 +114,11 @@ export const RootNavigator = () => {
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: '编辑资料' }} />
           <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} options={{ title: '账户与安全' }} />
           <Stack.Screen name="AdminCenter" component={AdminCenterScreen} options={{ title: '管理员中心' }} />
+          <Stack.Screen
+            name="AdminUserManagement"
+            component={require('../screens/me/AdminUserManagementScreen').default}
+            options={{ headerShown: false }}
+          />
           <Stack.Screen
             name="AdminFeedbackInbox"
             component={AdminFeedbackInboxScreen}
@@ -134,12 +140,12 @@ export const RootNavigator = () => {
           <Stack.Screen
             name="NotificationCenter"
             component={NotificationCenterScreen}
-            options={{ title: '消息通知' }}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="FollowCenter"
             component={require('../screens/me/FollowCenterScreen').default}
-            options={{ title: '粉丝关注' }}
+            options={{ headerShown: false }}
           />
           <Stack.Screen name="YearReview" component={YearReviewScreen} options={{ title: '年度回顾' }} />
           <Stack.Screen

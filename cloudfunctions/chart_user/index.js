@@ -330,6 +330,10 @@ async function appleLogin(data = {}) {
 
     let user = await findUserByAppleId(userId);
 
+    if (user && (user.accountStatus === 'frozen' || user.isDelete)) {
+      return fail('该账号已被冻结或注销，无法登录');
+    }
+
     if (!user) {
       const payload = buildAppleUserPayload({
         userId,
@@ -405,6 +409,10 @@ async function validateSession(data = {}) {
       return fail('用户不存在');
     }
 
+    if (user.accountStatus === 'frozen' || user.isDelete) {
+      return fail('该账号已被冻结或注销');
+    }
+
     if (user.status && user.status !== 'active') {
       return fail('当前账户不可用');
     }
@@ -441,6 +449,142 @@ async function getAdminStatus(data = {}) {
   }
 }
 
+async function getAdminUserList(data = {}) {
+  try {
+    const page = Math.max(1, Number(data.page) || 1);
+    const pageSize = Math.min(Math.max(1, Number(data.pageSize) || 20), 100);
+    const keyword = String(data.keyword || '').trim();
+    const filter = String(data.filter || 'all');
+
+    let query = {};
+
+    if (keyword) {
+      query = _.or([
+        { username: db.RegExp({ regexp: keyword, options: 'i' }) },
+        { email: db.RegExp({ regexp: keyword, options: 'i' }) },
+        { 'profile.nickname': db.RegExp({ regexp: keyword, options: 'i' }) },
+        { _id: keyword },
+      ]);
+    }
+
+    if (filter === 'admin') {
+      const adminResult = await adminCollection.limit(1000).get();
+      const adminAppleIds = (adminResult.data || []).map((item) => item.apple_id).filter(Boolean);
+      query.apple_user_id = _.in(adminAppleIds);
+    } else if (filter === 'frozen') {
+      query.accountStatus = 'frozen';
+    } else if (filter === 'deleted') {
+      query.isDelete = true;
+    }
+
+    const [countResult, listResult, adminResult] = await Promise.all([
+      usersCollection.where(query).count(),
+      usersCollection
+        .where(query)
+        .orderBy('created_at', 'desc')
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .get(),
+      adminCollection.limit(1000).get(),
+    ]);
+
+    const total = countResult.total || 0;
+    const list = listResult.data || [];
+    const adminAppleIds = new Set((adminResult.data || []).map((item) => item.apple_id).filter(Boolean));
+
+    // Fetch metrics for each user
+    const userIds = list.map((user) => user._id);
+    
+    // Fetch followers count
+    const followersPromises = userIds.map((userId) => 
+      followsCollection.where({ followed_user_id: userId }).count()
+    );
+    
+    // Fetch following count
+    const followingPromises = userIds.map((userId) => 
+      followsCollection.where({ follower_user_id: userId }).count()
+    );
+    
+    // Fetch public diaries count (checkins)
+    const diariesPromises = userIds.map((userId) => 
+      checkinsCollection.where({ user_id: userId }).count()
+    );
+
+    const [followersResults, followingResults, diariesResults] = await Promise.all([
+      Promise.all(followersPromises),
+      Promise.all(followingPromises),
+      Promise.all(diariesPromises),
+    ]);
+
+    const resolvedList = list.map((user, index) => ({
+      ...user,
+      isAdmin: Boolean(user.apple_user_id && adminAppleIds.has(user.apple_user_id)),
+      followersCount: followersResults[index]?.total || 0,
+      followingCount: followingResults[index]?.total || 0,
+      publicDiariesCount: diariesResults[index]?.total || 0,
+    }));
+
+    // Calculate summary
+    const [totalUsersResult, frozenUsersResult, deletedUsersResult] = await Promise.all([
+      usersCollection.count(),
+      usersCollection.where({ accountStatus: 'frozen' }).count(),
+      usersCollection.where({ isDelete: true }).count(),
+    ]);
+
+    return ok({
+      list: resolvedList,
+      total,
+      page,
+      summary: {
+        totalUsers: totalUsersResult.total || 0,
+        adminUsers: adminAppleIds.size,
+        frozenUsers: frozenUsersResult.total || 0,
+        deletedUsers: deletedUsersResult.total || 0,
+      },
+    });
+  } catch (error) {
+    console.error('chart_user.getAdminUserList error:', error);
+    return fail('获取用户列表失败', error);
+  }
+}
+
+async function setAdminUserFrozenStatus(data = {}) {
+  try {
+    const { adminUserId, targetUserId, frozen } = data;
+
+    if (!adminUserId || !targetUserId) {
+      return fail('缺少必要参数');
+    }
+
+    // Verify admin status
+    const adminUser = await findUserById(adminUserId);
+    if (!adminUser || !adminUser.apple_user_id) {
+      return fail('管理员不存在');
+    }
+
+    const adminCheck = await adminCollection.where({ apple_id: adminUser.apple_user_id }).limit(1).get();
+    if (!getDocData(adminCheck)) {
+      return fail('无管理员权限');
+    }
+
+    // Update target user
+    const targetUser = await findUserById(targetUserId);
+    if (!targetUser) {
+      return fail('目标用户不存在');
+    }
+
+    await usersCollection.doc(targetUserId).update({
+      accountStatus: frozen ? 'frozen' : 'normal',
+      updated_at: db.serverDate(),
+    });
+
+    return ok(true);
+  } catch (error) {
+    console.error('chart_user.setAdminUserFrozenStatus error:', error);
+    return fail('更新用户状态失败', error);
+  }
+}
+
 const actionMap = {
   add: addUser,
   get: getUser,
@@ -450,6 +594,8 @@ const actionMap = {
   appleLogin,
   validateSession,
   getAdminStatus,
+  getAdminUserList,
+  setAdminUserFrozenStatus,
 };
 
 function normalizeEventPayload(event = {}) {

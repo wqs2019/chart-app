@@ -23,6 +23,12 @@ export type User = {
   updated_at?: string | number;
   last_login_at?: string | number | null;
   push_token?: string;
+  isAdmin?: boolean;
+  isDelete?: boolean;
+  accountStatus?: 'normal' | 'frozen';
+  followersCount?: number;
+  followingCount?: number;
+  publicDiariesCount?: number;
 };
 
 export type CreateUserPayload = {

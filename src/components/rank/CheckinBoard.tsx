@@ -59,6 +59,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
   const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
   const [selectedCategory, setSelectedCategory] = React.useState(ALL_CATEGORY);
   const [searchKeyword, setSearchKeyword] = React.useState('');
+  const [showCheckedOnly, setShowCheckedOnly] = React.useState(false);
   const requestIdRef = React.useRef(0);
   const categoryScrollRef = React.useRef<ScrollView | null>(null);
   const categoryChipLayoutsRef = React.useRef<Record<string, { x: number; width: number }>>({});
@@ -142,12 +143,15 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
   }, [visibleItems]);
 
   const filteredByCategoryItems = React.useMemo(() => {
-    if (selectedCategory === ALL_CATEGORY) {
-      return visibleItems;
+    let result = visibleItems;
+    if (selectedCategory !== ALL_CATEGORY) {
+      result = result.filter((item) => item.category === selectedCategory);
     }
-
-    return visibleItems.filter((item) => item.category === selectedCategory);
-  }, [selectedCategory, visibleItems]);
+    if (showCheckedOnly) {
+      result = result.filter((item) => checkedIds.has(item._id));
+    }
+    return result;
+  }, [selectedCategory, visibleItems, showCheckedOnly, checkedIds]);
   const normalizedSearchKeyword = searchKeyword.trim().toLowerCase();
   const filteredItems = React.useMemo(() => {
     if (!normalizedSearchKeyword) {
@@ -322,6 +326,27 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
 
               <View style={styles.categoryHeader}>
                 <Text style={[styles.categoryTitle, { color: colors.text }]}>分类筛选</Text>
+                {!isViewerMode ? (
+                  <Pressable
+                    onPress={() => setShowCheckedOnly(!showCheckedOnly)}
+                    style={styles.filterToggle}
+                    hitSlop={8}
+                  >
+                    <Ionicons
+                      name={showCheckedOnly ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={16}
+                      color={showCheckedOnly ? colors.primary : colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.filterToggleText,
+                        { color: showCheckedOnly ? colors.primary : colors.textSecondary },
+                      ]}
+                    >
+                      只看已录入
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
 
               <View
@@ -649,6 +674,15 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 16,
     fontWeight: '800',
+  },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  filterToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   searchWrap: {
     marginTop: 12,
