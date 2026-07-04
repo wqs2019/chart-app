@@ -491,7 +491,7 @@ const RankScreen: React.FC = () => {
                                     },
                                   ]}
                                 >
-                                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{tag}</Text>
+                                  <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>{tag}</Text>
                                 </View>
                               ))}
                             </View>
@@ -824,7 +824,8 @@ const styles = StyleSheet.create({
   },
   tagsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
+    overflow: 'hidden',
     gap: 8,
     marginTop: 8,
   },
@@ -833,6 +834,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
+    flexShrink: 1,
   },
   rankScoreWrap: {
     alignItems: 'flex-end',
