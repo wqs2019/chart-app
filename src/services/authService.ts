@@ -101,6 +101,52 @@ class AuthService {
 
     return unwrap(response).isAdmin;
   }
+
+  async getAdminUserList(
+    page = 1,
+    pageSize = 20,
+    keyword = '',
+    filter = 'all'
+  ): Promise<{
+    list: User[];
+    total: number;
+    page: number;
+    summary: { totalUsers: number; adminUsers: number; deletedUsers: number; frozenUsers: number };
+  }> {
+    const response = await CloudService.callFunction<
+      CloudResult<{
+        list: User[];
+        total: number;
+        page: number;
+        summary: { totalUsers: number; adminUsers: number; deletedUsers: number; frozenUsers: number };
+      }>
+    >('chart_user', {
+      action: 'getAdminUserList',
+      data: { page, pageSize, keyword, filter },
+    });
+
+    const result = unwrap(response);
+    const resolvedList = await Promise.all(result.list.map((user) => resolveUserAvatarUrl(user)));
+    return {
+      list: resolvedList,
+      total: result.total,
+      page: result.page || page,
+      summary: result.summary || { totalUsers: 0, adminUsers: 0, deletedUsers: 0, frozenUsers: 0 },
+    };
+  }
+
+  async setAdminUserFrozenStatus(payload: {
+    adminUserId: string;
+    targetUserId: string;
+    frozen: boolean;
+  }): Promise<boolean> {
+    const response = await CloudService.callFunction<CloudResult<boolean>>('chart_user', {
+      action: 'setAdminUserFrozenStatus',
+      data: payload,
+    });
+
+    return unwrap(response);
+  }
 }
 
 export default new AuthService();

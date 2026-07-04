@@ -30,6 +30,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   AccountSecurity: undefined;
   AdminCenter: undefined;
+  AdminUserManagement: undefined;
   AdminFeedbackInbox: undefined;
   AdminFeedbackReports: undefined;
   AppSettings: undefined;
@@ -113,6 +114,11 @@ export const RootNavigator = () => {
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: '编辑资料' }} />
           <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} options={{ title: '账户与安全' }} />
           <Stack.Screen name="AdminCenter" component={AdminCenterScreen} options={{ title: '管理员中心' }} />
+          <Stack.Screen
+            name="AdminUserManagement"
+            component={require('../screens/me/AdminUserManagementScreen').default}
+            options={{ headerShown: false }}
+          />
           <Stack.Screen
             name="AdminFeedbackInbox"
             component={AdminFeedbackInboxScreen}
