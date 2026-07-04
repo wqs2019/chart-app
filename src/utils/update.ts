@@ -19,7 +19,6 @@ export const checkAppUpdate = async (): Promise<UpdateInfo | null> => {
     const currentVersion = Application.nativeApplicationVersion || '1.0.0';
     const response = await fetch('https://itunes.apple.com/lookup?bundleId=com.traval.chartapp');
     const data = await response.json();
-    console.log('Check update data:', data);
 
     if (data.resultCount > 0) {
       const latestVersion = data.results[0].version;
