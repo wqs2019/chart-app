@@ -157,8 +157,8 @@ const CheckinEntryDetailScreen: React.FC = () => {
   const isViewerMode = Boolean(resolvedReadOnly && targetUserId);
   const attachments = currentEntry?.content?.attachments || [];
   const noteMedia = React.useMemo(() => mapAttachmentsToMedia(attachments), [attachments]);
-  const interaction = currentEntry?.interaction || getDefaultInteraction();
-  const comments = currentEntry?.comments || currentEntry?.content?.comments || [];
+  const interaction = currentEntry?.interaction || currentEntry?.content?.interaction || getDefaultInteraction();
+  const comments = currentEntry?.comments?.length ? currentEntry.comments : (currentEntry?.content?.comments?.length ? currentEntry.content.comments : []);
   const authorUser: DisplayUser = isViewerMode ? authorProfile : currentUser;
   const displayName = isViewerMode && resolvedViewedUserName ? resolvedViewedUserName : getDisplayName(authorUser);
   const avatarUri = getAvatarUri(authorUser);
@@ -245,8 +245,8 @@ const CheckinEntryDetailScreen: React.FC = () => {
     };
   }, [insets.bottom]);
 
-  const bottomBarPaddingBottom = 12;
-  const composerOffsetBottom = keyboardHeight;
+  const bottomBarPaddingBottom = Math.max(insets.bottom, 12);
+  const composerOffsetBottom = keyboardHeight > 0 ? keyboardHeight : insets.bottom;
 
   const playButtonFeedback = React.useCallback((scaleValue: Animated.Value) => {
     Animated.sequence([
@@ -720,11 +720,13 @@ const CheckinEntryDetailScreen: React.FC = () => {
 
         {composerExpanded || commentInput.trim() || replyTarget ? (
           <View
-            pointerEvents="box-none"
             style={[
               styles.composerOverlay,
               {
                 bottom: composerOffsetBottom,
+                backgroundColor: colors.surface,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
               },
             ]}
           >
@@ -748,8 +750,7 @@ const CheckinEntryDetailScreen: React.FC = () => {
               style={[
                 styles.floatingComposer,
                 {
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FBFF',
-                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
                 },
               ]}
             >
@@ -1191,8 +1192,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   replyBanner: {
-    marginTop: 14,
-    borderRadius: 14,
+    marginTop: 12,
+    marginHorizontal: 16,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     flexDirection: 'row',
@@ -1348,11 +1350,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   floatingComposer: {
-    borderWidth: 1,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     paddingTop: 12,
     paddingBottom: 12,
     paddingHorizontal: 16,
