@@ -27,7 +27,7 @@
       "bundleIdentifier": "com.traval.chartapp",
       "appleTeamId": "592UG636F5",
       "usesAppleSignIn": true,
-      "buildNumber": "3"
+      "buildNumber": "4"
     },
     "android": {
       "edgeToEdgeEnabled": true,
