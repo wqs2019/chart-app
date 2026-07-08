@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
+import QRCode from 'react-native-qrcode-svg';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { rankService } from '../../services/rankService';
@@ -140,8 +141,6 @@ const AchievementPosterScreen: React.FC = () => {
             <View style={styles.posterBackgroundBase}>
               <View style={styles.posterGlowTop} />
               <View style={styles.posterGlowBottom} />
-              <View style={styles.posterGridLineVertical} />
-              <View style={styles.posterGridLineHorizontal} />
             </View>
 
             <View style={styles.posterTopBar}>
@@ -205,10 +204,23 @@ const AchievementPosterScreen: React.FC = () => {
             </View>
 
             <View style={styles.posterFooterCard}>
-              <Text style={styles.posterFooterLead}>把这一刻的旅行战绩分享出去，让朋友看见你的高光成绩。</Text>
-              <Text style={styles.posterFooterSub}>
-                综合榜、最强榜单和三大分榜表现，都会一起浓缩进这张专属成就海报。
-              </Text>
+              <View style={styles.posterFooterBrand}>
+                <View style={styles.posterFooterLogo}>
+                  <Ionicons name="earth" size={20} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.posterFooterAppName}>地球玩家 Earth Player</Text>
+                  <Text style={styles.posterFooterSlogan}>记录你的每一次出发</Text>
+                </View>
+              </View>
+              <View style={styles.posterFooterQrCode}>
+                <QRCode
+                  value="https://apps.apple.com/cn/app/%E5%9C%B0%E7%90%83%E7%8E%A9%E5%AE%B6/id6781326899"
+                  size={50}
+                  color="#FF7A59"
+                  backgroundColor="transparent"
+                />
+              </View>
             </View>
           </View>
         </View>
@@ -304,22 +316,6 @@ const styles = StyleSheet.create({
     borderRadius: 120,
     backgroundColor: '#0F172A',
     opacity: 0.12,
-  },
-  posterGridLineVertical: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    right: 92,
-    width: 1,
-    backgroundColor: 'rgba(15,23,42,0.05)',
-  },
-  posterGridLineHorizontal: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 160,
-    height: 1,
-    backgroundColor: 'rgba(15,23,42,0.05)',
   },
   posterTopBar: {
     flexDirection: 'row',
@@ -496,22 +492,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   posterFooterCard: {
-    marginTop: 12,
-    borderRadius: 22,
-    padding: 16,
-    backgroundColor: '#FFF1E8',
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,122,89,0.15)',
   },
-  posterFooterLead: {
+  posterFooterBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  posterFooterLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#FF7A59',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  posterFooterAppName: {
     color: '#7C2D12',
-    fontSize: 15,
-    fontWeight: '800',
-    lineHeight: 22,
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
-  posterFooterSub: {
-    marginTop: 6,
+  posterFooterSlogan: {
+    marginTop: 2,
     color: '#9A3412',
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+  posterFooterQrCode: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,122,89,0.1)',
   },
   primaryButton: {
     height: 50,
