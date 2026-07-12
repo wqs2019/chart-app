@@ -212,7 +212,7 @@ const HomeScreen: React.FC<Props> = () => {
                 {displayName}，继续刷新你的成就排行榜
               </Text>
               <Text style={[styles.desc, { color: colors.textSecondary }]}>
-                首页先告诉你现在到了哪一步，再把你送到最值得继续行动的地方。
+                每一步成就，都是你独一无二的旅行故事。
               </Text>
             </View>
             <View
