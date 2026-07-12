@@ -189,6 +189,7 @@ const HomeScreen: React.FC<Props> = () => {
     [recommendedCode, recommendedSnapshot?.raw_count]
   );
   const nextMilestoneGap = Math.max(nextMilestoneValue - (recommendedSnapshot?.raw_count || 0), 1);
+  const focusInfoValueColor = isDark ? 'rgba(255,248,243,0.9)' : 'rgba(24,33,47,0.82)';
 
   const openCheckin = React.useCallback(
     (code: LeaderboardCode) => {
@@ -217,9 +218,6 @@ const HomeScreen: React.FC<Props> = () => {
               <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>欢迎回来</Text>
               <Text style={[styles.titleName, { color: colors.text }]}>{displayName}</Text>
               <Text style={[styles.title, { color: colors.text }]}>你的旅行记录和成就变化，都在这里</Text>
-              <Text style={[styles.desc, { color: colors.textSecondary }]} numberOfLines={1}>
-                去过哪里、参加过什么，打开首页就能看到。
-              </Text>
             </View>
             <View
               style={[
@@ -273,7 +271,15 @@ const HomeScreen: React.FC<Props> = () => {
                     ]}
                   >
                     <View style={styles.heroMetricBreakdownInline}>
-                      <Text style={[styles.heroMetricBreakdownLabel, { color: colors.textSecondary }]}>世界榜</Text>
+                      <View style={styles.heroMetricBreakdownLabelWrap}>
+                        <View
+                          style={[
+                            styles.heroMetricBreakdownDot,
+                            { backgroundColor: isDark ? '#7DD3FC' : '#38BDF8' },
+                          ]}
+                        />
+                        <Text style={[styles.heroMetricBreakdownLabel, { color: colors.textSecondary }]}>世界旅行</Text>
+                      </View>
                       <Text style={[styles.heroMetricBreakdownValue, { color: colors.text }]}>
                         {loadingSummary ? '--' : formatRank(summaryByCode.world_travel?.rank)}
                       </Text>
@@ -286,7 +292,15 @@ const HomeScreen: React.FC<Props> = () => {
                     ]}
                   >
                     <View style={styles.heroMetricBreakdownInline}>
-                      <Text style={[styles.heroMetricBreakdownLabel, { color: colors.textSecondary }]}>中国榜</Text>
+                      <View style={styles.heroMetricBreakdownLabelWrap}>
+                        <View
+                          style={[
+                            styles.heroMetricBreakdownDot,
+                            { backgroundColor: isDark ? '#86EFAC' : '#4ADE80' },
+                          ]}
+                        />
+                        <Text style={[styles.heroMetricBreakdownLabel, { color: colors.textSecondary }]}>中国足迹</Text>
+                      </View>
                       <Text style={[styles.heroMetricBreakdownValue, { color: colors.text }]}>
                         {loadingSummary ? '--' : formatRank(summaryByCode.china_travel?.rank)}
                       </Text>
@@ -299,7 +313,15 @@ const HomeScreen: React.FC<Props> = () => {
                     ]}
                   >
                     <View style={styles.heroMetricBreakdownInline}>
-                      <Text style={[styles.heroMetricBreakdownLabel, { color: colors.textSecondary }]}>玩乐榜</Text>
+                      <View style={styles.heroMetricBreakdownLabelWrap}>
+                        <View
+                          style={[
+                            styles.heroMetricBreakdownDot,
+                            { backgroundColor: isDark ? '#FCD34D' : '#F59E0B' },
+                          ]}
+                        />
+                        <Text style={[styles.heroMetricBreakdownLabel, { color: colors.textSecondary }]}>玩乐活动</Text>
+                      </View>
                       <Text style={[styles.heroMetricBreakdownValue, { color: colors.text }]}>
                         {loadingSummary ? '--' : formatRank(summaryByCode.activity?.rank)}
                       </Text>
@@ -442,19 +464,19 @@ const HomeScreen: React.FC<Props> = () => {
                 </Text>
                 <View style={styles.focusInfoRow}>
                   <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>综合得分</Text>
-                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                  <Text style={[styles.focusInfoValue, { color: focusInfoValueColor }]}>
                     {formatScore(strongestSnapshot?.final_score)} 分
                   </Text>
                 </View>
                 <View style={styles.focusInfoRow}>
                   <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>当前榜位</Text>
-                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                  <Text style={[styles.focusInfoValue, { color: focusInfoValueColor }]}>
                     {formatRank(strongestSnapshot?.rank)}
                   </Text>
                 </View>
                 <View style={styles.focusInfoRow}>
                   <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>累计录入</Text>
-                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                  <Text style={[styles.focusInfoValue, { color: focusInfoValueColor }]}>
                     {strongestSnapshot?.raw_count ?? 0} {strongestConfig.unit}
                   </Text>
                 </View>
@@ -479,19 +501,19 @@ const HomeScreen: React.FC<Props> = () => {
                 </Text>
                 <View style={styles.focusInfoRow}>
                   <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>目标榜单</Text>
-                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                  <Text style={[styles.focusInfoValue, { color: focusInfoValueColor }]}>
                     {recommendedConfig.title}
                   </Text>
                 </View>
                 <View style={styles.focusInfoRow}>
                   <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>还差</Text>
-                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                  <Text style={[styles.focusInfoValue, { color: focusInfoValueColor }]}>
                     {nextMilestoneGap}
                   </Text>
                 </View>
                 <View style={styles.focusInfoRow}>
                   <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>达成</Text>
-                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                  <Text style={[styles.focusInfoValue, { color: focusInfoValueColor }]}>
                     {nextMilestoneValue} {recommendedConfig.unit}
                   </Text>
                 </View>
@@ -681,6 +703,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 6,
+  },
+  heroMetricBreakdownLabelWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroMetricBreakdownDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
   },
   heroMetricBreakdownLabel: {
     fontSize: 11,
@@ -897,8 +929,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   focusInfoValue: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
   },
   focusTitleRow: {
     flexDirection: 'row',
