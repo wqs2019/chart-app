@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -143,6 +144,7 @@ const RankScreen: React.FC = () => {
   const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
   const [showScoreGuide, setShowScoreGuide] = React.useState(false);
   const [refreshingAll, setRefreshingAll] = React.useState(false);
+  const [pullRefreshing, setPullRefreshing] = React.useState(false);
   const requestIdRef = React.useRef(0);
 
   const isAdmin = currentUser?.isAdmin;
@@ -248,9 +250,29 @@ const RankScreen: React.FC = () => {
     }
   }, [selectedCode, fetchData]);
 
+  const handlePullRefresh = React.useCallback(async () => {
+    setPullRefreshing(true);
+    try {
+      await fetchData(selectedCode);
+    } finally {
+      setPullRefreshing(false);
+    }
+  }, [fetchData, handleRefreshAll, isAdmin, selectedCode]);
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={pullRefreshing}
+            onRefresh={handlePullRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
         <View style={styles.topHeader}>
           <View>
             <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>RANKING CENTER</Text>
@@ -377,7 +399,7 @@ const RankScreen: React.FC = () => {
                   <View style={styles.compactSummaryInline}>
                     <View style={styles.compactSummaryMain}>
                       <Text style={[styles.compactSummaryLabel, { color: colors.textSecondary }]}>我的排名</Text>
-                      <Text style={[styles.compactSummaryRank, { color: colors.text }]}>#{myRank.rank || '--'}</Text>
+                      <Text style={[styles.compactSummaryRank, { color: colors.text }]}>NO.{myRank.rank || '--'}</Text>
                     </View>
                     <View style={styles.compactSummaryMetrics}>
                       <View style={styles.compactMetricRow}>
@@ -472,7 +494,7 @@ const RankScreen: React.FC = () => {
                         ]}
                       >
                         <Text style={[styles.rankCornerText, { color: isMine ? '#FFFFFF' : colors.text }]}>
-                          #{displayRank}
+                          NO.{displayRank}
                         </Text>
                       </View>
                       <View style={styles.rankBody}>

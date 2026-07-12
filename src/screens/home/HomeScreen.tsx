@@ -5,6 +5,11 @@ import React, { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import ChampionIcon from '../../../assets/champion.svg';
+import NextIcon from '../../../assets/next.svg';
+import RankIcon from '../../../assets/rank.svg';
+import StrongIcon from '../../../assets/strong.svg';
+import TotalIcon from '../../../assets/total.svg';
 import { UpdateModal } from '../../components/common/UpdateModal';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { getThumbnailUrl } from '../../utils/image';
@@ -30,7 +35,7 @@ type Props = object;
 
 const formatScore = (value?: number | null) => Number(value || 0).toFixed(2);
 
-const formatRank = (value?: number | null) => (value ? `#${value}` : '未上榜');
+const formatRank = (value?: number | null) => (value ? `NO.${value}` : '未上榜');
 
 const getLeaderboardIcon = (code: LeaderboardCode): keyof typeof Ionicons.glyphMap => {
   if (code === 'world_travel') {
@@ -231,22 +236,134 @@ const HomeScreen: React.FC<Props> = () => {
             </View>
           </View>
 
-          <View style={styles.heroStatsRow}>
-            <View style={[styles.heroStatCard, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.heroStatLabel, { color: colors.textSecondary }]}>综合总分</Text>
-              <Text style={[styles.heroStatValue, { color: colors.text }]}>
-                {loadingSummary ? '--.--' : formatScore(overallSnapshot?.final_score)}
-              </Text>
-            </View>
-            <View style={[styles.heroStatCard, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.heroStatLabel, { color: colors.textSecondary }]}>当前排名</Text>
-              <Text style={[styles.heroStatValue, { color: colors.text }]}>
-                {loadingSummary ? '--' : formatRank(overallSnapshot?.rank)}
-              </Text>
-            </View>
-            <View style={[styles.heroStatCard, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.heroStatLabel, { color: colors.textSecondary }]}>累计录入</Text>
-              <Text style={[styles.heroStatValue, { color: colors.text }]}>{totalCheckins}</Text>
+          <View style={styles.heroStatsGrid}>
+            <View style={styles.heroStatsTopRow}>
+              <View
+                style={[
+                  styles.heroMetricCard,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)',
+                  },
+                ]}
+              >
+                <View style={[styles.heroMetricDecoration, styles.heroMetricCardDecoration]}>
+                  <RankIcon width={58} height={58} />
+                </View>
+                <View style={styles.heroMetricTopRow}>
+                  <View
+                    style={[
+                      styles.heroMetricIconWrap,
+                      { backgroundColor: isDark ? 'rgba(125,211,252,0.10)' : 'rgba(125,211,252,0.14)' },
+                    ]}
+                  >
+                    <Ionicons name="podium-outline" size={15} color={colors.text} />
+                  </View>
+                  <Text style={[styles.heroMetricLabel, { color: colors.textSecondary }]}>当前综合排名</Text>
+                </View>
+                <Text style={[styles.heroMetricValue, { color: colors.text }]}>
+                  {loadingSummary ? '--' : formatRank(overallSnapshot?.rank)}
+                </Text>
+                <View style={styles.heroMetricBreakdownRow}>
+                  <View
+                    style={[
+                      styles.heroMetricBreakdownItem,
+                      { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' },
+                    ]}
+                  >
+                    <View style={styles.heroMetricBreakdownInline}>
+                      <Text style={[styles.heroMetricBreakdownLabel, { color: colors.textSecondary }]}>世界榜</Text>
+                      <Text style={[styles.heroMetricBreakdownValue, { color: colors.text }]}>
+                        {loadingSummary ? '--' : formatRank(summaryByCode.world_travel?.rank)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View
+                    style={[
+                      styles.heroMetricBreakdownItem,
+                      { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' },
+                    ]}
+                  >
+                    <View style={styles.heroMetricBreakdownInline}>
+                      <Text style={[styles.heroMetricBreakdownLabel, { color: colors.textSecondary }]}>中国榜</Text>
+                      <Text style={[styles.heroMetricBreakdownValue, { color: colors.text }]}>
+                        {loadingSummary ? '--' : formatRank(summaryByCode.china_travel?.rank)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View
+                    style={[
+                      styles.heroMetricBreakdownItem,
+                      { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' },
+                    ]}
+                  >
+                    <View style={styles.heroMetricBreakdownInline}>
+                      <Text style={[styles.heroMetricBreakdownLabel, { color: colors.textSecondary }]}>玩乐榜</Text>
+                      <Text style={[styles.heroMetricBreakdownValue, { color: colors.text }]}>
+                        {loadingSummary ? '--' : formatRank(summaryByCode.activity?.rank)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.heroStatsSideColumn}>
+                <View
+                  style={[
+                    styles.heroMetricSideCard,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)',
+                    },
+                  ]}
+                >
+                  <View style={styles.heroMetricDecoration}>
+                    <ChampionIcon width={58} height={58} />
+                  </View>
+                  <View style={styles.heroMetricTopRow}>
+                    <View
+                      style={[
+                        styles.heroMetricIconWrap,
+                        { backgroundColor: isDark ? 'rgba(255,155,122,0.10)' : 'rgba(255,122,89,0.08)' },
+                      ]}
+                    >
+                      <Ionicons name="trophy-outline" size={15} color={colors.primary} />
+                    </View>
+                    <Text style={[styles.heroMetricLabel, { color: colors.textSecondary }]}>综合总分</Text>
+                  </View>
+                  <Text style={[styles.heroMetricValue, styles.heroMetricSideValue, { color: colors.text }]}>
+                    {loadingSummary ? '--.--' : formatScore(overallSnapshot?.final_score)}
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.heroMetricSideCard,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)',
+                    },
+                  ]}
+                >
+                  <View style={styles.heroMetricDecoration}>
+                    <TotalIcon width={58} height={58} />
+                  </View>
+                  <View style={styles.heroMetricTopRow}>
+                    <View
+                      style={[
+                        styles.heroMetricIconWrap,
+                        { backgroundColor: isDark ? 'rgba(196,181,253,0.12)' : 'rgba(196,181,253,0.16)' },
+                      ]}
+                    >
+                      <Ionicons name="albums-outline" size={15} color={colors.text} />
+                    </View>
+                    <Text style={[styles.heroMetricLabel, { color: colors.textSecondary }]}>累计录入</Text>
+                  </View>
+                  <Text style={[styles.heroMetricValue, styles.heroMetricSideValue, { color: colors.text }]}>
+                    {totalCheckins}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
 
@@ -257,13 +374,6 @@ const HomeScreen: React.FC<Props> = () => {
             >
               <Text style={styles.primaryButtonText}>查看榜单</Text>
               <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-            </Pressable>
-            <Pressable
-              onPress={() => navigation?.navigate('YearReview')}
-              style={[styles.secondaryButton, { backgroundColor: colors.surface }]}
-            >
-              <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
-              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>年度回顾</Text>
             </Pressable>
           </View>
         </View>
@@ -316,37 +426,75 @@ const HomeScreen: React.FC<Props> = () => {
             <View
               style={[
                 styles.focusCard,
-                { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
+                { backgroundColor: colors.surface },
               ]}
             >
-              <Text style={[styles.focusLabel, { color: colors.textSecondary }]}>当前最强榜单</Text>
-              <View style={styles.focusTitleRow}>
-                <Ionicons name={getLeaderboardIcon(strongestCode)} size={16} color={colors.primary} />
-                <Text style={[styles.focusTitle, { color: colors.text }]}>{strongestConfig.title}</Text>
+              <View style={[styles.focusCardHero, { backgroundColor: isDark ? '#26402E' : '#DFF4D1' }]}>
+                <Text style={[styles.focusLabel, { color: isDark ? '#BFE6C6' : '#67B84F' }]}>当前最强榜单</Text>
               </View>
-              <Text style={[styles.focusValue, { color: colors.text }]}>
-                {formatScore(strongestSnapshot?.final_score)}
-              </Text>
-              <Text style={[styles.focusMeta, { color: colors.textSecondary }]}>
-                {formatRank(strongestSnapshot?.rank)} · 已录入 {strongestSnapshot?.raw_count ?? 0}
-              </Text>
+              <View style={[styles.focusBodyCard, { backgroundColor: 'transparent', flex: 1 }]}>
+                <View style={styles.focusArtworkPanel}>
+                  <StrongIcon width={84} height={84} />
+                </View>
+                <Text style={[styles.focusHeading, { color: colors.text }]} numberOfLines={3}>
+                  {strongestConfig.title}
+                </Text>
+                <View style={styles.focusInfoRow}>
+                  <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>综合得分</Text>
+                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                    {formatScore(strongestSnapshot?.final_score)} 分
+                  </Text>
+                </View>
+                <View style={styles.focusInfoRow}>
+                  <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>当前榜位</Text>
+                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                    {formatRank(strongestSnapshot?.rank)}
+                  </Text>
+                </View>
+                <View style={styles.focusInfoRow}>
+                  <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>累计录入</Text>
+                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                    {strongestSnapshot?.raw_count ?? 0} {strongestConfig.unit}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             <View
               style={[
                 styles.focusCard,
-                { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
+                { backgroundColor: colors.surface },
               ]}
             >
-              <Text style={[styles.focusLabel, { color: colors.textSecondary }]}>下一里程碑</Text>
-              <View style={styles.focusTitleRow}>
-                <Ionicons name="flag-outline" size={16} color={colors.primary} />
-                <Text style={[styles.focusTitle, { color: colors.text }]}>{recommendedConfig.title}</Text>
+              <View style={[styles.focusCardHero, { backgroundColor: isDark ? '#4B4222' : '#F8E8A6' }]}>
+                <Text style={[styles.focusLabel, { color: isDark ? '#F6E7AE' : '#D89A1D' }]}>下一里程碑</Text>
               </View>
-              <Text style={[styles.focusValue, { color: colors.text }]}>还差 {nextMilestoneGap}</Text>
-              <Text style={[styles.focusMeta, { color: colors.textSecondary }]}>
-                达到 {nextMilestoneValue} {recommendedConfig.unit}
-              </Text>
+              <View style={[styles.focusBodyCard, { backgroundColor: 'transparent', flex: 1 }]}>
+                <View style={styles.focusArtworkPanel}>
+                  <NextIcon width={84} height={84} />
+                </View>
+                <Text style={[styles.focusHeading, { color: colors.text }]} numberOfLines={3}>
+                  {recommendedConfig.title}
+                </Text>
+                <View style={styles.focusInfoRow}>
+                  <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>目标榜单</Text>
+                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                    {recommendedConfig.title}
+                  </Text>
+                </View>
+                <View style={styles.focusInfoRow}>
+                  <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>还差</Text>
+                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                    {nextMilestoneGap}
+                  </Text>
+                </View>
+                <View style={styles.focusInfoRow}>
+                  <Text style={[styles.focusInfoTitle, { color: colors.textSecondary }]}>达成</Text>
+                  <Text style={[styles.focusInfoValue, { color: colors.text }]}>
+                    {nextMilestoneValue} {recommendedConfig.unit}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
 
@@ -437,25 +585,140 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '900',
   },
-  heroStatsRow: {
+  heroStatsGrid: {
+    marginTop: 18,
+    gap: 10,
+  },
+  heroStatsTopRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 18,
+    alignItems: 'stretch',
   },
-  heroStatCard: {
+  heroMetricCard: {
+    width: '50%',
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 14,
+    minHeight: 118,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroStatsSideColumn: {
+    width: '50%',
+    gap: 10,
+  },
+  heroMetricSideCard: {
     flex: 1,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 14,
+    minHeight: 76,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  heroStatLabel: {
+  heroMetricDecoration: {
+    position: 'absolute',
+    right: 10,
+    bottom: 8,
+    opacity: 0.24,
+  },
+  heroMetricCardDecoration: {
+    right: 8,
+    bottom: 144,
+    opacity: 0.3,
+  },
+  heroMetricTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroMetricIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroStatBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  heroStatBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  heroMetricLabel: {
     fontSize: 12,
+    fontWeight: '700',
+  },
+  heroMetricValue: {
+    marginTop: 14,
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  heroMetricBreakdownRow: {
+    width: '100%',
+    gap: 8,
+    marginTop: 14,
+  },
+  heroMetricBreakdownItem: {
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  heroMetricBreakdownInline: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  heroMetricBreakdownLabel: {
+    fontSize: 11,
     fontWeight: '600',
   },
-  heroStatValue: {
+  heroMetricBreakdownValue: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  heroMetricSideValue: {
+    marginTop: 10,
+  },
+  heroMetricDesc: {
     marginTop: 6,
-    fontSize: 18,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  heroMetricStrip: {
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  heroMetricStripLeft: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  heroMetricStripCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  heroMetricStripValue: {
+    fontSize: 24,
     fontWeight: '900',
+  },
+  heroMetricStripDesc: {
+    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 16,
   },
   heroActionRow: {
     flexDirection: 'row',
@@ -574,13 +837,57 @@ const styles = StyleSheet.create({
   },
   focusCard: {
     flex: 1,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderRadius: 24,
+    paddingTop: 14,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
   },
   focusLabel: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '900',
+  },
+  focusCardHero: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  focusArtworkPanel: {
+    position: 'absolute',
+    right: -20,
+    top: -20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 0,
+    opacity: 0.2,
+  },
+  focusHeading: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '900',
+    marginBottom: 16,
+    zIndex: 1,
+  },
+  focusBodyCard: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 16,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  focusInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  focusInfoTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  focusInfoValue: {
+    fontSize: 16,
+    fontWeight: '800',
   },
   focusTitleRow: {
     flexDirection: 'row',

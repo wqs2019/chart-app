@@ -62,6 +62,7 @@
     "@cloudbase/node-sdk": "^3.18.1",
     "@types/react": "~19.1.0",
     "babel-preset-expo": "^55.0.16",
+    "react-native-svg-transformer": "^1.5.3",
     "typescript": "~5.9.2"
   }
 }
