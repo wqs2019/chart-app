@@ -214,12 +214,11 @@ const HomeScreen: React.FC<Props> = () => {
         >
           <View style={styles.heroTopRow}>
             <View style={styles.heroCopyWrap}>
-              <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ACHIEVEMENT HOME</Text>
-              <Text style={[styles.title, { color: colors.text }]}>
-                {displayName}，继续刷新你的成就排行榜
-              </Text>
-              <Text style={[styles.desc, { color: colors.textSecondary }]}>
-                每一步成就，都是你独一无二的旅行故事。
+              <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>欢迎回来</Text>
+              <Text style={[styles.titleName, { color: colors.text }]}>{displayName}</Text>
+              <Text style={[styles.title, { color: colors.text }]}>你的旅行记录和成就变化，都在这里</Text>
+              <Text style={[styles.desc, { color: colors.textSecondary }]} numberOfLines={1}>
+                去过哪里、参加过什么，打开首页就能看到。
               </Text>
             </View>
             <View
@@ -558,13 +557,20 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '600',
+    letterSpacing: 0.4,
   },
   title: {
-    marginTop: 8,
-    fontSize: 28,
-    fontWeight: '900',
+    marginTop: 6,
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 24,
+  },
+  titleName: {
+    marginTop: 6,
+    fontSize: 22,
+    fontWeight: '800',
+    lineHeight: 28,
   },
   desc: {
     marginTop: 10,
