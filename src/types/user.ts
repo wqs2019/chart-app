@@ -48,6 +48,7 @@ export type AuthUser = {
   pushToken?: string;
   profile?: User['profile'];
   lastActiveAt?: number;
+  isAdmin?: boolean;
 };
 
 export type AuthSession = {

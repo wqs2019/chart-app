@@ -642,6 +642,12 @@ async function refreshLeaderboardSnapshots(code) {
   }
 
   const normalizedCode = normalizeLeaderboardCode(code);
+
+  if (normalizedCode === 'overall') {
+    await refreshOverallSnapshots();
+    return;
+  }
+
   const codeCandidates = getLeaderboardCodeCandidates(normalizedCode);
   const [{ data: checkins }, { data: standardItems }] = await Promise.all([
     checkinsCollection
@@ -1298,6 +1304,18 @@ const getUploadCredentials = async () => {
   }
 };
 
+const refreshAllLeaderboardSnapshots = async () => {
+  try {
+    await refreshLeaderboardSnapshots('world_travel');
+    await refreshLeaderboardSnapshots('china_travel');
+    await refreshLeaderboardSnapshots('activity');
+    await refreshLeaderboardSnapshots('overall');
+    return ok(true);
+  } catch (error) {
+    return fail('刷新所有榜单失败', error);
+  }
+};
+
 const actionMap = {
   getStandardItems,
   getStandardItemDetail,
@@ -1308,6 +1326,7 @@ const actionMap = {
   saveCheckinEntry,
   deleteCheckinEntry,
   getUploadCredentials,
+  refreshAllLeaderboardSnapshots,
 };
 
 function normalizeEventPayload(event = {}) {

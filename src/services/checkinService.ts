@@ -171,6 +171,10 @@ export const checkinService = {
   async batchCheckin(userId: string, code: LeaderboardCode, itemIds: string[]): Promise<void> {
     await callCheckinFunction<boolean>('batchCheckin', { userId, code, itemIds });
   },
+
+  async refreshAllLeaderboardSnapshots(): Promise<boolean> {
+    return callCheckinFunction<boolean>('refreshAllLeaderboardSnapshots', {});
+  },
 };
 
 export default checkinService;

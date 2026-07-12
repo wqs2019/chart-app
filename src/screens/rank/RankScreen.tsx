@@ -17,6 +17,7 @@ import LeaderboardSwitcher from '../../components/rank/LeaderboardSwitcher';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { checkinService } from '../../services/checkinService';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import {
@@ -141,8 +142,10 @@ const RankScreen: React.FC = () => {
   const [dataByCode, setDataByCode] = React.useState<Partial<Record<LeaderboardCode, RankScreenData>>>({});
   const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
   const [showScoreGuide, setShowScoreGuide] = React.useState(false);
+  const [refreshingAll, setRefreshingAll] = React.useState(false);
   const requestIdRef = React.useRef(0);
 
+  const isAdmin = currentUser?.isAdmin;
   const currentConfig = LEADERBOARD_CONFIGS[selectedCode];
   const scoreRuleLines = React.useMemo(() => getScoreRuleLines(selectedCode), [selectedCode]);
   const scoreSourceHint = React.useMemo(() => getScoreSourceHint(selectedCode), [selectedCode]);
@@ -232,6 +235,19 @@ const RankScreen: React.FC = () => {
     }, [fetchData, selectedCode])
   );
 
+  const handleRefreshAll = React.useCallback(async () => {
+    setRefreshingAll(true);
+    try {
+      await checkinService.refreshAllLeaderboardSnapshots();
+      setDataByCode({});
+      await fetchData(selectedCode);
+    } catch (error) {
+      console.error('Failed to refresh all leaderboard snapshots', error);
+    } finally {
+      setRefreshingAll(false);
+    }
+  }, [selectedCode, fetchData]);
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -275,17 +291,37 @@ const RankScreen: React.FC = () => {
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{currentConfig.title} 排行榜</Text>
               <Text style={[styles.listHint, { color: colors.textSecondary }]}>按总分实时排序</Text>
             </View>
-            <View
-              style={[
-                styles.inlineBadge,
-                {
-                  backgroundColor: isDark ? 'rgba(148,163,184,0.10)' : '#EEF3F9',
-                },
-              ]}
-            >
-              <Text style={[styles.inlineBadgeText, { color: colors.textSecondary }]}>
-                {isCurrentLoading ? '同步中...' : `TOP ${rows.length}`}
-              </Text>
+            <View style={styles.sectionHeaderActions}>
+              {isAdmin && (
+                <Pressable
+                  onPress={handleRefreshAll}
+                  disabled={refreshingAll}
+                  style={[
+                    styles.refreshButton,
+                    {
+                      backgroundColor: isDark ? 'rgba(148,163,184,0.10)' : '#EEF3F9',
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={refreshingAll ? 'refresh-circle' : 'refresh-circle-outline'}
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              )}
+              <View
+                style={[
+                  styles.inlineBadge,
+                  {
+                    backgroundColor: isDark ? 'rgba(148,163,184,0.10)' : '#EEF3F9',
+                  },
+                ]}
+              >
+                <Text style={[styles.inlineBadgeText, { color: colors.textSecondary }]}>
+                  {refreshingAll ? '刷新中...' : isCurrentLoading ? '同步中...' : `TOP ${rows.length}`}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -634,6 +670,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  sectionHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  refreshButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inlineLoadingCard: {
     marginTop: 14,

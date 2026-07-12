@@ -73,22 +73,35 @@ function generateSessionToken(userId) {
   return `${userId}.${timestamp}.${signature}`;
 }
 
-function buildAuthUser(user = {}) {
+async function buildAuthUser(user = {}) {
+  const appleUserId = user.apple_user_id || '';
+  let isAdmin = false;
+
+  if (appleUserId) {
+    try {
+      const result = await adminCollection.where({ apple_id: appleUserId }).limit(1).get();
+      isAdmin = Boolean(getDocData(result));
+    } catch (error) {
+      console.error('buildAuthUser check admin error:', error);
+    }
+  }
+
   return {
     _id: user._id,
-    appleUserId: user.apple_user_id || '',
+    appleUserId,
     email: user.email || null,
     fullName: user.full_name || null,
     username: user.username || '',
     pushToken: user.push_token || '',
     profile: user.profile || {},
+    isAdmin,
   };
 }
 
-function buildSessionPayload(user = {}, token) {
+async function buildSessionPayload(user = {}, token) {
   return {
     token,
-    user: buildAuthUser(user),
+    user: await buildAuthUser(user),
   };
 }
 
@@ -313,7 +326,7 @@ async function deleteUser(data = {}) {
 
     // 7. Finally, delete the user record
     await usersCollection.doc(userId).remove();
-    
+
     return ok(true);
   } catch (error) {
     console.error('chart_user.deleteUser error:', error);
@@ -376,7 +389,7 @@ async function appleLogin(data = {}) {
       updated_at: db.serverDate(),
     });
 
-    return ok(buildSessionPayload(user, token));
+    return ok(await buildSessionPayload(user, token));
   } catch (error) {
     console.error('chart_user.appleLogin error:', error);
     return fail('Apple 登录失败', error);
@@ -421,7 +434,7 @@ async function validateSession(data = {}) {
       return fail('登录态已失效');
     }
 
-    return ok(buildSessionPayload(user, token));
+    return ok(await buildSessionPayload(user, token));
   } catch (error) {
     console.error('chart_user.validateSession error:', error);
     return fail('登录态校验失败', error);
@@ -494,19 +507,19 @@ async function getAdminUserList(data = {}) {
 
     // Fetch metrics for each user
     const userIds = list.map((user) => user._id);
-    
+
     // Fetch followers count
-    const followersPromises = userIds.map((userId) => 
+    const followersPromises = userIds.map((userId) =>
       followsCollection.where({ followed_user_id: userId }).count()
     );
-    
+
     // Fetch following count
-    const followingPromises = userIds.map((userId) => 
+    const followingPromises = userIds.map((userId) =>
       followsCollection.where({ follower_user_id: userId }).count()
     );
-    
+
     // Fetch public diaries count (checkins)
-    const diariesPromises = userIds.map((userId) => 
+    const diariesPromises = userIds.map((userId) =>
       checkinsCollection.where({ user_id: userId }).count()
     );
 
