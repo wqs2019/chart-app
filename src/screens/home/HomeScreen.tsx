@@ -269,47 +269,7 @@ const HomeScreen: React.FC<Props> = () => {
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Pressable
-            onPress={openRankTab}
-            style={[
-              styles.primaryFeatureCard,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF',
-              },
-            ]}
-          >
-            <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : '#FFF1E8' }]}>
-              <Ionicons name="trophy-outline" size={20} color={colors.primary} />
-            </View>
-            <View style={styles.featureTextWrap}>
-              <Text style={[styles.featureTitle, { color: colors.text }]}>综合榜单与三大子榜</Text>
-              <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>
-                查看综合总榜、世界旅游榜、中国旅游榜和玩乐项目榜的当前表现。
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-          </Pressable>
-
           <View style={styles.secondaryFeatureGrid}>
-            <Pressable
-              onPress={() => navigation.navigate('YearReview')}
-              style={[
-                styles.secondaryFeatureCard,
-                { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
-              ]}
-            >
-              <View style={[styles.secondaryFeatureRow, { backgroundColor: 'transparent' }]}>
-                <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(99,102,241,0.22)' : '#EEF2FF' }]}>
-                  <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
-                </View>
-                <View style={styles.secondaryFeatureTextWrap}>
-                  <Text style={[styles.secondaryFeatureTitle, { color: colors.text }]}>年度回顾</Text>
-                  <Text style={[styles.secondaryFeatureDesc, { color: colors.textSecondary }]}>回顾今年新增与成长轨迹。</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-              </View>
-            </Pressable>
-
             <Pressable
               onPress={() => navigation.navigate('AchievementPoster')}
               style={[
@@ -324,6 +284,25 @@ const HomeScreen: React.FC<Props> = () => {
                 <View style={styles.secondaryFeatureTextWrap}>
                   <Text style={[styles.secondaryFeatureTitle, { color: colors.text }]}>成就海报</Text>
                   <Text style={[styles.secondaryFeatureDesc, { color: colors.textSecondary }]}>把当前成绩快速分享出去。</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              </View>
+            </Pressable>
+
+            <Pressable
+              onPress={() => navigation.navigate('TravelFootprintMap')}
+              style={[
+                styles.secondaryFeatureCard,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF' },
+              ]}
+            >
+              <View style={[styles.secondaryFeatureRow, { backgroundColor: 'transparent' }]}>
+                <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.18)' : '#FFF1E8' }]}>
+                  <Ionicons name="globe-outline" size={16} color={colors.primary} />
+                </View>
+                <View style={styles.secondaryFeatureTextWrap}>
+                  <Text style={[styles.secondaryFeatureTitle, { color: colors.text }]}>地图足迹</Text>
+                  <Text style={[styles.secondaryFeatureDesc, { color: colors.textSecondary }]}>查看世界和中国的点亮区域。</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
               </View>
@@ -537,8 +516,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  secondaryFeatureGrid: {
+  featureCardFollowUp: {
     marginTop: 8,
+  },
+  secondaryFeatureGrid: {
     flexDirection: 'row',
     gap: 8,
   },

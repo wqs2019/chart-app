@@ -540,7 +540,12 @@ const RankScreen: React.FC = () => {
                                     },
                                   ]}
                                 >
-                                  <Text style={{ color: isMine ? colors.primary : isDark ? '#93C5FD' : '#2563EB', fontSize: 12 }}>{tag}</Text>
+                                  <Text
+                                    numberOfLines={1}
+                                    style={{ color: isMine ? colors.primary : isDark ? '#93C5FD' : '#2563EB', fontSize: 12 }}
+                                  >
+                                    {tag}
+                                  </Text>
                                 </View>
                               ))}
                             </View>
@@ -842,6 +847,7 @@ const styles = StyleSheet.create({
   },
   rankMain: {
     flex: 1,
+    minWidth: 0,
   },
   avatarWrap: {
     width: 64,
@@ -890,13 +896,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     gap: 8,
     marginTop: 8,
+    minWidth: 0,
   },
   tag: {
     borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    flexShrink: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    flexShrink: 0,
   },
   rankScoreWrap: {
     alignItems: 'flex-end',
