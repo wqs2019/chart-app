@@ -6,6 +6,8 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ChampionIcon from '../../../assets/champion.svg';
+import EarthIcon from '../../../assets/earth.svg';
+import MapAssetIcon from '../../../assets/map.svg';
 import NextIcon from '../../../assets/next.svg';
 import RankIcon from '../../../assets/rank.svg';
 import StrongIcon from '../../../assets/strong.svg';
@@ -388,8 +390,8 @@ const HomeScreen: React.FC<Props> = () => {
               ]}
             >
               <View style={[styles.secondaryFeatureRow, { backgroundColor: 'transparent' }]}>
-                <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.18)' : '#FFF1E8' }]}>
-                  <Ionicons name="image-outline" size={16} color={colors.primary} />
+                <View style={styles.featureIconWrap}>
+                  <MapAssetIcon width={18} height={18} />
                 </View>
                 <View style={styles.secondaryFeatureTextWrap}>
                   <Text style={[styles.secondaryFeatureTitle, { color: colors.text }]}>成就海报</Text>
@@ -407,8 +409,8 @@ const HomeScreen: React.FC<Props> = () => {
               ]}
             >
               <View style={[styles.secondaryFeatureRow, { backgroundColor: 'transparent' }]}>
-                <View style={[styles.featureIconWrap, { backgroundColor: isDark ? 'rgba(255,155,122,0.18)' : '#FFF1E8' }]}>
-                  <Ionicons name="globe-outline" size={16} color={colors.primary} />
+                <View style={styles.featureIconWrap}>
+                  <EarthIcon width={18} height={18} />
                 </View>
                 <View style={styles.secondaryFeatureTextWrap}>
                   <Text style={[styles.secondaryFeatureTitle, { color: colors.text }]}>地图足迹</Text>
@@ -426,15 +428,15 @@ const HomeScreen: React.FC<Props> = () => {
             <View
               style={[
                 styles.focusCard,
-                { backgroundColor: colors.surface },
+                { backgroundColor: isDark ? '#26402E' : '#DFF4D1' },
               ]}
             >
-              <View style={[styles.focusCardHero, { backgroundColor: isDark ? '#26402E' : '#DFF4D1' }]}>
+              <View style={[styles.focusCardHero, { backgroundColor: 'transparent', paddingHorizontal: 4 }]}>
                 <Text style={[styles.focusLabel, { color: isDark ? '#BFE6C6' : '#67B84F' }]}>当前最强榜单</Text>
               </View>
-              <View style={[styles.focusBodyCard, { backgroundColor: 'transparent', flex: 1 }]}>
+              <View style={[styles.focusBodyCard, { backgroundColor: colors.surface, flex: 1 }]}>
                 <View style={styles.focusArtworkPanel}>
-                  <StrongIcon width={84} height={84} />
+                  <StrongIcon width={64} height={64} />
                 </View>
                 <Text style={[styles.focusHeading, { color: colors.text }]} numberOfLines={3}>
                   {strongestConfig.title}
@@ -463,15 +465,15 @@ const HomeScreen: React.FC<Props> = () => {
             <View
               style={[
                 styles.focusCard,
-                { backgroundColor: colors.surface },
+                { backgroundColor: isDark ? '#4B4222' : '#F8E8A6' },
               ]}
             >
-              <View style={[styles.focusCardHero, { backgroundColor: isDark ? '#4B4222' : '#F8E8A6' }]}>
+              <View style={[styles.focusCardHero, { backgroundColor: 'transparent', paddingHorizontal: 4 }]}>
                 <Text style={[styles.focusLabel, { color: isDark ? '#F6E7AE' : '#D89A1D' }]}>下一里程碑</Text>
               </View>
-              <View style={[styles.focusBodyCard, { backgroundColor: 'transparent', flex: 1 }]}>
+              <View style={[styles.focusBodyCard, { backgroundColor: colors.surface, flex: 1 }]}>
                 <View style={styles.focusArtworkPanel}>
-                  <NextIcon width={84} height={84} />
+                  <NextIcon width={64} height={64} />
                 </View>
                 <Text style={[styles.focusHeading, { color: colors.text }]} numberOfLines={3}>
                   {recommendedConfig.title}
@@ -837,8 +839,9 @@ const styles = StyleSheet.create({
   },
   focusCard: {
     flex: 1,
-    borderRadius: 24,
-    paddingTop: 14,
+    borderRadius: 18,
+    padding: 8,
+    paddingTop: 10,
     justifyContent: 'space-between',
     overflow: 'hidden',
   },
@@ -848,15 +851,15 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   focusCardHero: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
   focusArtworkPanel: {
     position: 'absolute',
-    right: -20,
-    top: -20,
+    right: 0,
+    top: 0,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 0,
@@ -870,11 +873,13 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   focusBodyCard: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 16,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    gap: 12,
     position: 'relative',
     overflow: 'hidden',
+    marginTop: 6,
+    borderRadius: 14,
   },
   focusInfoRow: {
     flexDirection: 'row',
