@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MediaResource } from '../../types/media';
+import { getThumbnailUrl } from '../../utils/image';
 import { MediaPreviewer } from './MediaPreviewer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -68,7 +69,7 @@ export const NineGridMedia: React.FC<NineGridMediaProps> = ({
             ]}
           >
             {mediaItem.thumbnail || mediaItem.uri ? (
-              <Image source={{ uri: mediaItem.thumbnail || mediaItem.uri }} style={styles.mediaImage} resizeMode="cover" />
+              <Image source={{ uri: getThumbnailUrl(mediaItem.thumbnail || mediaItem.uri, 400, 400) }} style={styles.mediaImage} resizeMode="cover" />
             ) : (
               <View style={styles.mediaFallback}>
                 <Ionicons

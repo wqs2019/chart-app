@@ -45,6 +45,7 @@ const CheckinEntryEditorScreen: React.FC = () => {
   const [mood, setMood] = React.useState(entry?.content?.mood || '');
   const [attachments, setAttachments] = React.useState<CheckinAttachment[]>(entry?.content?.attachments || []);
   const [saving, setSaving] = React.useState(false);
+  const [scrollEnabled, setScrollEnabled] = React.useState(true);
 
   React.useEffect(() => {
     navigation.setOptions({ title: entry ? '编辑记录' : '录入数据' });
@@ -89,7 +90,11 @@ const CheckinEntryEditorScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.safeArea}
       >
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          contentContainerStyle={styles.content} 
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={scrollEnabled}
+        >
           <View style={[styles.headerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>ENTRY EDITOR</Text>
             <Text style={[styles.title, { color: colors.text }]}>{item.name_zh}</Text>
@@ -128,6 +133,9 @@ const CheckinEntryEditorScreen: React.FC = () => {
                 onChange={setAttachments}
                 itemId={item._id}
                 disabled={saving}
+                draggable
+                onDragStart={() => setScrollEnabled(false)}
+                onDragEnd={() => setScrollEnabled(true)}
               />
             ) : null}
           </View>

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import DiaryMasonryCard from '../../components/common/DiaryMasonryCard';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { checkinService } from '../../services/checkinService';
 import { socialService } from '../../services/socialService';
@@ -301,7 +302,7 @@ const OverallDiaryFeedScreen: React.FC = () => {
             <View style={styles.heroTopRow}>
               <View style={styles.authorRow}>
                 {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                  <Image source={{ uri: getThumbnailUrl(avatarUri, 200, 200) }} style={styles.avatar} />
                 ) : (
                   <View
                     style={[

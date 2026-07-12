@@ -18,6 +18,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import authService from '../../services/authService';
 import { useAppStore } from '../../store/appStore';
@@ -45,7 +46,7 @@ const formatDateTime = (value?: string | number | Date | null) => {
     return '未知时间';
   }
 
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 };
 
 const AdminUserManagementScreen: React.FC = () => {
@@ -228,7 +229,7 @@ const AdminUserManagementScreen: React.FC = () => {
             ]}
           >
             {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              <Image source={{ uri: getThumbnailUrl(avatarUrl, 200, 200) }} style={styles.avatarImage} />
             ) : (
               <Ionicons name="person" size={18} color={item.isDelete ? colors.textSecondary : colors.primary} />
             )}
@@ -253,6 +254,21 @@ const AdminUserManagementScreen: React.FC = () => {
             <Text style={[styles.userSubInfo, { color: colors.textSecondary }]}>
               {email} · 注册于 {formatDateTime(item.created_at || item.createdAt)}
             </Text>
+            <View style={styles.userActiveRow}>
+              <Text style={[styles.userActiveInfo, { color: colors.textSecondary }]}>
+                最近活跃: {formatDateTime(item.last_active_at) || '从未活跃'}
+              </Text>
+              {(() => {
+                const lastActiveAt = item.last_active_at;
+                if (!lastActiveAt) return null;
+                const lastActiveTime = new Date(lastActiveAt).getTime();
+                const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+                if (Date.now() - lastActiveTime > oneWeekMs) {
+                  return renderStatusTag('不活跃', isDark ? '#3F1D1D' : '#FEE2E2', isDark ? '#FCA5A5' : '#DC2626');
+                }
+                return renderStatusTag('活跃', isDark ? '#064E3B' : '#D1FAE5', isDark ? '#34D399' : '#059669');
+              })()}
+            </View>
             <Text style={[styles.userIdText, { color: colors.textSecondary }]} numberOfLines={1}>
               ID: {item._id}
             </Text>
@@ -643,6 +659,14 @@ const styles = StyleSheet.create({
   userSubInfo: {
     fontSize: 13,
     marginTop: 6,
+  },
+  userActiveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  userActiveInfo: {
+    fontSize: 12,
   },
   userIdText: {
     fontSize: 12,

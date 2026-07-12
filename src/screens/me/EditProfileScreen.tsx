@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '../../components/common/Button';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import authService from '../../services/authService';
 import imageService from '../../services/imageService';
@@ -30,11 +31,11 @@ const genderOptions: Array<{
   label: string;
   value: NonNullable<User['profile']>['gender'];
 }> = [
-  { label: '保密', value: 'unspecified' },
-  { label: '男', value: 'male' },
-  { label: '女', value: 'female' },
-  { label: '其他', value: 'other' },
-];
+    { label: '保密', value: 'unspecified' },
+    { label: '男', value: 'male' },
+    { label: '女', value: 'female' },
+    { label: '其他', value: 'other' },
+  ];
 
 const getFileExtension = (fileNameOrUri: string) => {
   const matched = fileNameOrUri.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
@@ -201,7 +202,7 @@ const EditProfileScreen: React.FC = () => {
                 ]}
               >
                 {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                  <Image source={{ uri: getThumbnailUrl(avatarUrl, 200, 200) }} style={styles.avatar} />
                 ) : (
                   <Text style={[styles.avatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
                 )}

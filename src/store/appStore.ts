@@ -27,6 +27,7 @@ type AppState = {
   setUnreadLikeFavoriteCount: (count: number) => void;
   setUnreadCommentCount: (count: number) => void;
   signOut: () => Promise<void>;
+  updateProfile: (userId: string, data: Partial<AuthUser>) => Promise<void>;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -110,9 +111,9 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => {
       nextSession = state.currentSession
         ? {
-            ...state.currentSession,
-            user,
-          }
+          ...state.currentSession,
+          user,
+        }
         : null;
 
       return {
@@ -155,6 +156,29 @@ export const useAppStore = create<AppState>((set) => ({
       unreadNotificationCount: 0,
       unreadLikeFavoriteCount: 0,
       unreadCommentCount: 0,
+    });
+  },
+  updateProfile: async (userId, data) => {
+    if (userId !== useAppStore.getState().currentUser?._id) {
+      return;
+    }
+
+    set((state) => {
+      const nextUser: AuthUser = {
+        ...(state.currentUser as AuthUser),
+        ...data,
+      };
+      const nextSession = state.currentSession
+        ? {
+          ...state.currentSession,
+          user: nextUser,
+        }
+        : null;
+
+      return {
+        currentUser: nextUser,
+        currentSession: nextSession,
+      };
     });
   },
 }));

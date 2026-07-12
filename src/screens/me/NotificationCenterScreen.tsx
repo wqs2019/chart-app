@@ -6,6 +6,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'rea
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { notificationService } from '../../services/notificationService';
 import { useAppStore } from '../../store/appStore';
@@ -160,7 +161,7 @@ const NotificationCenterScreen: React.FC = () => {
                   ]}
                 >
                   {avatarUrl ? (
-                    <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                    <Image source={{ uri: getThumbnailUrl(avatarUrl, 200, 200) }} style={styles.avatar} />
                   ) : (
                     <Text style={[styles.avatarFallback, { color: colors.primary }]}>
                       {getAvatarFallback(displayName)}

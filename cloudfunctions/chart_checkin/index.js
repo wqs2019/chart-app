@@ -394,7 +394,7 @@ function summarizeCheckinInteraction(entries = [], fallbackInteraction = null) {
       summary.favorites_count += entryInteraction.favorites_count;
       return summary;
     },
-    normalizeCachedInteraction(fallbackInteraction)
+    { likes_count: 0, comments_count: 0, favorites_count: 0 }
   );
 }
 
@@ -461,10 +461,10 @@ function buildSnapshotMetrics(code, aggregateEntry) {
   if (code === 'world_travel') {
     const achievementScore = roundScore(
       rawCount * 4 +
-        aggregateEntry.continents.size * 5 +
-        aggregateEntry.world_tier_counts.A * 0.2 +
-        aggregateEntry.world_tier_counts.B * 0.4 +
-        aggregateEntry.world_tier_counts.C * 0.8
+      aggregateEntry.continents.size * 5 +
+      aggregateEntry.world_tier_counts.A * 0.2 +
+      aggregateEntry.world_tier_counts.B * 0.4 +
+      aggregateEntry.world_tier_counts.C * 0.8
     );
 
     return {
@@ -642,6 +642,12 @@ async function refreshLeaderboardSnapshots(code) {
   }
 
   const normalizedCode = normalizeLeaderboardCode(code);
+
+  if (normalizedCode === 'overall') {
+    await refreshOverallSnapshots();
+    return;
+  }
+
   const codeCandidates = getLeaderboardCodeCandidates(normalizedCode);
   const [{ data: checkins }, { data: standardItems }] = await Promise.all([
     checkinsCollection
@@ -1071,8 +1077,8 @@ const saveCheckinEntry = async (data = {}) => {
     }
     const nextEntries = existingEntry
       ? existingEntries.map((currentEntry) =>
-          currentEntry.entry_id === nextEntry.entry_id ? { ...currentEntry, ...nextEntry } : currentEntry
-        )
+        currentEntry.entry_id === nextEntry.entry_id ? { ...currentEntry, ...nextEntry } : currentEntry
+      )
       : [nextEntry, ...existingEntries];
     const nextInteraction = summarizeCheckinInteraction(nextEntries, anchorCheckin?.interaction);
     const nextPayload = {
@@ -1298,6 +1304,18 @@ const getUploadCredentials = async () => {
   }
 };
 
+const refreshAllLeaderboardSnapshots = async () => {
+  try {
+    await refreshLeaderboardSnapshots('world_travel');
+    await refreshLeaderboardSnapshots('china_travel');
+    await refreshLeaderboardSnapshots('activity');
+    await refreshLeaderboardSnapshots('overall');
+    return ok(true);
+  } catch (error) {
+    return fail('刷新所有榜单失败', error);
+  }
+};
+
 const actionMap = {
   getStandardItems,
   getStandardItemDetail,
@@ -1308,6 +1326,7 @@ const actionMap = {
   saveCheckinEntry,
   deleteCheckinEntry,
   getUploadCredentials,
+  refreshAllLeaderboardSnapshots,
 };
 
 function normalizeEventPayload(event = {}) {

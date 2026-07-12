@@ -12,6 +12,8 @@ import {
   View,
 } from 'react-native';
 
+import { DraggableGrid } from 'react-native-draggable-grid';
+
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { imageService } from '../../services/imageService';
 import { MediaResource } from '../../types/media';
@@ -24,6 +26,9 @@ type MediaSelectorProps = {
   itemId: string;
   maxCount?: number;
   disabled?: boolean;
+  draggable?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 };
 
 type SelectorMediaType = 'image' | 'video' | 'livePhoto';
@@ -82,6 +87,9 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
   itemId,
   maxCount = 9,
   disabled = false,
+  draggable = false,
+  onDragStart,
+  onDragEnd,
 }) => {
   const { colors, isDark } = useAppTheme();
   const [previewVisible, setPreviewVisible] = React.useState(false);
@@ -254,34 +262,61 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
     [onChange, value]
   );
 
-  return (
-    <View>
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.title, { color: colors.text }]}>媒体附件</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            图片和视频都会显示为九宫格，可点击预览
-          </Text>
-        </View>
-        <Text style={[styles.count, { color: colors.textSecondary }]}>
-          {value.length}/{maxCount}
-        </Text>
-      </View>
+  const gridData = React.useMemo(() => {
+    const data: any[] = [
+      ...value.map((item) => ({
+        ...item,
+        key: item.file_id || item.temp_url || Math.random().toString(),
+        isUploading: false,
+        disabledDrag: !draggable || disabled,
+        disabledReSorted: !draggable || disabled,
+      })),
+      ...uploading.map((item) => ({
+        ...item,
+        key: item.id,
+        isUploading: true,
+        disabledDrag: true,
+        disabledReSorted: true,
+      })),
+    ];
 
-      <View style={styles.grid}>
-        {value.map((attachment, index) => {
-          const previewUri =
-            attachment.media_type === 'video'
-              ? attachment.thumbnail_temp_url || attachment.temp_url
-              : attachment.temp_url;
+    if (value.length + uploading.length < maxCount) {
+      data.push({
+        key: 'add-button',
+        isAddButton: true,
+        disabledDrag: true,
+        disabledReSorted: true,
+      });
+    }
+    return data;
+  }, [value, uploading, maxCount, draggable, disabled]);
 
-          return (
-            <Pressable
-              key={attachment.file_id}
-              onPress={() => {
-                setPreviewIndex(index);
-                setPreviewVisible(true);
-              }}
+  const renderGridItem = React.useCallback(
+    (item: any) => {
+      if (item.isAddButton) {
+        return (
+          <View key={item.key} style={styles.gridItemContainer}>
+            <View
+              style={[
+                styles.addCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF',
+                  borderColor: colors.border,
+                  opacity: disabled ? 0.6 : 1,
+                },
+              ]}
+            >
+              <Ionicons name="add-circle-outline" size={28} color={colors.primary} />
+              <Text style={[styles.addText, { color: colors.textSecondary }]}>添加附件</Text>
+            </View>
+          </View>
+        );
+      }
+
+      if (item.isUploading) {
+        return (
+          <View key={item.key} style={styles.gridItemContainer}>
+            <View
               style={[
                 styles.card,
                 {
@@ -290,57 +325,25 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
                 },
               ]}
             >
-              {previewUri ? (
-                <Image source={{ uri: previewUri }} style={styles.cover} />
-              ) : (
-                <View
-                  style={[
-                    styles.coverFallback,
-                    { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)' },
-                  ]}
-                >
-                  <Ionicons
-                    name={
-                      attachment.media_type === 'video'
-                        ? 'videocam'
-                        : attachment.media_type === 'livePhoto'
-                          ? 'aperture'
-                          : 'image'
-                    }
-                    size={20}
-                    color={colors.primary}
-                  />
-                </View>
-              )}
+              <Image source={{ uri: item.preview_uri }} style={styles.cover} />
+              <View style={styles.uploadingOverlay}>
+                <ActivityIndicator color="#FFFFFF" />
+                <Text style={styles.uploadingText}>上传中</Text>
+              </View>
+            </View>
+          </View>
+        );
+      }
 
-              {attachment.media_type === 'video' ? (
-                <>
-                  <View style={styles.playOverlay}>
-                    <Ionicons name="play-circle" size={26} color="rgba(255,255,255,0.92)" />
-                  </View>
-                  <View style={styles.durationBadge}>
-                    <Text style={styles.durationText}>{formatDuration(attachment.duration_ms)}</Text>
-                  </View>
-                </>
-              ) : null}
+      const attachment = item as CheckinAttachment;
+      const previewUri =
+        attachment.media_type === 'video'
+          ? attachment.thumbnail_temp_url || attachment.temp_url
+          : attachment.temp_url;
 
-              {attachment.media_type === 'livePhoto' ? (
-                <View style={styles.liveBadge}>
-                  <Ionicons name="aperture" size={12} color="#FFF" />
-                  <Text style={styles.liveBadgeText}>实况</Text>
-                </View>
-              ) : null}
-
-              <Pressable onPress={() => removeAttachment(attachment)} style={styles.removeButton}>
-                <Ionicons name="close-circle" size={22} color="#FFFFFF" />
-              </Pressable>
-            </Pressable>
-          );
-        })}
-
-        {uploading.map((attachment) => (
+      return (
+        <View key={item.key} style={styles.gridItemContainer}>
           <View
-            key={attachment.id}
             style={[
               styles.card,
               {
@@ -349,32 +352,104 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
               },
             ]}
           >
-            <Image source={{ uri: attachment.preview_uri }} style={styles.cover} />
-            <View style={styles.uploadingOverlay}>
-              <ActivityIndicator color="#FFFFFF" />
-              <Text style={styles.uploadingText}>上传中</Text>
-            </View>
-          </View>
-        ))}
+            {previewUri ? (
+              <Image source={{ uri: previewUri }} style={styles.cover} />
+            ) : (
+              <View
+                style={[
+                  styles.coverFallback,
+                  { backgroundColor: isDark ? 'rgba(255,155,122,0.14)' : 'rgba(255,122,89,0.08)' },
+                ]}
+              >
+                <Ionicons
+                  name={
+                    attachment.media_type === 'video'
+                      ? 'videocam'
+                      : attachment.media_type === 'livePhoto'
+                        ? 'aperture'
+                        : 'image'
+                  }
+                  size={20}
+                  color={colors.primary}
+                />
+              </View>
+            )}
 
-        {value.length + uploading.length < maxCount ? (
-          <Pressable
-            onPress={openPicker}
-            disabled={disabled}
-            style={[
-              styles.addCard,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FBFF',
-                borderColor: colors.border,
-                opacity: disabled ? 0.6 : 1,
-              },
-            ]}
-          >
-            <Ionicons name="add-circle-outline" size={28} color={colors.primary} />
-            <Text style={[styles.addText, { color: colors.textSecondary }]}>添加附件</Text>
-          </Pressable>
-        ) : null}
+            {attachment.media_type === 'video' ? (
+              <>
+                <View style={styles.playOverlay}>
+                  <Ionicons name="play-circle" size={26} color="rgba(255,255,255,0.92)" />
+                </View>
+                <View style={styles.durationBadge}>
+                  <Text style={styles.durationText}>{formatDuration(attachment.duration_ms)}</Text>
+                </View>
+              </>
+            ) : null}
+
+            {attachment.media_type === 'livePhoto' ? (
+              <View style={styles.liveBadge}>
+                <Ionicons name="aperture" size={12} color="#FFF" />
+                <Text style={styles.liveBadgeText}>实况</Text>
+              </View>
+            ) : null}
+
+            <Pressable onPress={() => removeAttachment(attachment)} style={styles.removeButton}>
+              <Ionicons name="close-circle" size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        </View>
+      );
+    },
+    [colors, disabled, isDark, removeAttachment]
+  );
+
+  return (
+    <View>
+      <View style={styles.header}>
+        <View>
+          <Text style={[styles.title, { color: colors.text }]}>媒体附件</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            {draggable && value.length > 1
+              ? '图片和视频都会显示为九宫格，长按可拖动排序'
+              : '图片和视频都会显示为九宫格，可点击预览'}
+          </Text>
+        </View>
+        <Text style={[styles.count, { color: colors.textSecondary }]}>
+          {value.length}/{maxCount}
+        </Text>
       </View>
+
+      <DraggableGrid
+        numColumns={3}
+        data={gridData}
+        renderItem={renderGridItem}
+        itemHeight={112}
+        delayLongPress={200}
+        onDragStart={onDragStart}
+        onItemPress={(item: any) => {
+          if (item.isAddButton) {
+            if (!disabled) {
+              openPicker();
+            }
+          } else if (!item.isUploading) {
+            const currentIndex = value.findIndex((m) => m.file_id === item.file_id);
+            if (currentIndex >= 0) {
+              setPreviewIndex(currentIndex);
+              setPreviewVisible(true);
+            }
+          }
+        }}
+        onDragRelease={(newData) => {
+          onDragEnd?.();
+          const newAttachments = newData
+            .filter((i: any) => !i.isAddButton && !i.isUploading)
+            .map((i: any) => {
+              const { key, isAddButton, isUploading, disabledDrag, disabledReSorted, ...rest } = i;
+              return rest;
+            });
+          onChange(newAttachments as CheckinAttachment[]);
+        }}
+      />
 
       <MediaPreviewer
         visible={previewVisible}
@@ -410,6 +485,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+  },
+  gridItemContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   card: {
     width: 102,

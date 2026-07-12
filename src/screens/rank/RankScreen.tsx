@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import CommonModal from '../../components/common/CommonModal';
 import LeaderboardSwitcher from '../../components/rank/LeaderboardSwitcher';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { checkinService } from '../../services/checkinService';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import {
@@ -140,8 +143,11 @@ const RankScreen: React.FC = () => {
   const [dataByCode, setDataByCode] = React.useState<Partial<Record<LeaderboardCode, RankScreenData>>>({});
   const [switchingCode, setSwitchingCode] = React.useState<LeaderboardCode | null>(null);
   const [showScoreGuide, setShowScoreGuide] = React.useState(false);
+  const [refreshingAll, setRefreshingAll] = React.useState(false);
+  const [pullRefreshing, setPullRefreshing] = React.useState(false);
   const requestIdRef = React.useRef(0);
 
+  const isAdmin = currentUser?.isAdmin;
   const currentConfig = LEADERBOARD_CONFIGS[selectedCode];
   const scoreRuleLines = React.useMemo(() => getScoreRuleLines(selectedCode), [selectedCode]);
   const scoreSourceHint = React.useMemo(() => getScoreSourceHint(selectedCode), [selectedCode]);
@@ -231,9 +237,42 @@ const RankScreen: React.FC = () => {
     }, [fetchData, selectedCode])
   );
 
+  const handleRefreshAll = React.useCallback(async () => {
+    setRefreshingAll(true);
+    try {
+      await checkinService.refreshAllLeaderboardSnapshots();
+      setDataByCode({});
+      await fetchData(selectedCode);
+    } catch (error) {
+      console.error('Failed to refresh all leaderboard snapshots', error);
+    } finally {
+      setRefreshingAll(false);
+    }
+  }, [selectedCode, fetchData]);
+
+  const handlePullRefresh = React.useCallback(async () => {
+    setPullRefreshing(true);
+    try {
+      await fetchData(selectedCode);
+    } finally {
+      setPullRefreshing(false);
+    }
+  }, [fetchData, handleRefreshAll, isAdmin, selectedCode]);
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={pullRefreshing}
+            onRefresh={handlePullRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
         <View style={styles.topHeader}>
           <View>
             <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>RANKING CENTER</Text>
@@ -274,17 +313,37 @@ const RankScreen: React.FC = () => {
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{currentConfig.title} 排行榜</Text>
               <Text style={[styles.listHint, { color: colors.textSecondary }]}>按总分实时排序</Text>
             </View>
-            <View
-              style={[
-                styles.inlineBadge,
-                {
-                  backgroundColor: isDark ? 'rgba(148,163,184,0.10)' : '#EEF3F9',
-                },
-              ]}
-            >
-              <Text style={[styles.inlineBadgeText, { color: colors.textSecondary }]}>
-                {isCurrentLoading ? '同步中...' : `TOP ${rows.length}`}
-              </Text>
+            <View style={styles.sectionHeaderActions}>
+              {isAdmin && (
+                <Pressable
+                  onPress={handleRefreshAll}
+                  disabled={refreshingAll}
+                  style={[
+                    styles.refreshButton,
+                    {
+                      backgroundColor: isDark ? 'rgba(148,163,184,0.10)' : '#EEF3F9',
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={refreshingAll ? 'refresh-circle' : 'refresh-circle-outline'}
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              )}
+              <View
+                style={[
+                  styles.inlineBadge,
+                  {
+                    backgroundColor: isDark ? 'rgba(148,163,184,0.10)' : '#EEF3F9',
+                  },
+                ]}
+              >
+                <Text style={[styles.inlineBadgeText, { color: colors.textSecondary }]}>
+                  {refreshingAll ? '刷新中...' : isCurrentLoading ? '同步中...' : `TOP ${rows.length}`}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -340,7 +399,7 @@ const RankScreen: React.FC = () => {
                   <View style={styles.compactSummaryInline}>
                     <View style={styles.compactSummaryMain}>
                       <Text style={[styles.compactSummaryLabel, { color: colors.textSecondary }]}>我的排名</Text>
-                      <Text style={[styles.compactSummaryRank, { color: colors.text }]}>#{myRank.rank || '--'}</Text>
+                      <Text style={[styles.compactSummaryRank, { color: colors.text }]}>NO.{myRank.rank || '--'}</Text>
                     </View>
                     <View style={styles.compactSummaryMetrics}>
                       <View style={styles.compactMetricRow}>
@@ -435,7 +494,7 @@ const RankScreen: React.FC = () => {
                         ]}
                       >
                         <Text style={[styles.rankCornerText, { color: isMine ? '#FFFFFF' : colors.text }]}>
-                          #{displayRank}
+                          NO.{displayRank}
                         </Text>
                       </View>
                       <View style={styles.rankBody}>
@@ -454,7 +513,7 @@ const RankScreen: React.FC = () => {
                           ]}
                         >
                           {avatarUri ? (
-                            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                            <Image source={{ uri: getThumbnailUrl(avatarUri, 200, 200) }} style={styles.avatar} />
                           ) : (
                             <Text style={[styles.avatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
                           )}
@@ -486,12 +545,29 @@ const RankScreen: React.FC = () => {
                                   style={[
                                     styles.tag,
                                     {
-                                      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F7FAFC',
-                                      borderColor: colors.border,
+                                      backgroundColor: isMine
+                                        ? isDark
+                                          ? 'rgba(255,155,122,0.14)'
+                                          : 'rgba(255,122,89,0.08)'
+                                        : isDark
+                                          ? 'rgba(59,130,246,0.12)'
+                                          : 'rgba(59,130,246,0.08)',
+                                      borderColor: isMine
+                                        ? isDark
+                                          ? 'rgba(255,155,122,0.3)'
+                                          : 'rgba(255,122,89,0.2)'
+                                        : isDark
+                                          ? 'rgba(59,130,246,0.3)'
+                                          : 'rgba(59,130,246,0.2)',
                                     },
                                   ]}
                                 >
-                                  <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>{tag}</Text>
+                                  <Text
+                                    numberOfLines={1}
+                                    style={{ color: isMine ? colors.primary : isDark ? '#93C5FD' : '#2563EB', fontSize: 12 }}
+                                  >
+                                    {tag}
+                                  </Text>
                                 </View>
                               ))}
                             </View>
@@ -633,6 +709,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  sectionHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  refreshButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inlineLoadingCard: {
     marginTop: 14,
@@ -780,6 +869,7 @@ const styles = StyleSheet.create({
   },
   rankMain: {
     flex: 1,
+    minWidth: 0,
   },
   avatarWrap: {
     width: 64,
@@ -828,13 +918,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     gap: 8,
     marginTop: 8,
+    minWidth: 0,
   },
   tag: {
-    borderWidth: 0,
+    borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    flexShrink: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    flexShrink: 0,
   },
   rankScoreWrap: {
     alignItems: 'flex-end',

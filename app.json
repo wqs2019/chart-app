@@ -2,7 +2,7 @@
   "expo": {
     "name": "地球玩家",
     "slug": "earth-player",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "earthplayer",
@@ -26,7 +26,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.traval.chartapp",
       "appleTeamId": "592UG636F5",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "buildNumber": "4"
     },
     "android": {
       "edgeToEdgeEnabled": true,

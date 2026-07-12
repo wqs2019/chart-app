@@ -17,6 +17,7 @@ import HelpFeedbackScreen from '../screens/me/HelpFeedbackScreen';
 import NotificationCenterScreen from '../screens/me/NotificationCenterScreen';
 import YearReviewScreen from '../screens/me/YearReviewScreen';
 import AchievementPosterScreen from '../screens/me/AchievementPosterScreen';
+import TravelFootprintMapScreen from '../screens/me/TravelFootprintMapScreen';
 import MainTabsScreen from '../screens/tabs/MainTabsScreen';
 import { useAppStore } from '../store/appStore';
 import { AppNotificationType } from '../types/notification';
@@ -56,6 +57,7 @@ export type RootStackParamList = {
     userId?: string;
     initialTab?: FollowTabKey;
   };
+  TravelFootprintMap: undefined;
   YearReview: undefined;
   AchievementPoster: undefined;
   OverallDiaryFeed: {
@@ -146,6 +148,11 @@ export const RootNavigator = () => {
             name="FollowCenter"
             component={require('../screens/me/FollowCenterScreen').default}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="TravelFootprintMap"
+            component={TravelFootprintMapScreen}
+            options={{ title: '地图足迹' }}
           />
           <Stack.Screen name="YearReview" component={YearReviewScreen} options={{ title: '年度回顾' }} />
           <Stack.Screen
