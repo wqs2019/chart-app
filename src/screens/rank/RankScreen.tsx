@@ -523,12 +523,24 @@ const RankScreen: React.FC = () => {
                                   style={[
                                     styles.tag,
                                     {
-                                      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F7FAFC',
-                                      borderColor: colors.border,
+                                      backgroundColor: isMine
+                                        ? isDark
+                                          ? 'rgba(255,155,122,0.14)'
+                                          : 'rgba(255,122,89,0.08)'
+                                        : isDark
+                                          ? 'rgba(59,130,246,0.12)'
+                                          : 'rgba(59,130,246,0.08)',
+                                      borderColor: isMine
+                                        ? isDark
+                                          ? 'rgba(255,155,122,0.3)'
+                                          : 'rgba(255,122,89,0.2)'
+                                        : isDark
+                                          ? 'rgba(59,130,246,0.3)'
+                                          : 'rgba(59,130,246,0.2)',
                                     },
                                   ]}
                                 >
-                                  <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>{tag}</Text>
+                                  <Text style={{ color: isMine ? colors.primary : isDark ? '#93C5FD' : '#2563EB', fontSize: 12 }}>{tag}</Text>
                                 </View>
                               ))}
                             </View>
@@ -880,7 +892,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   tag: {
-    borderWidth: 0,
+    borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
