@@ -9,6 +9,7 @@ import { UpdateModal } from '../../components/common/UpdateModal';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import authService from '../../services/authService';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import { LEADERBOARD_CONFIGS, LeaderboardCode, UserScoreSnapshot } from '../../types/rank';
@@ -149,6 +150,24 @@ const HomeScreen: React.FC<Props> = () => {
     };
     checkUpdate();
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    if (currentUser._id) {
+      const now = Date.now();
+      if (!currentUser.lastActiveAt || now - currentUser.lastActiveAt > 5 * 60 * 1000) {
+        useAppStore.getState().updateProfile(currentUser._id, { lastActiveAt: now }).catch((e) => {
+          console.log('Failed to update lastActiveAt', e);
+        });
+        void authService.updateLastActiveAt(currentUser._id).catch((e) => {
+          console.log('Failed to sync lastActiveAt to server', e);
+        });
+      }
+    }
+  }, [currentUser]);
 
   const overallSnapshot = summaryByCode.overall;
   const strongestCode = React.useMemo(() => getStrongestCode(summaryByCode), [summaryByCode]);

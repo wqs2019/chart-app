@@ -147,6 +147,15 @@ class AuthService {
 
     return unwrap(response);
   }
+
+  async updateLastActiveAt(userId: string): Promise<boolean> {
+    const response = await CloudService.callFunction<CloudResult<boolean>>('chart_user', {
+      action: 'updateLastActiveAt',
+      data: { _id: userId },
+    });
+
+    return unwrap(response);
+  }
 }
 
 export default new AuthService();

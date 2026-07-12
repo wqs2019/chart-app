@@ -22,6 +22,7 @@ export type User = {
   created_at?: string | number;
   updated_at?: string | number;
   last_login_at?: string | number | null;
+  last_active_at?: string | number | null;
   push_token?: string;
   isAdmin?: boolean;
   isDelete?: boolean;
@@ -46,6 +47,7 @@ export type AuthUser = {
   username: string;
   pushToken?: string;
   profile?: User['profile'];
+  lastActiveAt?: number;
 };
 
 export type AuthSession = {

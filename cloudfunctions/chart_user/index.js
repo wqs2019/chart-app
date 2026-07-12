@@ -585,6 +585,25 @@ async function setAdminUserFrozenStatus(data = {}) {
   }
 }
 
+async function updateLastActiveAt(data = {}) {
+  try {
+    const { _id } = data;
+    if (!_id) {
+      return fail('缺少用户 ID');
+    }
+
+    await usersCollection.doc(_id).update({
+      last_active_at: db.serverDate(),
+      updated_at: db.serverDate(),
+    });
+
+    return ok(true);
+  } catch (error) {
+    console.error('chart_user.updateLastActiveAt error:', error);
+    return fail('更新活跃时间失败', error);
+  }
+}
+
 const actionMap = {
   add: addUser,
   get: getUser,
@@ -596,6 +615,7 @@ const actionMap = {
   getAdminStatus,
   getAdminUserList,
   setAdminUserFrozenStatus,
+  updateLastActiveAt,
 };
 
 function normalizeEventPayload(event = {}) {
