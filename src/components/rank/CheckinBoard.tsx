@@ -16,6 +16,7 @@ import {
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { getThumbnailUrl } from '../../utils/image';
 import { checkinService } from '../../services/checkinService';
 import { useAppStore } from '../../store/appStore';
 import { LeaderboardCode, LEADERBOARD_CONFIGS, StandardItem, UserCheckin } from '../../types/rank';
@@ -469,7 +470,7 @@ const CheckinBoard: React.FC<CheckinBoardProps> = ({
               ]}
             >
               {itemCoverUri ? (
-                <Image source={{ uri: itemCoverUri }} style={styles.itemCoverImage} resizeMode="cover" />
+                <Image source={{ uri: getThumbnailUrl(itemCoverUri, 100, 100) }} style={styles.itemCoverImage} resizeMode="cover" />
               ) : (
                 <Text style={[styles.itemIndexText, { color: isChecked ? '#FFFFFF' : colors.textSecondary }]}>
                   {String(filteredItems.findIndex((entry) => entry._id === item._id) + 1).padStart(2, '0')}

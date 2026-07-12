@@ -18,6 +18,7 @@ import { captureRef } from 'react-native-view-shot';
 import QRCode from 'react-native-qrcode-svg';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
 import {
@@ -155,7 +156,7 @@ const AchievementPosterScreen: React.FC = () => {
               <View style={styles.posterHeader}>
                 <View style={styles.avatarWrap}>
                   {avatarUrl ? (
-                    <Image source={{ uri: avatarUrl }} style={styles.avatar} resizeMode="cover" />
+                    <Image source={{ uri: getThumbnailUrl(avatarUrl, 200, 200) }} style={styles.avatar} resizeMode="cover" />
                   ) : (
                     <Text style={styles.avatarFallback}>{avatarFallback}</Text>
                   )}

@@ -23,6 +23,7 @@ import Loading from '../../components/common/Loading';
 import { NineGridMedia } from '../../components/common/NineGridMedia';
 import { useToast } from '../../components/common/Toast';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import authService from '../../services/authService';
 import checkinService from '../../services/checkinService';
 import checkinInteractionService from '../../services/checkinInteractionService';
@@ -198,12 +199,12 @@ const CheckinEntryDetailScreen: React.FC = () => {
     () =>
       resolvedCode && resolvedItem && currentEntry?._id
         ? {
-            userId: userId || '',
-            ownerUserId: targetUserId || '',
-            code: resolvedCode,
-            itemId: resolvedItem._id,
-            entryId: currentEntry._id,
-          }
+          userId: userId || '',
+          ownerUserId: targetUserId || '',
+          code: resolvedCode,
+          itemId: resolvedItem._id,
+          entryId: currentEntry._id,
+        }
         : null,
     [currentEntry?._id, resolvedCode, resolvedItem, targetUserId, userId]
   );
@@ -274,30 +275,30 @@ const CheckinEntryDetailScreen: React.FC = () => {
         const nextInteraction =
           type === 'like'
             ? {
-                ...previousInteraction,
-                viewer_has_liked: !previousInteraction.viewer_has_liked,
-                likes_count: Math.max(
-                  0,
-                  previousInteraction.likes_count + (previousInteraction.viewer_has_liked ? -1 : 1)
-                ),
-              }
+              ...previousInteraction,
+              viewer_has_liked: !previousInteraction.viewer_has_liked,
+              likes_count: Math.max(
+                0,
+                previousInteraction.likes_count + (previousInteraction.viewer_has_liked ? -1 : 1)
+              ),
+            }
             : {
-                ...previousInteraction,
-                viewer_has_favorited: !previousInteraction.viewer_has_favorited,
-                favorites_count: Math.max(
-                  0,
-                  previousInteraction.favorites_count + (previousInteraction.viewer_has_favorited ? -1 : 1)
-                ),
-              };
+              ...previousInteraction,
+              viewer_has_favorited: !previousInteraction.viewer_has_favorited,
+              favorites_count: Math.max(
+                0,
+                previousInteraction.favorites_count + (previousInteraction.viewer_has_favorited ? -1 : 1)
+              ),
+            };
 
         return {
           ...prev,
           interaction: nextInteraction,
           content: prev.content
             ? {
-                ...prev.content,
-                interaction: nextInteraction,
-              }
+              ...prev.content,
+              interaction: nextInteraction,
+            }
             : prev.content,
         };
       });
@@ -355,14 +356,14 @@ const CheckinEntryDetailScreen: React.FC = () => {
       setSubmittingComment(true);
       const nextEntry = replyTarget
         ? await checkinInteractionService.replyComment({
-            ...interactionPayload,
-            commentId: replyTarget.comment_id,
-            content: trimmed,
-          })
+          ...interactionPayload,
+          commentId: replyTarget.comment_id,
+          content: trimmed,
+        })
         : await checkinInteractionService.addComment({
-            ...interactionPayload,
-            content: trimmed,
-          });
+          ...interactionPayload,
+          content: trimmed,
+        });
       setCurrentEntry(nextEntry);
       setCommentInput('');
       setReplyTarget(null);
@@ -534,187 +535,187 @@ const CheckinEntryDetailScreen: React.FC = () => {
           contentInsetAdjustmentBehavior="never"
         >
           <View style={styles.noteContent}>
-          <View style={styles.authorRow}>
-            <View style={styles.authorLeft}>
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatar} />
-              ) : (
-                <View
-                  style={[
-                    styles.avatarFallback,
-                    {
-                      backgroundColor: isDark ? 'rgba(255,155,122,0.18)' : 'rgba(255,122,89,0.10)',
-                    },
-                  ]}
-                >
-                  <Text style={[styles.avatarFallbackText, { color: colors.primary }]}>
-                    {getAvatarFallback(displayName)}
+            <View style={styles.authorRow}>
+              <View style={styles.authorLeft}>
+                {avatarUri ? (
+                  <Image source={{ uri: getThumbnailUrl(avatarUri, 200, 200) }} style={styles.avatar} />
+                ) : (
+                  <View
+                    style={[
+                      styles.avatarFallback,
+                      {
+                        backgroundColor: isDark ? 'rgba(255,155,122,0.18)' : 'rgba(255,122,89,0.10)',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.avatarFallbackText, { color: colors.primary }]}>
+                      {getAvatarFallback(displayName)}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.authorTextWrap}>
+                  <Text style={[styles.authorName, { color: colors.text }]}>{displayName}</Text>
+                  <Text style={[styles.authorMeta, { color: colors.textSecondary }]}>
+                    {formatTime(currentEntry.content?.visit_time)} · {locationText}
                   </Text>
                 </View>
-              )}
-
-              <View style={styles.authorTextWrap}>
-                <Text style={[styles.authorName, { color: colors.text }]}>{displayName}</Text>
-                <Text style={[styles.authorMeta, { color: colors.textSecondary }]}>
-                  {formatTime(currentEntry.content?.visit_time)} · {locationText}
-                </Text>
               </View>
-            </View>
 
-            {!isViewerMode ? (
-              <Pressable
-                onPress={() => navigation.navigate('CheckinEntryEditor', { code, item, entry: currentEntry })}
-                style={[
-                  styles.editPill,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.08)',
-                  },
-                ]}
-              >
-                <Ionicons name="create-outline" size={15} color={colors.primary} />
-                <Text style={[styles.editPillText, { color: colors.primary }]}>编辑</Text>
-              </Pressable>
-            ) : (
-              <View style={styles.editPillPlaceholder} />
-            )}
-          </View>
-
-          <Text style={[styles.noteTitle, { color: colors.text }]}>
-            {currentEntry.content?.title || `${item.name_zh} 游玩记录`}
-          </Text>
-
-          <Text style={[styles.noteBody, { color: colors.textSecondary }]}>
-            {currentEntry.content?.description || '这篇记录还没有填写正文内容。'}
-          </Text>
-
-          {hasViolationBadge || currentEntry.content?.weather || currentEntry.content?.mood || attachments.length ? (
-            <View style={styles.noteTagRow}>
-              {hasViolationBadge ? (
-                <View
+              {!isViewerMode ? (
+                <Pressable
+                  onPress={() => navigation.navigate('CheckinEntryEditor', { code, item, entry: currentEntry })}
                   style={[
-                    styles.noteTag,
+                    styles.editPill,
                     {
-                      backgroundColor: isDark ? 'rgba(239,68,68,0.16)' : 'rgba(239,68,68,0.10)',
+                      backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.08)',
                     },
                   ]}
                 >
-                  <Text style={[styles.noteTagText, { color: '#EF4444' }]}>笔记违规</Text>
-                </View>
-              ) : null}
-              {currentEntry.content?.weather ? (
-                <View
-                  style={[
-                    styles.noteTag,
-                    {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F5F7FB',
-                    },
-                  ]}
-                >
-                  <Text style={[styles.noteTagText, { color: colors.textSecondary }]}>
-                    {currentEntry.content.weather}
-                  </Text>
-                </View>
-              ) : null}
-              {currentEntry.content?.mood ? (
-                <View
-                  style={[
-                    styles.noteTag,
-                    {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F5F7FB',
-                    },
-                  ]}
-                >
-                  <Text style={[styles.noteTagText, { color: colors.textSecondary }]}>
-                    {currentEntry.content.mood}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
-
-          {attachments.length ? (
-            <View style={styles.mediaGridWrap}>
-              <NineGridMedia media={noteMedia} />
-            </View>
-          ) : null}
-
-          <View
-            style={[
-              styles.commentSection,
-              { borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' },
-            ]}
-          >
-            <View style={styles.commentHeader}>
-              <Text style={[styles.commentTitle, { color: colors.text }]}>评论区</Text>
-              <Text style={[styles.commentCount, { color: colors.textSecondary }]}>{comments.length} 条主评论</Text>
+                  <Ionicons name="create-outline" size={15} color={colors.primary} />
+                  <Text style={[styles.editPillText, { color: colors.primary }]}>编辑</Text>
+                </Pressable>
+              ) : (
+                <View style={styles.editPillPlaceholder} />
+              )}
             </View>
 
-            {comments.length ? (
-              <View style={styles.commentList}>
-                {comments.map((comment) => (
-                  <View key={comment.comment_id} style={styles.commentCard}>
-                    <View style={styles.commentRow}>
-                      {comment.author.avatar_url ? (
-                        <Image source={{ uri: comment.author.avatar_url }} style={styles.commentAvatar} />
-                      ) : (
-                        <View
-                          style={[
-                            styles.commentAvatarFallback,
-                            {
-                              backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.08)',
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.commentAvatarFallbackText, { color: colors.primary }]}>
-                            {getCommentAvatarFallback(comment)}
-                          </Text>
-                        </View>
-                      )}
-                      <View style={styles.commentBodyWrap}>
-                        <View style={styles.commentMetaRow}>
-                          <Text style={[styles.commentAuthorName, { color: colors.text }]}>
-                            {getCommentDisplayName(comment)}
-                          </Text>
-                          <Text style={[styles.commentTimeText, { color: colors.textSecondary }]}>
-                            {formatCommentTime(comment.created_at)}
-                          </Text>
-                        </View>
-                        <Text style={[styles.commentContentText, { color: colors.textSecondary }]}>
-                          {comment.content}
-                        </Text>
-                        <Pressable onPress={() => setReplyTarget(comment)} style={styles.replyButton}>
-                          <Text style={[styles.replyButtonText, { color: colors.primary }]}>回复</Text>
-                        </Pressable>
+            <Text style={[styles.noteTitle, { color: colors.text }]}>
+              {currentEntry.content?.title || `${item.name_zh} 游玩记录`}
+            </Text>
 
-                        {comment.replies?.length ? (
-                          <View style={styles.replyList}>
-                            {comment.replies.map((reply) => (
-                              <View key={reply.comment_id} style={styles.replyItem}>
-                                <Text style={[styles.replyMetaText, { color: colors.text }]}>
-                                  {getCommentDisplayName(reply)}
-                                  <Text style={[styles.replyTimeInline, { color: colors.textSecondary }]}>
-                                    {' · '}
-                                    {formatCommentTime(reply.created_at)}
-                                  </Text>
-                                </Text>
-                                <Text style={[styles.replyContentText, { color: colors.textSecondary }]}>
-                                  {reply.content}
-                                </Text>
-                              </View>
-                            ))}
+            <Text style={[styles.noteBody, { color: colors.textSecondary }]}>
+              {currentEntry.content?.description || '这篇记录还没有填写正文内容。'}
+            </Text>
+
+            {hasViolationBadge || currentEntry.content?.weather || currentEntry.content?.mood || attachments.length ? (
+              <View style={styles.noteTagRow}>
+                {hasViolationBadge ? (
+                  <View
+                    style={[
+                      styles.noteTag,
+                      {
+                        backgroundColor: isDark ? 'rgba(239,68,68,0.16)' : 'rgba(239,68,68,0.10)',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.noteTagText, { color: '#EF4444' }]}>笔记违规</Text>
+                  </View>
+                ) : null}
+                {currentEntry.content?.weather ? (
+                  <View
+                    style={[
+                      styles.noteTag,
+                      {
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F5F7FB',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.noteTagText, { color: colors.textSecondary }]}>
+                      {currentEntry.content.weather}
+                    </Text>
+                  </View>
+                ) : null}
+                {currentEntry.content?.mood ? (
+                  <View
+                    style={[
+                      styles.noteTag,
+                      {
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F5F7FB',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.noteTagText, { color: colors.textSecondary }]}>
+                      {currentEntry.content.mood}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
+            {attachments.length ? (
+              <View style={styles.mediaGridWrap}>
+                <NineGridMedia media={noteMedia} />
+              </View>
+            ) : null}
+
+            <View
+              style={[
+                styles.commentSection,
+                { borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' },
+              ]}
+            >
+              <View style={styles.commentHeader}>
+                <Text style={[styles.commentTitle, { color: colors.text }]}>评论区</Text>
+                <Text style={[styles.commentCount, { color: colors.textSecondary }]}>{comments.length} 条主评论</Text>
+              </View>
+
+              {comments.length ? (
+                <View style={styles.commentList}>
+                  {comments.map((comment) => (
+                    <View key={comment.comment_id} style={styles.commentCard}>
+                      <View style={styles.commentRow}>
+                        {comment.author.avatar_url ? (
+                          <Image source={{ uri: getThumbnailUrl(comment.author.avatar_url, 100, 100) }} style={styles.commentAvatar} />
+                        ) : (
+                          <View
+                            style={[
+                              styles.commentAvatarFallback,
+                              {
+                                backgroundColor: isDark ? 'rgba(255,155,122,0.16)' : 'rgba(255,122,89,0.08)',
+                              },
+                            ]}
+                          >
+                            <Text style={[styles.commentAvatarFallbackText, { color: colors.primary }]}>
+                              {getCommentAvatarFallback(comment)}
+                            </Text>
                           </View>
-                        ) : null}
+                        )}
+                        <View style={styles.commentBodyWrap}>
+                          <View style={styles.commentMetaRow}>
+                            <Text style={[styles.commentAuthorName, { color: colors.text }]}>
+                              {getCommentDisplayName(comment)}
+                            </Text>
+                            <Text style={[styles.commentTimeText, { color: colors.textSecondary }]}>
+                              {formatCommentTime(comment.created_at)}
+                            </Text>
+                          </View>
+                          <Text style={[styles.commentContentText, { color: colors.textSecondary }]}>
+                            {comment.content}
+                          </Text>
+                          <Pressable onPress={() => setReplyTarget(comment)} style={styles.replyButton}>
+                            <Text style={[styles.replyButtonText, { color: colors.primary }]}>回复</Text>
+                          </Pressable>
+
+                          {comment.replies?.length ? (
+                            <View style={styles.replyList}>
+                              {comment.replies.map((reply) => (
+                                <View key={reply.comment_id} style={styles.replyItem}>
+                                  <Text style={[styles.replyMetaText, { color: colors.text }]}>
+                                    {getCommentDisplayName(reply)}
+                                    <Text style={[styles.replyTimeInline, { color: colors.textSecondary }]}>
+                                      {' · '}
+                                      {formatCommentTime(reply.created_at)}
+                                    </Text>
+                                  </Text>
+                                  <Text style={[styles.replyContentText, { color: colors.textSecondary }]}>
+                                    {reply.content}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          ) : null}
+                        </View>
                       </View>
                     </View>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text style={[styles.commentEmptyText, { color: colors.textSecondary }]}>
-                还没有评论，来留下第一条互动吧。
-              </Text>
-            )}
-          </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={[styles.commentEmptyText, { color: colors.textSecondary }]}>
+                  还没有评论，来留下第一条互动吧。
+                </Text>
+              )}
+            </View>
           </View>
         </ScrollView>
 

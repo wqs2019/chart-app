@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import CommonModal from '../../components/common/CommonModal';
 import LeaderboardSwitcher from '../../components/rank/LeaderboardSwitcher';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
@@ -454,7 +455,7 @@ const RankScreen: React.FC = () => {
                           ]}
                         >
                           {avatarUri ? (
-                            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                            <Image source={{ uri: getThumbnailUrl(avatarUri, 200, 200) }} style={styles.avatar} />
                           ) : (
                             <Text style={[styles.avatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
                           )}

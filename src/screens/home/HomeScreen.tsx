@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { UpdateModal } from '../../components/common/UpdateModal';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { rankService } from '../../services/rankService';
 import { useAppStore } from '../../store/appStore';
@@ -128,11 +129,11 @@ const HomeScreen: React.FC<Props> = () => {
         // 检查是否已经提示过该版本以及上次提示的时间
         const lastPromptedVersion = await AsyncStorage.getItem('last_prompted_update_version');
         const lastPromptedTimeStr = await AsyncStorage.getItem('last_prompted_update_time');
-        
+
         const now = Date.now();
         const lastPromptedTime = lastPromptedTimeStr ? parseInt(lastPromptedTimeStr, 10) : 0;
         const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
-        
+
         // 如果是新版本，或者距离上次提示已经超过30天，则再次提示
         if (lastPromptedVersion !== info.latestVersion || (now - lastPromptedTime) > thirtyDaysInMs) {
           setUpdateInfo({
@@ -204,7 +205,7 @@ const HomeScreen: React.FC<Props> = () => {
               ]}
             >
               {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.heroAvatar} />
+                <Image source={{ uri: getThumbnailUrl(avatarUrl, 200, 200) }} style={styles.heroAvatar} />
               ) : (
                 <Text style={[styles.heroAvatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
               )}

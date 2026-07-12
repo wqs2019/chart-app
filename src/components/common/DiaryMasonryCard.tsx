@@ -3,6 +3,7 @@ import React from 'react';
 import { Image, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 
 type DiaryMasonryCardProps = {
   width: number;
@@ -55,7 +56,7 @@ const DiaryMasonryCard: React.FC<DiaryMasonryCardProps> = ({
       >
         {coverUri ? (
           <>
-            <Image source={{ uri: coverUri }} style={styles.cover} resizeMode="cover" />
+            <Image source={{ uri: getThumbnailUrl(coverUri, 600, 600) }} style={styles.cover} resizeMode="cover" />
             {showVideoBadge ? (
               <View style={styles.videoBadge}>
                 <Ionicons name="play" size={12} color="#FFFFFF" />

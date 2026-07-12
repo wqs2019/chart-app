@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import authService from '../../services/authService';
 import feedbackService from '../../services/feedbackService';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { notificationService } from '../../services/notificationService';
 import { socialService } from '../../services/socialService';
@@ -37,19 +38,19 @@ const MeScreen: React.FC = () => {
     title: string;
     icon: keyof typeof Ionicons.glyphMap;
   }> = [
-    {
-      title: '点赞与收藏',
-      icon: 'heart-outline',
-    },
-    {
-      title: '粉丝关注',
-      icon: 'people-outline',
-    },
-    {
-      title: '评论区',
-      icon: 'chatbubble-ellipses-outline',
-    },
-  ];
+      {
+        title: '点赞与收藏',
+        icon: 'heart-outline',
+      },
+      {
+        title: '粉丝关注',
+        icon: 'people-outline',
+      },
+      {
+        title: '评论区',
+        icon: 'chatbubble-ellipses-outline',
+      },
+    ];
   const gender = currentUser?.profile?.gender || 'unspecified';
   const genderMeta =
     gender === 'male'
@@ -66,19 +67,19 @@ const MeScreen: React.FC = () => {
     icon: keyof typeof Ionicons.glyphMap;
     route: 'AccountSecurity' | 'AppSettings';
   }> = [
-    {
-      title: '账户与安全',
-      subtitle: '查看 Apple 登录身份、邮箱、会话状态和安全信息',
-      icon: 'shield-checkmark-outline',
-      route: 'AccountSecurity',
-    },
-    {
-      title: '应用设置',
-      subtitle: '切换主题模式、清除缓存，统一管理体验偏好',
-      icon: 'options-outline',
-      route: 'AppSettings',
-    },
-  ];
+      {
+        title: '账户与安全',
+        subtitle: '查看 Apple 登录身份、邮箱、会话状态和安全信息',
+        icon: 'shield-checkmark-outline',
+        route: 'AccountSecurity',
+      },
+      {
+        title: '应用设置',
+        subtitle: '切换主题模式、清除缓存，统一管理体验偏好',
+        icon: 'options-outline',
+        route: 'AppSettings',
+      },
+    ];
 
   const supportMenuItems: Array<{
     title: string;
@@ -86,19 +87,19 @@ const MeScreen: React.FC = () => {
     icon: keyof typeof Ionicons.glyphMap;
     route: 'AboutApp' | 'HelpFeedback';
   }> = [
-    {
-      title: '关于 App',
-      subtitle: '查看产品定位、版本信息和当前版本亮点',
-      icon: 'information-circle-outline',
-      route: 'AboutApp',
-    },
-    {
-      title: '帮助与反馈',
-      subtitle: '查看常见问题，并发送问题反馈或功能建议',
-      icon: 'help-circle-outline',
-      route: 'HelpFeedback',
-    },
-  ];
+      {
+        title: '关于 App',
+        subtitle: '查看产品定位、版本信息和当前版本亮点',
+        icon: 'information-circle-outline',
+        route: 'AboutApp',
+      },
+      {
+        title: '帮助与反馈',
+        subtitle: '查看常见问题，并发送问题反馈或功能建议',
+        icon: 'help-circle-outline',
+        route: 'HelpFeedback',
+      },
+    ];
 
   const handleOpenEditProfile = () => {
     rootNavigation?.navigate('EditProfile');
@@ -237,7 +238,7 @@ const MeScreen: React.FC = () => {
               ]}
             >
               {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                <Image source={{ uri: getThumbnailUrl(avatarUrl, 200, 200) }} style={styles.avatar} />
               ) : (
                 <Text style={[styles.avatarFallback, { color: colors.primary }]}>{avatarFallback}</Text>
               )}

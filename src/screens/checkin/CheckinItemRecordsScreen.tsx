@@ -8,6 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import DiaryMasonryCard from '../../components/common/DiaryMasonryCard';
 import { MediaPreviewer } from '../../components/common/MediaPreviewer';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { checkinService } from '../../services/checkinService';
 import { useAppStore } from '../../store/appStore';
@@ -119,14 +120,14 @@ const CheckinItemRecordsScreen: React.FC = () => {
     () =>
       item.icon_original
         ? [
-            {
-              id: item._id,
-              uri: item.icon_original,
-              thumbnail: item.icon || item.icon_original,
-              type: 'image',
-              name: item.name_zh,
-            },
-          ]
+          {
+            id: item._id,
+            uri: item.icon_original,
+            thumbnail: item.icon || item.icon_original,
+            type: 'image',
+            name: item.name_zh,
+          },
+        ]
         : [],
     [item._id, item.icon, item.icon_original, item.name_zh]
   );

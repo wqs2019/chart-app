@@ -18,6 +18,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import authService from '../../services/authService';
 import { useAppStore } from '../../store/appStore';
@@ -228,7 +229,7 @@ const AdminUserManagementScreen: React.FC = () => {
             ]}
           >
             {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              <Image source={{ uri: getThumbnailUrl(avatarUrl, 200, 200) }} style={styles.avatarImage} />
             ) : (
               <Ionicons name="person" size={18} color={item.isDelete ? colors.textSecondary : colors.primary} />
             )}

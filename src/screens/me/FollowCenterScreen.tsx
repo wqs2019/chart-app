@@ -6,6 +6,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'rea
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { getThumbnailUrl } from '../../utils/image';
 import { notificationService } from '../../services/notificationService';
 import { socialService } from '../../services/socialService';
 import { useAppStore } from '../../store/appStore';
@@ -200,7 +201,7 @@ const FollowCenterScreen: React.FC = () => {
                       ]}
                     >
                       {row.avatar_url ? (
-                        <Image source={{ uri: row.avatar_url }} style={styles.avatar} />
+                        <Image source={{ uri: getThumbnailUrl(row.avatar_url, 200, 200) }} style={styles.avatar} />
                       ) : (
                         <Text style={[styles.avatarFallback, { color: colors.primary }]}>
                           {getAvatarFallback(row.display_name)}
