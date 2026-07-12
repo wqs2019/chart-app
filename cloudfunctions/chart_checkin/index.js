@@ -394,7 +394,7 @@ function summarizeCheckinInteraction(entries = [], fallbackInteraction = null) {
       summary.favorites_count += entryInteraction.favorites_count;
       return summary;
     },
-    normalizeCachedInteraction(fallbackInteraction)
+    { likes_count: 0, comments_count: 0, favorites_count: 0 }
   );
 }
 
@@ -461,10 +461,10 @@ function buildSnapshotMetrics(code, aggregateEntry) {
   if (code === 'world_travel') {
     const achievementScore = roundScore(
       rawCount * 4 +
-        aggregateEntry.continents.size * 5 +
-        aggregateEntry.world_tier_counts.A * 0.2 +
-        aggregateEntry.world_tier_counts.B * 0.4 +
-        aggregateEntry.world_tier_counts.C * 0.8
+      aggregateEntry.continents.size * 5 +
+      aggregateEntry.world_tier_counts.A * 0.2 +
+      aggregateEntry.world_tier_counts.B * 0.4 +
+      aggregateEntry.world_tier_counts.C * 0.8
     );
 
     return {
@@ -1071,8 +1071,8 @@ const saveCheckinEntry = async (data = {}) => {
     }
     const nextEntries = existingEntry
       ? existingEntries.map((currentEntry) =>
-          currentEntry.entry_id === nextEntry.entry_id ? { ...currentEntry, ...nextEntry } : currentEntry
-        )
+        currentEntry.entry_id === nextEntry.entry_id ? { ...currentEntry, ...nextEntry } : currentEntry
+      )
       : [nextEntry, ...existingEntries];
     const nextInteraction = summarizeCheckinInteraction(nextEntries, anchorCheckin?.interaction);
     const nextPayload = {
